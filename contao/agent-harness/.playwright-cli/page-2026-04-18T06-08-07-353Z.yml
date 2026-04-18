@@ -1,0 +1,13 @@
+- generic [active] [ref=e1]:
+  - img [ref=e5]
+  - generic [ref=e11]:
+    - heading "Page Not Found" [level=1] [ref=e12]
+    - generic [ref=e13]:
+      - text: </
+      - generic [ref=e15]:
+        - heading "Was ist das Problem?" [level=2] [ref=e16]
+        - paragraph [ref=e17]: The requested page does not exist.
+  - generic [ref=e19]:
+    - text: Legen Sie ein eigenes Twig-Template an, das das Template
+    - emphasis [ref=e20]: "@Contao/error/backend.html.twig"
+    - text: überschreibt, um diese Meldung anzupassen.

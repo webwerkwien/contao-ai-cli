@@ -1,0 +1,21 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e5]:
+      - heading "Anmelden" [level=1] [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: Benutzername
+        - textbox "Benutzername" [active] [ref=e9]
+      - generic [ref=e10]:
+        - generic [ref=e11]: Passwort
+        - textbox "Passwort" [ref=e12]
+        - button "Passwort anzeigen" [ref=e13] [cursor=pointer]:
+          - img "Passwort anzeigen" [ref=e15]
+      - button "Anmelden" [ref=e17] [cursor=pointer]
+    - generic [ref=e18]:
+      - paragraph [ref=e19]: oder
+      - list [ref=e20]:
+        - listitem [ref=e21]:
+          - button "Mit einem Passkey anmelden" [ref=e23] [cursor=pointer]
+  - paragraph [ref=e24]:
+    - link "Zum Frontend" [ref=e25] [cursor=pointer]:
+      - /url: /

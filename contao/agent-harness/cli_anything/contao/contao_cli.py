@@ -1,5 +1,5 @@
 """
-cli-anything-contao: Agent-native CLI for Contao 5 via SSH.
+contao-cli-agent: Agent-native CLI for Contao 5 via SSH.
 
 Wraps Contao's Symfony Console (php bin/console) with a Python CLI
 that agents can use over SSH. The real Contao installation is a
@@ -95,7 +95,7 @@ def _require_bridge(ctx, command_name: str):
 @click.version_option(__version__)
 @click.pass_context
 def cli(ctx, session, as_json):
-    """cli-anything-contao — Agent-native CLI for Contao 5 via SSH.\n
+    """contao-cli-agent — Agent-native CLI for Contao 5 via SSH.\n
     Connect to a Contao installation and run console commands remotely.
     Run without arguments to enter REPL mode.
     """
@@ -1010,7 +1010,7 @@ def repl(ctx):
         skin.info(f"Connected: {session_cfg.get('user')}@{session_cfg.get('host')} "
                   f"→ {session_cfg.get('contao_root')}")
     else:
-        skin.warning("No session. Run: cli-anything-contao connect --host HOST --user USER --root PATH")
+        skin.warning("No session. Run: contao-cli-agent connect --host HOST --user USER --root PATH")
 
     pt_session = skin.create_prompt_session()
     commands = {

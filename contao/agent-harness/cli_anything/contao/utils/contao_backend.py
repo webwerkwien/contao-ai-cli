@@ -148,7 +148,7 @@ class ContaoBackend:
         if not os.path.exists(session_path):
             raise ContaoBackendError(
                 f"Session file not found: {session_path}\n"
-                f"Run: cli-anything-contao connect --host HOST --user USER "
+                f"Run: contao-cli-agent connect --host HOST --user USER "
                 f"--root /path/to/contao"
             )
         with open(session_path) as f:

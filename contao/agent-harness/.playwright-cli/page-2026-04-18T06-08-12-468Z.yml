@@ -1,0 +1,313 @@
+- generic [active] [ref=e1]:
+  - link "Zum Inhalt springen" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Contao" [level=1] [ref=e5]:
+        - link "Contao" [ref=e6] [cursor=pointer]:
+          - /url: /contao
+      - navigation "Kopfzeile" [ref=e7]:
+        - link "Navigation überspringen" [ref=e8] [cursor=pointer]:
+          - /url: /contao?do=user#skipHeaderNav
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - link "Handbuch" [ref=e11] [cursor=pointer]:
+              - /url: https://to.contao.org/manual
+          - listitem [ref=e12]:
+            - link "Hinweise" [ref=e14] [cursor=pointer]:
+              - /url: /contao/alerts
+          - listitem [ref=e15]:
+            - link "Job-Übersicht" [ref=e18] [cursor=pointer]:
+              - /url: /contao?do=jobs
+          - listitem [ref=e19]:
+            - link "Debug-Modus" [ref=e20] [cursor=pointer]:
+              - /url: /contao?do=debug&key=enable&referer=ZG89dXNlcg%3D%3D
+          - listitem [ref=e21]:
+            - link "Vorschau" [ref=e22] [cursor=pointer]:
+              - /url: /contao/preview
+          - listitem [ref=e23]:
+            - button "Axelsoft" [ref=e25] [cursor=pointer]
+  - generic [ref=e27]:
+    - complementary [ref=e28]:
+      - navigation "Hauptmenü" [ref=e29]:
+        - link "Navigation überspringen" [ref=e30] [cursor=pointer]:
+          - /url: /contao?do=user#skipMainNav
+        - list [ref=e31]:
+          - listitem [ref=e32]:
+            - link "Favoriten" [ref=e33] [cursor=pointer]:
+              - /url: /contao?do=user&mtg=favorites
+          - listitem [ref=e34]:
+            - link "Inhalte" [expanded] [ref=e35] [cursor=pointer]:
+              - /url: /contao?do=user&mtg=content
+            - list [ref=e36]:
+              - listitem [ref=e37]:
+                - link "Seiten" [ref=e38] [cursor=pointer]:
+                  - /url: /contao?do=page
+              - listitem [ref=e39]:
+                - link "Artikel" [ref=e40] [cursor=pointer]:
+                  - /url: /contao?do=article
+              - listitem [ref=e41]:
+                - link "Dateien" [ref=e42] [cursor=pointer]:
+                  - /url: /contao?do=files
+              - listitem [ref=e43]:
+                - link "Formulare" [ref=e44] [cursor=pointer]:
+                  - /url: /contao?do=form
+              - listitem [ref=e45]:
+                - link "FAQ" [ref=e46] [cursor=pointer]:
+                  - /url: /contao?do=faq
+              - listitem [ref=e47]:
+                - link "Nachrichten" [ref=e48] [cursor=pointer]:
+                  - /url: /contao?do=news
+              - listitem [ref=e49]:
+                - link "Events" [ref=e50] [cursor=pointer]:
+                  - /url: /contao?do=calendar
+              - listitem [ref=e51]:
+                - link "Newsletter" [ref=e52] [cursor=pointer]:
+                  - /url: /contao?do=newsletter
+              - listitem [ref=e53]:
+                - link "Kommentare" [ref=e54] [cursor=pointer]:
+                  - /url: /contao?do=comments
+          - listitem [ref=e55]:
+            - link "Layout" [expanded] [ref=e56] [cursor=pointer]:
+              - /url: /contao?do=user&mtg=design
+            - list [ref=e57]:
+              - listitem [ref=e58]:
+                - link "Themes" [ref=e59] [cursor=pointer]:
+                  - /url: /contao?do=themes
+              - listitem [ref=e60]:
+                - link "Template Studio" [ref=e61] [cursor=pointer]:
+                  - /url: /contao/template-studio
+              - listitem [ref=e62]:
+                - link "Templates" [ref=e63] [cursor=pointer]:
+                  - /url: /contao?do=tpl_editor
+          - listitem [ref=e64]:
+            - link "Benutzer" [expanded] [ref=e65] [cursor=pointer]:
+              - /url: /contao?do=user&mtg=accounts
+            - list [ref=e66]:
+              - listitem [ref=e67]:
+                - link "Mitglieder" [ref=e68] [cursor=pointer]:
+                  - /url: /contao?do=member
+              - listitem [ref=e69]:
+                - link "Mitgliedergruppen" [ref=e70] [cursor=pointer]:
+                  - /url: /contao?do=mgroup
+              - listitem [ref=e71]:
+                - link "Benutzer" [ref=e72] [cursor=pointer]:
+                  - /url: /contao?do=user
+              - listitem [ref=e73]:
+                - link "Benutzergruppen" [ref=e74] [cursor=pointer]:
+                  - /url: /contao?do=group
+          - listitem [ref=e75]:
+            - link "System" [expanded] [ref=e76] [cursor=pointer]:
+              - /url: /contao?do=user&mtg=system
+            - list [ref=e77]:
+              - listitem [ref=e78]:
+                - link "Einstellungen" [ref=e79] [cursor=pointer]:
+                  - /url: /contao?do=settings
+              - listitem [ref=e80]:
+                - link "Systemwartung" [ref=e81] [cursor=pointer]:
+                  - /url: /contao?do=maintenance
+              - listitem [ref=e82]:
+                - link "System-Log" [ref=e83] [cursor=pointer]:
+                  - /url: /contao?do=log
+              - listitem [ref=e84]:
+                - link "Vorschau-Links" [ref=e85] [cursor=pointer]:
+                  - /url: /contao?do=preview_link
+              - listitem [ref=e86]:
+                - link "Double Opt-In" [ref=e87] [cursor=pointer]:
+                  - /url: /contao?do=opt_in
+              - listitem [ref=e88]:
+                - link "Wiederherstellen" [ref=e89] [cursor=pointer]:
+                  - /url: /contao?do=undo
+              - listitem [ref=e90]:
+                - link "Contao Manager" [ref=e91] [cursor=pointer]:
+                  - /url: https://your-server.example.com/contao-manager.phar.php
+      - generic [ref=e93]:
+        - text: Version 5.7.3
+        - text: Mehr erfahren auf
+        - link "contao.org" [ref=e94] [cursor=pointer]:
+          - /url: https://contao.org
+    - main "Benutzer" [ref=e96]:
+      - heading "Benutzer" [level=1] [ref=e97]:
+        - list [ref=e98]:
+          - listitem [ref=e99]:
+            - link "Benutzer" [ref=e100] [cursor=pointer]:
+              - /url: /contao?do=user&table=tl_user
+        - button "URL als Favorit speichern" [ref=e102] [cursor=pointer]
+      - generic [ref=e104]:
+        - form "Such- und Filterfunktionen" [ref=e105]:
+          - generic [ref=e107]:
+            - group "Suchen" [ref=e108]:
+              - generic [ref=e109]: Suchen
+              - generic [ref=e110]: Feld
+              - listbox "Feld" [ref=e112] [cursor=pointer]:
+                - generic [ref=e113]:
+                  - combobox "Feld":
+                    - option "Benutzername"
+                    - option "E-Mail-Adresse"
+                    - option "ID"
+                    - option "Name" [selected]
+                    - option "Tabellenrechte"
+                  - option "Name" [selected] [ref=e115]
+              - generic [ref=e116]: Suchbegriff
+              - searchbox "Suchbegriff" [ref=e117]
+            - group "Filtern" [ref=e118]:
+              - generic [ref=e119]: Filtern
+              - generic [ref=e120]: Backend-Sprache
+              - listbox "Backend-Sprache" [ref=e122] [cursor=pointer]:
+                - generic [ref=e123]:
+                  - combobox "Backend-Sprache":
+                    - option "-" [selected]
+                    - option "Deutsch"
+                    - option "Englisch"
+                  - option "-" [selected] [ref=e125]
+              - generic [ref=e126]: Passwort-Änderung notwendig
+              - listbox "Passwort-Änderung notwendig" [ref=e128] [cursor=pointer]:
+                - generic [ref=e129]:
+                  - combobox "Passwort-Änderung notwendig":
+                    - option "-" [selected]
+                    - option "nein"
+                  - option "-" [selected] [ref=e131]
+              - generic [ref=e132]: Zum Administrator machen
+              - listbox "Zum Administrator machen" [ref=e134] [cursor=pointer]:
+                - generic [ref=e135]:
+                  - combobox "Zum Administrator machen":
+                    - option "-" [selected]
+                    - option "ja"
+                    - option "nein"
+                  - option "-" [selected] [ref=e137]
+              - generic [ref=e138]: Benutzergruppen
+              - listbox "Benutzergruppen" [ref=e140] [cursor=pointer]:
+                - generic [ref=e141]:
+                  - combobox "Benutzergruppen":
+                    - option "-" [selected]
+                    - option "Editors"
+                  - option "-" [selected] [ref=e143]
+              - generic [ref=e144]: Deaktivieren
+              - listbox "Deaktivieren" [ref=e146] [cursor=pointer]:
+                - generic [ref=e147]:
+                  - combobox "Deaktivieren":
+                    - option "-" [selected]
+                    - option "nein"
+                    - option "ja"
+                  - option "-" [selected] [ref=e149]
+            - generic [ref=e150]:
+              - generic [ref=e151]: Sortieren
+              - listbox "Sortieren" [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]:
+                  - combobox "Sortieren":
+                    - option "Benutzername"
+                    - option "Hinzugefügt am" [selected]
+                    - option "Name"
+                    - option "Vorherige Anmeldung"
+                  - option "Hinzugefügt am" [selected] [ref=e156]
+            - generic [ref=e157]:
+              - generic [ref=e158]: Anzeigen
+              - listbox "Anzeigen" [ref=e160] [cursor=pointer]:
+                - generic [ref=e161]:
+                  - combobox "Anzeigen":
+                    - option "1 - 4" [selected]
+                    - option "Alle"
+                  - option "1 - 4" [selected] [ref=e163]
+          - generic [ref=e164]:
+            - button "Anwenden" [ref=e165] [cursor=pointer]
+            - button "Zurücksetzen" [disabled] [ref=e166]
+        - generic [ref=e168]:
+          - list [ref=e170]:
+            - listitem [ref=e171]:
+              - button "Neu" [ref=e173] [cursor=pointer]
+            - listitem [ref=e174]:
+              - link "Mehrere bearbeiten" [ref=e175] [cursor=pointer]:
+                - /url: /contao?do=user&act=select
+          - table [ref=e177]:
+            - rowgroup [ref=e178]:
+              - row "Name Benutzername Hinzugefügt am" [ref=e179]:
+                - columnheader [ref=e180]
+                - columnheader "Name" [ref=e181]
+                - columnheader "Benutzername" [ref=e182]
+                - columnheader "Hinzugefügt am" [ref=e183]
+                - columnheader [ref=e184]
+            - rowgroup [ref=e185]:
+              - row "Claude Test claude-test 18.04.2026 08:07 Benutzer ID 4 bearbeiten Benutzer ID 4 deaktivieren Zum Benutzer ID 4 wechseln Operationen für Element ID 4 anzeigen" [ref=e186]:
+                - cell [ref=e187]
+                - cell "Claude Test" [ref=e189]
+                - cell "claude-test" [ref=e190]
+                - cell "18.04.2026 08:07" [ref=e191]
+                - cell "Benutzer ID 4 bearbeiten Benutzer ID 4 deaktivieren Zum Benutzer ID 4 wechseln Operationen für Element ID 4 anzeigen" [ref=e192]:
+                  - list [ref=e194]:
+                    - listitem [ref=e195]:
+                      - link "Benutzer ID 4 bearbeiten" [ref=e196] [cursor=pointer]:
+                        - /url: /contao?do=user&act=edit&id=4
+                        - img "Benutzer ID 4 bearbeiten" [ref=e197]
+                    - listitem [ref=e198]:
+                      - link "Benutzer ID 4 deaktivieren" [ref=e199] [cursor=pointer]:
+                        - /url: /contao?do=user&act=toggle&field=disable&id=4&rt=a15.IqTy2ffAf28_l7JCkr0ePx1ptqMlXJuNjq-hP9D1mc0.buK1l4GDPCV9--UG2fBKaSk4m8ZKPe3owp2VWoqB6fhN87uOx4xHX3HG6w
+                        - img "Benutzer ID 4 deaktivieren" [ref=e200]
+                    - listitem [ref=e201]:
+                      - link "Zum Benutzer ID 4 wechseln" [ref=e202] [cursor=pointer]:
+                        - /url: /contao?_switch_user=claude-test
+                        - img "Zum Benutzer ID 4 wechseln" [ref=e203]
+                    - listitem [ref=e204]:
+                      - button "Operationen für Element ID 4 anzeigen" [ref=e205] [cursor=pointer]:
+                        - img "Operationen für Element ID 4 anzeigen" [ref=e206]
+              - row "James Wilson j.wilson 02.12.2009 12:48 Benutzer ID 2 bearbeiten Benutzer ID 2 aktivieren Zum Benutzer ID 2 wechseln Operationen für Element ID 2 anzeigen" [ref=e207]:
+                - cell [ref=e208]
+                - cell "James Wilson" [ref=e210]
+                - cell "j.wilson" [ref=e211]
+                - cell "02.12.2009 12:48" [ref=e212]
+                - cell "Benutzer ID 2 bearbeiten Benutzer ID 2 aktivieren Zum Benutzer ID 2 wechseln Operationen für Element ID 2 anzeigen" [ref=e213]:
+                  - list [ref=e215]:
+                    - listitem [ref=e216]:
+                      - link "Benutzer ID 2 bearbeiten" [ref=e217] [cursor=pointer]:
+                        - /url: /contao?do=user&act=edit&id=2
+                        - img "Benutzer ID 2 bearbeiten" [ref=e218]
+                    - listitem [ref=e219]:
+                      - link "Benutzer ID 2 aktivieren" [ref=e220] [cursor=pointer]:
+                        - /url: /contao?do=user&act=toggle&field=disable&id=2&rt=a15.IqTy2ffAf28_l7JCkr0ePx1ptqMlXJuNjq-hP9D1mc0.buK1l4GDPCV9--UG2fBKaSk4m8ZKPe3owp2VWoqB6fhN87uOx4xHX3HG6w
+                        - img "Benutzer ID 2 aktivieren" [ref=e221]
+                    - listitem [ref=e222]:
+                      - link "Zum Benutzer ID 2 wechseln" [ref=e223] [cursor=pointer]:
+                        - /url: /contao?_switch_user=j.wilson
+                        - img "Zum Benutzer ID 2 wechseln" [ref=e224]
+                    - listitem [ref=e225]:
+                      - button "Operationen für Element ID 2 anzeigen" [ref=e226] [cursor=pointer]:
+                        - img "Operationen für Element ID 2 anzeigen" [ref=e227]
+              - row "Helen Lewis h.lewis 02.12.2009 12:48 Benutzer ID 3 bearbeiten Benutzer ID 3 aktivieren Zum Benutzer ID 3 wechseln Operationen für Element ID 3 anzeigen" [ref=e228]:
+                - cell [ref=e229]
+                - cell "Helen Lewis" [ref=e231]
+                - cell "h.lewis" [ref=e232]
+                - cell "02.12.2009 12:48" [ref=e233]
+                - cell "Benutzer ID 3 bearbeiten Benutzer ID 3 aktivieren Zum Benutzer ID 3 wechseln Operationen für Element ID 3 anzeigen" [ref=e234]:
+                  - list [ref=e236]:
+                    - listitem [ref=e237]:
+                      - link "Benutzer ID 3 bearbeiten" [ref=e238] [cursor=pointer]:
+                        - /url: /contao?do=user&act=edit&id=3
+                        - img "Benutzer ID 3 bearbeiten" [ref=e239]
+                    - listitem [ref=e240]:
+                      - link "Benutzer ID 3 aktivieren" [ref=e241] [cursor=pointer]:
+                        - /url: /contao?do=user&act=toggle&field=disable&id=3&rt=a15.IqTy2ffAf28_l7JCkr0ePx1ptqMlXJuNjq-hP9D1mc0.buK1l4GDPCV9--UG2fBKaSk4m8ZKPe3owp2VWoqB6fhN87uOx4xHX3HG6w
+                        - img "Benutzer ID 3 aktivieren" [ref=e242]
+                    - listitem [ref=e243]:
+                      - link "Zum Benutzer ID 3 wechseln" [ref=e244] [cursor=pointer]:
+                        - /url: /contao?_switch_user=h.lewis
+                        - img "Zum Benutzer ID 3 wechseln" [ref=e245]
+                    - listitem [ref=e246]:
+                      - button "Operationen für Element ID 3 anzeigen" [ref=e247] [cursor=pointer]:
+                        - img "Operationen für Element ID 3 anzeigen" [ref=e248]
+              - row "Michael Morgenbesser Axelsoft 05.11.2009 14:41 Benutzer ID 1 bearbeiten Benutzer ID 1 deaktivieren Zum Benutzer ID 1 wechseln Operationen für Element ID 1 anzeigen" [ref=e249]:
+                - cell [ref=e250]
+                - cell "Michael Morgenbesser" [ref=e252]
+                - cell "Axelsoft" [ref=e253]
+                - cell "05.11.2009 14:41" [ref=e254]
+                - cell "Benutzer ID 1 bearbeiten Benutzer ID 1 deaktivieren Zum Benutzer ID 1 wechseln Operationen für Element ID 1 anzeigen" [ref=e255]:
+                  - list [ref=e257]:
+                    - listitem [ref=e258]:
+                      - link "Benutzer ID 1 bearbeiten" [ref=e259] [cursor=pointer]:
+                        - /url: /contao?do=user&act=edit&id=1
+                        - img "Benutzer ID 1 bearbeiten" [ref=e260]
+                    - listitem [ref=e261]:
+                      - img "Benutzer ID 1 deaktivieren" [ref=e262]
+                    - listitem [ref=e263]:
+                      - img "Zum Benutzer ID 1 wechseln" [ref=e264]
+                    - listitem [ref=e265]:
+                      - button "Operationen für Element ID 1 anzeigen" [ref=e266] [cursor=pointer]:
+                        - img "Operationen für Element ID 1 anzeigen" [ref=e267]

@@ -1,0 +1,149 @@
+- generic [active] [ref=e1]:
+  - link "Zum Inhalt springen" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Contao" [level=1] [ref=e5]:
+        - link "Contao" [ref=e6] [cursor=pointer]:
+          - /url: /contao
+      - navigation "Kopfzeile" [ref=e7]:
+        - link "Navigation überspringen" [ref=e8] [cursor=pointer]:
+          - /url: /contao#skipHeaderNav
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - link "Handbuch" [ref=e11] [cursor=pointer]:
+              - /url: https://to.contao.org/manual
+          - listitem [ref=e12]:
+            - link "Hinweise" [ref=e14] [cursor=pointer]:
+              - /url: /contao/alerts
+          - listitem [ref=e15]:
+            - link "Job-Übersicht" [ref=e18] [cursor=pointer]:
+              - /url: /contao?do=jobs
+          - listitem [ref=e19]:
+            - link "Debug-Modus" [ref=e20] [cursor=pointer]:
+              - /url: /contao?do=debug&key=enable&referer=
+          - listitem [ref=e21]:
+            - link "Vorschau" [ref=e22] [cursor=pointer]:
+              - /url: /contao/preview
+          - listitem [ref=e23]:
+            - button "Axelsoft" [ref=e25] [cursor=pointer]
+  - generic [ref=e27]:
+    - complementary [ref=e28]:
+      - navigation "Hauptmenü" [ref=e29]:
+        - link "Navigation überspringen" [ref=e30] [cursor=pointer]:
+          - /url: /contao#skipMainNav
+        - list [ref=e31]:
+          - listitem [ref=e32]:
+            - link "Favoriten" [ref=e33] [cursor=pointer]:
+              - /url: /contao?mtg=favorites
+          - listitem [ref=e34]:
+            - link "Inhalte" [expanded] [ref=e35] [cursor=pointer]:
+              - /url: /contao?mtg=content
+            - list [ref=e36]:
+              - listitem [ref=e37]:
+                - link "Seiten" [ref=e38] [cursor=pointer]:
+                  - /url: /contao?do=page
+              - listitem [ref=e39]:
+                - link "Artikel" [ref=e40] [cursor=pointer]:
+                  - /url: /contao?do=article
+              - listitem [ref=e41]:
+                - link "Dateien" [ref=e42] [cursor=pointer]:
+                  - /url: /contao?do=files
+              - listitem [ref=e43]:
+                - link "Formulare" [ref=e44] [cursor=pointer]:
+                  - /url: /contao?do=form
+              - listitem [ref=e45]:
+                - link "FAQ" [ref=e46] [cursor=pointer]:
+                  - /url: /contao?do=faq
+              - listitem [ref=e47]:
+                - link "Nachrichten" [ref=e48] [cursor=pointer]:
+                  - /url: /contao?do=news
+              - listitem [ref=e49]:
+                - link "Events" [ref=e50] [cursor=pointer]:
+                  - /url: /contao?do=calendar
+              - listitem [ref=e51]:
+                - link "Newsletter" [ref=e52] [cursor=pointer]:
+                  - /url: /contao?do=newsletter
+              - listitem [ref=e53]:
+                - link "Kommentare" [ref=e54] [cursor=pointer]:
+                  - /url: /contao?do=comments
+          - listitem [ref=e55]:
+            - link "Layout" [expanded] [ref=e56] [cursor=pointer]:
+              - /url: /contao?mtg=design
+            - list [ref=e57]:
+              - listitem [ref=e58]:
+                - link "Themes" [ref=e59] [cursor=pointer]:
+                  - /url: /contao?do=themes
+              - listitem [ref=e60]:
+                - link "Template Studio" [ref=e61] [cursor=pointer]:
+                  - /url: /contao/template-studio
+              - listitem [ref=e62]:
+                - link "Templates" [ref=e63] [cursor=pointer]:
+                  - /url: /contao?do=tpl_editor
+          - listitem [ref=e64]:
+            - link "Benutzer" [expanded] [ref=e65] [cursor=pointer]:
+              - /url: /contao?mtg=accounts
+            - list [ref=e66]:
+              - listitem [ref=e67]:
+                - link "Mitglieder" [ref=e68] [cursor=pointer]:
+                  - /url: /contao?do=member
+              - listitem [ref=e69]:
+                - link "Mitgliedergruppen" [ref=e70] [cursor=pointer]:
+                  - /url: /contao?do=mgroup
+              - listitem [ref=e71]:
+                - link "Benutzer" [ref=e72] [cursor=pointer]:
+                  - /url: /contao?do=user
+              - listitem [ref=e73]:
+                - link "Benutzergruppen" [ref=e74] [cursor=pointer]:
+                  - /url: /contao?do=group
+          - listitem [ref=e75]:
+            - link "System" [expanded] [ref=e76] [cursor=pointer]:
+              - /url: /contao?mtg=system
+            - list [ref=e77]:
+              - listitem [ref=e78]:
+                - link "Einstellungen" [ref=e79] [cursor=pointer]:
+                  - /url: /contao?do=settings
+              - listitem [ref=e80]:
+                - link "Systemwartung" [ref=e81] [cursor=pointer]:
+                  - /url: /contao?do=maintenance
+              - listitem [ref=e82]:
+                - link "System-Log" [ref=e83] [cursor=pointer]:
+                  - /url: /contao?do=log
+              - listitem [ref=e84]:
+                - link "Vorschau-Links" [ref=e85] [cursor=pointer]:
+                  - /url: /contao?do=preview_link
+              - listitem [ref=e86]:
+                - link "Double Opt-In" [ref=e87] [cursor=pointer]:
+                  - /url: /contao?do=opt_in
+              - listitem [ref=e88]:
+                - link "Wiederherstellen" [ref=e89] [cursor=pointer]:
+                  - /url: /contao?do=undo
+              - listitem [ref=e90]:
+                - link "Contao Manager" [ref=e91] [cursor=pointer]:
+                  - /url: https://your-server.example.com/contao-manager.phar.php
+      - generic [ref=e93]:
+        - text: Version 5.7.3
+        - text: Mehr erfahren auf
+        - link "contao.org" [ref=e94] [cursor=pointer]:
+          - /url: https://contao.org
+    - main "Dashboard" [ref=e96]:
+      - heading "Dashboard" [level=1] [ref=e97]:
+        - text: Dashboard
+        - button "URL als Favorit speichern" [ref=e99] [cursor=pointer]
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - heading "Hinweise" [level=2] [ref=e103]
+          - paragraph [ref=e104]:
+            - text: Ihre letzte Anmeldung war
+            - time [ref=e105]: vor 4 Monaten
+            - text: . Willkommen zurück!
+        - generic [ref=e106]:
+          - heading "Backend-Tastaturkürzel" [level=2] [ref=e107]
+          - paragraph [ref=e108]:
+            - text: Wie Sie Ihren Arbeitsablauf durch die Verwendung von
+            - link "Tastaturkürzeln" [ref=e109] [cursor=pointer]:
+              - /url: https://to.contao.org/docs/shortcuts
+            - text: beschleunigen.
+        - generic [ref=e110]:
+          - heading "Zuletzt bearbeitet" [level=2] [ref=e111]
+          - paragraph [ref=e112]: Zurzeit sind keine Versionen vorhanden.
