@@ -62,6 +62,10 @@ class VarDumpParser:
         if self._peek(8) == 'Closure(':
             return self._closure()
 
+        # triple-quoted heredoc string: """ ... """  (VarDumper multi-line format)
+        if self._peek(3) == '"""':
+            return self._heredoc_string()
+
         # quoted string
         if self._peek() == '"':
             return self._string()
@@ -205,6 +209,18 @@ class VarDumpParser:
             return int(s)
         except ValueError:
             return float(s)
+
+    def _heredoc_string(self) -> str:
+        """Parse VarDumper triple-quoted heredoc: \"\"\" ... \"\"\" """
+        self.pos += 3  # skip opening """
+        end_idx = self.text.find('"""', self.pos)
+        if end_idx == -1:
+            result = self.text[self.pos:]
+            self.pos = len(self.text)
+        else:
+            result = self.text[self.pos:end_idx]
+            self.pos = end_idx + 3  # skip closing """
+        return result.strip()
 
     def _closure(self) -> str:
         # skip to opening {

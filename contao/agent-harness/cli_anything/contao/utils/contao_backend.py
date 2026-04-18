@@ -70,6 +70,30 @@ class ContaoBackend:
         args.append(f"{self.user}@{self.host}")
         return args
 
+    def run_raw(self, shell_command: str) -> dict:
+        """
+        Run an arbitrary shell command on the remote server via SSH.
+        Does NOT prepend 'php bin/console' — use for ls, find, etc.
+        Returns dict with keys: returncode, stdout, stderr
+        """
+        full_cmd = f"cd '{self.contao_root}' && {shell_command}"
+        ssh_cmd = self._ssh_args() + [full_cmd]
+        env = os.environ.copy()
+        env["MSYS_NO_PATHCONV"] = "1"
+        env["MSYS2_ARG_CONV_EXCL"] = "*"
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env)
+        output = {
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
+        if result.returncode != 0:
+            raise ContaoBackendError(
+                f"Shell command failed (exit {result.returncode}): {shell_command}\n"
+                f"stderr: {result.stderr.strip()}"
+            )
+        return output
+
     def run(self, command: str, json_output: bool = False) -> dict:
         """
         Run a Contao console command via SSH.

@@ -20,14 +20,17 @@ from typing import Optional
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 from cli_anything.contao.utils.vardump_parser import parse_vardump
 
-# Tables to sync by default
-DEFAULT_TABLES = [
+# Fallback tables used when the server DCA cache is not reachable
+FALLBACK_TABLES = [
     'tl_user',
     'tl_page',
     'tl_article',
     'tl_content',
     'tl_member',
 ]
+
+# Path to the compiled DCA cache relative to contao_root
+_DCA_CACHE_PATH = 'var/cache/prod/contao/dca'
 
 
 # ── storage helpers ──────────────────────────────────────────────────────────
@@ -128,10 +131,32 @@ def sync_table(backend: ContaoBackend, table: str, session_path: str) -> dict:
     return schema
 
 
+def discover_tables(backend: ContaoBackend) -> list[str]:
+    """
+    Discover all registered DCA tables by listing the compiled cache directory.
+    Returns sorted list of table names (e.g. ['tl_article', 'tl_news', ...]).
+    Falls back to FALLBACK_TABLES if the cache directory is not accessible.
+    """
+    try:
+        result = backend.run_raw(f'ls {_DCA_CACHE_PATH}/')
+        tables = sorted(
+            fname.replace('.php', '')
+            for fname in result['stdout'].split()
+            if fname.endswith('.php') and fname.startswith('tl_')
+        )
+        return tables if tables else FALLBACK_TABLES
+    except Exception:
+        return FALLBACK_TABLES
+
+
 def sync_all(backend: ContaoBackend, session_path: str,
              tables: Optional[list] = None) -> dict:
-    """Sync schemas for multiple tables. Returns {table: schema|error}."""
-    tables = tables or DEFAULT_TABLES
+    """
+    Sync schemas for multiple tables. Returns {table: schema|error}.
+    If *tables* is None, discovers all registered tables from the server.
+    """
+    if tables is None:
+        tables = discover_tables(backend)
     results = {}
     for table in tables:
         try:
