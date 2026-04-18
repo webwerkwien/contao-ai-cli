@@ -20,6 +20,7 @@ from cli_anything.contao.core import (
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
+    dca_schema,
 )
 
 __version__ = "1.0.0"
@@ -418,6 +419,90 @@ def messenger_retry(ctx, message_id, as_json):
     b = _get_backend(ctx.obj.get("session"))
     _output(messenger_mod.messenger_failed_retry(b, message_id),
             as_json or ctx.obj.get("as_json"))
+
+
+# ─── SCHEMA ──────────────────────────────────────────────────────────────────
+
+@cli.group()
+def schema():
+    """DCA schema sync — fetch field definitions from the live server."""
+    pass
+
+
+@schema.command("sync")
+@click.argument("table", default="")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def schema_sync(ctx, table, as_json):
+    """Sync DCA schema for TABLE (or all default tables if omitted).
+
+    Fetches field definitions from the live server and stores them locally
+    so CLI commands can validate against the project's actual DCA config.
+
+    Default tables: tl_user, tl_page, tl_article, tl_content, tl_member
+    """
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    if table:
+        result = dca_schema.sync_table(b, table, session_path)
+        fields = result["fields"]
+        mandatory = [f for f, d in fields.items() if d.get("mandatory")]
+        summary = {
+            "table": table,
+            "fetched": result["fetched"],
+            "total_fields": len(fields),
+            "mandatory_fields": mandatory,
+        }
+        _output(summary, as_json or ctx.obj.get("as_json"))
+    else:
+        results = dca_schema.sync_all(b, session_path)
+        summary = {}
+        for tbl, res in results.items():
+            if "error" in res:
+                summary[tbl] = {"status": "error", "message": res["error"]}
+            else:
+                mandatory = [f for f, d in res["fields"].items() if d.get("mandatory")]
+                summary[tbl] = {
+                    "status": "ok",
+                    "total_fields": len(res["fields"]),
+                    "mandatory_fields": mandatory,
+                }
+        _output(summary, as_json or ctx.obj.get("as_json"))
+
+
+@schema.command("show")
+@click.argument("table")
+@click.option("--mandatory-only", is_flag=True, help="Show only mandatory fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def schema_show(ctx, table, mandatory_only, as_json):
+    """Show cached DCA schema for TABLE."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    rows = dca_schema.field_summary(table, session_path)
+    if not rows:
+        raise click.ClickException(
+            f"No schema for '{table}'. Run: schema sync {table}"
+        )
+    if mandatory_only:
+        rows = [r for r in rows if r["mandatory"]]
+    _output(rows, as_json or ctx.obj.get("as_json"))
+
+
+@schema.command("mandatory")
+@click.argument("table")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def schema_mandatory(ctx, table, as_json):
+    """List mandatory fields for TABLE."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    fields = dca_schema.mandatory_fields(table, session_path)
+    if not fields:
+        schema = dca_schema.load_schema(table, session_path)
+        if schema is None:
+            raise click.ClickException(
+                f"No schema for '{table}'. Run: schema sync {table}"
+            )
+    _output({"table": table, "mandatory": fields}, as_json or ctx.obj.get("as_json"))
 
 
 # ─── REPL ─────────────────────────────────────────────────────────────────────
