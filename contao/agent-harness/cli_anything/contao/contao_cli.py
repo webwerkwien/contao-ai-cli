@@ -274,13 +274,36 @@ def user_list(ctx, as_json):
 @click.option("--password", required=True)
 @click.option("--name", required=True, help="Full name (required by Contao)")
 @click.option("--email", required=True, help="E-mail address (required by Contao)")
+@click.option("--language", default="en", show_default=True,
+              help="Back end language, e.g. de, en (required by Contao)")
 @click.option("--admin", is_flag=True)
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_create(ctx, username, password, name, email, admin, as_json):
+def user_create(ctx, username, password, name, email, language, admin, as_json):
     """Create a backend user."""
-    b = _get_backend(ctx.obj.get("session"))
-    _output(user_mod.user_create(b, username, password, name, email, admin),
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+
+    # DCA validation — runs only if schema has been synced, skipped otherwise
+    missing = dca_schema.validate_fields(
+        table='tl_user',
+        provided={'username': username, 'password': password,
+                  'name': name, 'email': email, 'language': language},
+        session_path=session_path,
+    )
+    if missing:
+        schema = dca_schema.load_schema('tl_user', session_path)
+        details = []
+        for f in missing:
+            fdef = schema['fields'].get(f, {})
+            label = fdef.get('label') or f
+            details.append(f"--{f} ({label})")
+        raise click.UsageError(
+            f"Missing mandatory field(s) for tl_user: {', '.join(details)}\n"
+            f"Run 'schema sync tl_user' to refresh the field list."
+        )
+
+    b = _get_backend(session_path)
+    _output(user_mod.user_create(b, username, password, name, email, language, admin),
             as_json or ctx.obj.get("as_json"))
 
 

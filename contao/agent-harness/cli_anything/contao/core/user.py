@@ -12,13 +12,15 @@ def user_list(backend: ContaoBackend) -> list:
 
 
 def user_create(backend: ContaoBackend, username: str, password: str,
-                name: str, email: str, admin: bool = False) -> dict:
-    """Create a backend user. name and email are required by Contao."""
+                name: str, email: str, language: str = "en",
+                admin: bool = False) -> dict:
+    """Create a backend user. username, name, email, language, password are mandatory."""
     cmd = (f"contao:user:create "
            f"--username={username} "
            f"--password={password} "
            f"--name='{name}' "
            f"--email={email} "
+           f"--language={language} "
            f"--no-interaction")
     if admin:
         cmd += " --admin"

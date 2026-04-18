@@ -161,6 +161,33 @@ def mandatory_fields(table: str, session_path: str) -> list[str]:
     )
 
 
+def validate_fields(table: str, provided: dict, session_path: str) -> list[str]:
+    """
+    Check *provided* field values against the cached DCA schema for *table*.
+
+    Returns a list of missing mandatory field names. Empty list = all good.
+
+    If no schema is cached yet, returns [] with a warning side-effect
+    (validation is skipped rather than blocking the command).
+
+    *provided* is a dict of {field_name: value} where value=None or ""
+    counts as missing.
+    """
+    schema = load_schema(table, session_path)
+    if schema is None:
+        return []   # no schema → skip validation silently
+
+    missing = []
+    for fname, fdef in schema['fields'].items():
+        if not fdef.get('mandatory'):
+            continue
+        val = provided.get(fname)
+        # None, empty string, or missing key all count as "not provided"
+        if val is None or val == '':
+            missing.append(fname)
+    return missing
+
+
 def field_summary(table: str, session_path: str) -> list[dict]:
     """
     Return a list of field summaries suitable for display.
