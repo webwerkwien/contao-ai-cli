@@ -12,15 +12,14 @@ def user_list(backend: ContaoBackend) -> list:
 
 
 def user_create(backend: ContaoBackend, username: str, password: str,
-                name: str = "", email: str = "", admin: bool = False) -> dict:
+                name: str, email: str, admin: bool = False) -> dict:
+    """Create a backend user. name and email are required by Contao."""
     cmd = (f"contao:user:create "
            f"--username={username} "
            f"--password={password} "
+           f"--name='{name}' "
+           f"--email={email} "
            f"--no-interaction")
-    if name:
-        cmd += f" --name={name!r}"
-    if email:
-        cmd += f" --email={email}"
     if admin:
         cmd += " --admin"
     result = backend.run(cmd)
@@ -28,9 +27,10 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 
 
 def user_password(backend: ContaoBackend, username: str, password: str) -> dict:
+    # username is a positional argument, not a flag
     cmd = (f"contao:user:password "
-           f"--username={username} "
            f"--password={password} "
-           f"--no-interaction")
+           f"--no-interaction "
+           f"{username}")
     result = backend.run(cmd)
     return {"status": "updated", "username": username, "output": result["stdout"]}
