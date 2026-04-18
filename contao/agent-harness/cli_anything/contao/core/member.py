@@ -1,11 +1,13 @@
 """Contao frontend member management (tl_member)."""
 import json
-from cli_anything.contao.utils.contao_backend import ContaoBackend
+from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 
 
 def member_list(backend: ContaoBackend) -> list:
-    result = backend.run("contao:member:list --format=json")
-    if result.get("exit_code", 0) != 0:
+    try:
+        result = backend.run("contao:member:list --format=json")
+    except ContaoBackendError:
+        # No native member:list command — fall back to direct SQL
         result = backend.run(
             'doctrine:query:sql '
             '"SELECT id, username, email, firstname, lastname, disable FROM tl_member"'
