@@ -188,3 +188,148 @@ class TestCLIHelp:
     def test_messenger_help(self):
         result = self.runner.invoke(cli, ["messenger", "--help"])
         assert result.exit_code == 0
+
+
+# ─── table_parser ─────────────────────────────────────────────────────────────
+
+from cli_anything.contao.utils.table_parser import parse_table
+
+
+class TestTableParser:
+    def test_parse_table_basic(self):
+        text = (
+            " ---- ----------- \n"
+            "  id   username   \n"
+            " ---- ----------- \n"
+            "  1    j.smith    \n"
+            "  2    d.evans    \n"
+            " ---- ----------- \n"
+        )
+        result = parse_table(text)
+        assert result == [
+            {"id": "1", "username": "j.smith"},
+            {"id": "2", "username": "d.evans"},
+        ]
+
+    def test_parse_table_empty(self):
+        assert parse_table("no table here") == []
+
+    def test_parse_table_single_row(self):
+        text = (
+            " ---- ------- \n"
+            "  id   title  \n"
+            " ---- ------- \n"
+            "  5    Home   \n"
+            " ---- ------- \n"
+        )
+        result = parse_table(text)
+        assert len(result) == 1
+        assert result[0]["id"] == "5"
+        assert result[0]["title"] == "Home"
+
+
+# ─── member ───────────────────────────────────────────────────────────────────
+
+from cli_anything.contao.core.member import member_list, member_create
+
+MEMBER_TABLE = (
+    " ---- ---------- --------------------- ----------- ---------- --------- \n"
+    "  id   username   email                 firstname   lastname   disable  \n"
+    " ---- ---------- --------------------- ----------- ---------- --------- \n"
+    "  1    j.smith    j.smith@example.com   John        Smith      0        \n"
+    " ---- ---------- --------------------- ----------- ---------- --------- \n"
+)
+
+
+class TestMember:
+    def test_member_list_fallback(self):
+        backend = MagicMock()
+        # First call (contao:member:list) raises, second call (doctrine:query:sql) succeeds
+        from cli_anything.contao.utils.contao_backend import ContaoBackendError
+        backend.run.side_effect = [
+            ContaoBackendError("no such command"),
+            {"stdout": MEMBER_TABLE, "returncode": 0},
+        ]
+        result = member_list(backend)
+        assert isinstance(result, list)
+        assert result[0]["username"] == "j.smith"
+
+    def test_member_create(self):
+        backend = MagicMock()
+        backend.run_raw.return_value = {"stdout": "$2y$10$hashedpassword", "returncode": 0}
+        backend.run.return_value = {"stdout": "", "returncode": 0}
+        result = member_create(backend, "jdoe", "secret", "Jane", "Doe", "jdoe@example.com")
+        assert result["status"] == "created"
+        assert result["username"] == "jdoe"
+
+
+# ─── page ─────────────────────────────────────────────────────────────────────
+
+from cli_anything.contao.core.page import page_list, page_tree
+
+PAGE_TABLE = (
+    " ---- ----- ------- -------- --------- ----------- \n"
+    "  id   pid   title   alias    type      published   \n"
+    " ---- ----- ------- -------- --------- ----------- \n"
+    "  1    0     Root    root     root      1           \n"
+    "  2    1     Home    index    regular   1           \n"
+    "  3    2     Sub     sub      regular   1           \n"
+    " ---- ----- ------- -------- --------- ----------- \n"
+)
+
+
+class TestPage:
+    def test_page_list(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
+        result = page_list(backend)
+        assert len(result) == 3
+        assert result[0]["title"] == "Root"
+
+    def test_page_list_with_pid(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
+        page_list(backend, pid=1)
+        # Verify WHERE clause was included in the SQL
+        call_arg = backend.run.call_args[0][0]
+        assert "WHERE pid = 1" in call_arg
+
+    def test_page_tree_structure(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
+        result = page_tree(backend)
+        assert len(result) == 1  # one root
+        assert result[0]["title"] == "Root"
+        assert len(result[0]["children"]) == 1
+        assert result[0]["children"][0]["title"] == "Home"
+        assert result[0]["children"][0]["children"][0]["title"] == "Sub"
+
+
+# ─── article ──────────────────────────────────────────────────────────────────
+
+from cli_anything.contao.core.article import article_list
+
+ARTICLE_TABLE = (
+    " ---- ----- ------- -------- ----------- --------- \n"
+    "  id   pid   title   alias    published   inColumn  \n"
+    " ---- ----- ------- -------- ----------- --------- \n"
+    "  1    2     Home    index    1           main      \n"
+    " ---- ----- ------- -------- ----------- --------- \n"
+)
+
+
+class TestArticle:
+    def test_article_list(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": ARTICLE_TABLE, "returncode": 0}
+        result = article_list(backend)
+        assert len(result) == 1
+        assert result[0]["title"] == "Home"
+        assert result[0]["inColumn"] == "main"
+
+    def test_article_list_with_page(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": ARTICLE_TABLE, "returncode": 0}
+        article_list(backend, page_id=2)
+        call_arg = backend.run.call_args[0][0]
+        assert "WHERE pid = 2" in call_arg

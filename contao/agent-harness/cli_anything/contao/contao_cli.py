@@ -20,6 +20,7 @@ from cli_anything.contao.core import (
     member as member_mod,
     page as page_mod,
     article as article_mod,
+    content as content_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -487,6 +488,25 @@ def article_list_cmd(ctx, page_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(article_mod.article_list(b, page_id), ctx.obj.get("as_json"))
+
+
+# ─── content group ────────────────────────────────────────────────────────────
+
+@cli.group()
+def content():
+    """Manage Contao content elements (tl_content)."""
+    pass
+
+
+@content.command("list")
+@click.option("--article", "article_id", type=int, default=None,
+              help="Filter by article ID (pid)")
+@click.pass_context
+def content_list_cmd(ctx, article_id):
+    """List content elements, optionally filtered by article ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(content_mod.content_list(b, article_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
