@@ -26,6 +26,7 @@ from cli_anything.contao.core import (
     news as news_mod,
     event as event_mod,
     comment as comment_mod,
+    listing as listing_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -656,6 +657,33 @@ def comment_list_cmd(ctx, source, parent_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(comment_mod.comment_list(b, source, parent_id), ctx.obj.get("as_json"))
+
+
+# ─── listing group ────────────────────────────────────────────────────────────
+
+@cli.group()
+def listing():
+    """Manage Contao listing modules (contao/listing-bundle)."""
+    pass
+
+
+@listing.command("modules")
+@click.pass_context
+def listing_modules(ctx):
+    """List all configured listing modules."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(listing_mod.listing_module_list(b), ctx.obj.get("as_json"))
+
+
+@listing.command("data")
+@click.argument("module_id", type=int)
+@click.pass_context
+def listing_data_cmd(ctx, module_id):
+    """Fetch listing data for a specific module ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(listing_mod.listing_data(b, module_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
