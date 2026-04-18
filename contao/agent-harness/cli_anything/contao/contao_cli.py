@@ -18,6 +18,8 @@ from cli_anything.contao.core import (
     contao_ops,
     user as user_mod,
     member as member_mod,
+    page as page_mod,
+    article as article_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -439,6 +441,52 @@ def member_update(ctx, username, fields):
 def member_delete(ctx, username):
     """Delete a frontend member. Requires contao-cli-bridge."""
     _require_bridge(ctx, "member delete")
+
+
+# ─── page group ───────────────────────────────────────────────────────────────
+
+@cli.group()
+def page():
+    """Manage Contao pages (tl_page)."""
+    pass
+
+
+@page.command("list")
+@click.option("--pid", type=int, default=None, help="Filter by parent page ID")
+@click.pass_context
+def page_list_cmd(ctx, pid):
+    """List pages, optionally filtered by parent ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(page_mod.page_list(b, pid), ctx.obj.get("as_json"))
+
+
+@page.command("tree")
+@click.pass_context
+def page_tree_cmd(ctx):
+    """Show page tree (nested structure)."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(page_mod.page_tree(b), ctx.obj.get("as_json"))
+
+
+# ─── article group ────────────────────────────────────────────────────────────
+
+@cli.group()
+def article():
+    """Manage Contao articles (tl_article)."""
+    pass
+
+
+@article.command("list")
+@click.option("--page", "page_id", type=int, default=None,
+              help="Filter by page ID (pid)")
+@click.pass_context
+def article_list_cmd(ctx, page_id):
+    """List articles, optionally filtered by page ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(article_mod.article_list(b, page_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
