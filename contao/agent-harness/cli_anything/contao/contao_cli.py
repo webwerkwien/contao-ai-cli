@@ -953,6 +953,51 @@ def schema_mandatory(ctx, table, as_json):
     _output({"table": table, "mandatory": fields}, as_json or ctx.obj.get("as_json"))
 
 
+@schema.command("resolve")
+@click.argument("table", default="")
+@click.argument("field", default="")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def schema_resolve(ctx, table, field, as_json):
+    """Resolve __callback__ options in cached schemas.
+
+    With TABLE: resolves all __callback__ fields in that table.
+    With TABLE FIELD: resolves only that specific field.
+    Without arguments: resolves all synced tables.
+
+    Updates the local schema cache in-place.
+    """
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+
+    if table:
+        try:
+            results = dca_schema.resolve_callback_options(b, table, session_path,
+                                                          field or None)
+        except ValueError as e:
+            raise click.ClickException(str(e))
+        _output({table: results}, as_json or ctx.obj.get("as_json"))
+    else:
+        # Resolve all synced tables
+        schema_dir = dca_schema._schema_dir(session_path)
+        if not os.path.isdir(schema_dir):
+            raise click.ClickException("No schemas synced yet. Run: schema sync")
+        import glob as _glob
+        tables = [
+            os.path.splitext(os.path.basename(p))[0]
+            for p in _glob.glob(os.path.join(schema_dir, '*.json'))
+        ]
+        all_results = {}
+        for tbl in sorted(tables):
+            try:
+                res = dca_schema.resolve_callback_options(b, tbl, session_path)
+                if res:
+                    all_results[tbl] = res
+            except Exception as e:
+                all_results[tbl] = {'error': str(e)}
+        _output(all_results, as_json or ctx.obj.get("as_json"))
+
+
 # ─── REPL ─────────────────────────────────────────────────────────────────────
 
 @cli.command()
