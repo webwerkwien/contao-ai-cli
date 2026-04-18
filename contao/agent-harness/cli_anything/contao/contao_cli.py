@@ -48,7 +48,7 @@ def _get_backend(session_path=None):
     try:
         return ContaoBackend.from_session(path)
     except ContaoBackendError as e:
-        click.echo(click.style(f"✗ {e}", fg="red"), err=True)
+        click.echo(click.style(f"[ERROR] {e}", fg="red"), err=True)
         sys.exit(1)
 
 
@@ -123,7 +123,7 @@ def cli(ctx, session, as_json):
 def connect(ctx, host, user, root, key, port, php, name, as_json):
     """Connect to a Contao installation and save session config."""
     click.echo(click.style(
-        "\n⚠️  Warning: contao-cli-agent can irreversibly modify or delete data on the target server.\n"
+        "\n[!] Warning: contao-cli-agent can irreversibly modify or delete data on the target server.\n"
         "   Always ensure you have a current backup before proceeding.\n",
         fg="yellow"
     ))
@@ -149,12 +149,12 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         if click.confirm("Create a database backup now?", default=True):
             click.echo("Creating backup...")
             backup_result = backup_mod.backup_create(backend)
-            click.echo(click.style(f"✓ Backup created.", fg="green"))
+            click.echo(click.style(f"[OK] Backup created.", fg="green"))
             if backup_result.get("output"):
                 click.echo(backup_result["output"].strip())
 
     except ContaoBackendError as e:
-        click.echo(click.style(f"✗ Connection failed: {e}", fg="red"), err=True)
+        click.echo(click.style(f"[ERROR] Connection failed: {e}", fg="red"), err=True)
         sys.exit(1)
 
     b = ContaoBackend.from_session(session_path)
@@ -1192,7 +1192,7 @@ def repl(ctx):
     session_cfg = session_mod.load_session(ctx.obj.get("session"))
     if session_cfg:
         skin.info(f"Connected: {session_cfg.get('user')}@{session_cfg.get('host')} "
-                  f"→ {session_cfg.get('contao_root')}")
+                  f"  {session_cfg.get('contao_root')}")
     else:
         skin.warning("No session. Run: contao-cli-agent connect --host HOST --user USER --root PATH")
 
