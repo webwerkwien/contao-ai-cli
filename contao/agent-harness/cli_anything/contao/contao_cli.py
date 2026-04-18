@@ -32,6 +32,9 @@ from cli_anything.contao.core import (
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
+    mailer as mailer_mod,
+    security as security_mod,
+    search as search_mod,
     dca_schema,
 )
 
@@ -302,6 +305,34 @@ def resize_images(ctx, as_json):
     """Resize deferred images."""
     b = _get_backend(ctx.obj.get("session"))
     _output(contao_ops.resize_images(b), as_json or ctx.obj.get("as_json"))
+
+
+@contao_group.command("crawl")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def crawl(ctx, as_json):
+    """Crawl the website (rebuild search index)."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(contao_ops.crawl(b), as_json or ctx.obj.get("as_json"))
+
+
+@contao_group.command("automator")
+@click.argument("task", default="")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def automator(ctx, task, as_json):
+    """Run contao:automator tasks. TASK is optional (runs all if omitted)."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(contao_ops.automator(b, task), as_json or ctx.obj.get("as_json"))
+
+
+@contao_group.command("setup")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def contao_setup(ctx, as_json):
+    """Run post-install Contao setup."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(contao_ops.setup(b), as_json or ctx.obj.get("as_json"))
 
 
 # ─── user group ───────────────────────────────────────────────────────────────
@@ -833,6 +864,17 @@ def debug_router(ctx, as_json):
     _output(debug_ops.debug_router(b), as_json or ctx.obj.get("as_json"))
 
 
+@debug.command("match")
+@click.argument("path_info")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def debug_match(ctx, path_info, as_json):
+    """Match a URL path to its Symfony route."""
+    b = _get_backend(ctx.obj.get("session"))
+    result = b.run(f"router:match {path_info}")
+    _output({"output": result["stdout"]}, as_json or ctx.obj.get("as_json"))
+
+
 # ─── messenger group ──────────────────────────────────────────────────────────
 
 @cli.group()
@@ -867,6 +909,113 @@ def messenger_retry(ctx, message_id, as_json):
     b = _get_backend(ctx.obj.get("session"))
     _output(messenger_mod.messenger_failed_retry(b, message_id),
             as_json or ctx.obj.get("as_json"))
+
+
+@messenger.command("remove")
+@click.argument("message_id")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def messenger_remove(ctx, message_id, as_json):
+    """Remove a failed message by ID."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(messenger_mod.messenger_failed_remove(b, message_id),
+            as_json or ctx.obj.get("as_json"))
+
+
+@messenger.command("consume")
+@click.argument("transport", default="")
+@click.option("--limit", type=int, default=0, help="Stop after N messages")
+@click.option("--time-limit", type=int, default=0, help="Stop after N seconds")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def messenger_consume(ctx, transport, limit, time_limit, as_json):
+    """Consume messages from a transport (runs until stopped or limit reached)."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(messenger_mod.messenger_consume(b, transport, limit, time_limit),
+            as_json or ctx.obj.get("as_json"))
+
+
+@messenger.command("stop-workers")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def messenger_stop(ctx, as_json):
+    """Stop all messenger worker processes."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(messenger_mod.messenger_stop_workers(b), as_json or ctx.obj.get("as_json"))
+
+
+# ─── mailer group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def mailer():
+    """Mailer operations."""
+
+
+@mailer.command("test")
+@click.option("--to", required=True, help="Recipient e-mail address")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def mailer_test(ctx, to, as_json):
+    """Send a test e-mail to verify mailer configuration."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(mailer_mod.mailer_test(b, to), as_json or ctx.obj.get("as_json"))
+
+
+# ─── security group ───────────────────────────────────────────────────────────
+
+@cli.group()
+def security():
+    """Security utilities."""
+
+
+@security.command("hash-password")
+@click.argument("password")
+@click.option("--algorithm", default="auto", show_default=True,
+              help="Hashing algorithm (auto, bcrypt, argon2i, argon2id, sodium)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def security_hash_password(ctx, password, algorithm, as_json):
+    """Hash a password using Symfony's password hasher."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(security_mod.hash_password(b, password, algorithm),
+            as_json or ctx.obj.get("as_json"))
+
+
+# ─── search group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def search():
+    """Search index management (cmsig/seal)."""
+
+
+@search.command("reindex")
+@click.option("--index", default="", help="Specific index name (all if omitted)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def search_reindex(ctx, index, as_json):
+    """Rebuild the search index."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(search_mod.search_reindex(b, index), as_json or ctx.obj.get("as_json"))
+
+
+@search.command("index-create")
+@click.option("--index", default="", help="Specific index name (all if omitted)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def search_index_create(ctx, index, as_json):
+    """Create search index."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(search_mod.search_index_create(b, index), as_json or ctx.obj.get("as_json"))
+
+
+@search.command("index-drop")
+@click.option("--index", default="", help="Specific index name (all if omitted)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def search_index_drop(ctx, index, as_json):
+    """Drop search index."""
+    b = _get_backend(ctx.obj.get("session"))
+    _output(search_mod.search_index_drop(b, index), as_json or ctx.obj.get("as_json"))
 
 
 # ─── SCHEMA ──────────────────────────────────────────────────────────────────
