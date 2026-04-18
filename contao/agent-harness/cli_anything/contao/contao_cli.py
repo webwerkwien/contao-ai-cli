@@ -87,7 +87,6 @@ def _require_bridge(ctx, command_name: str):
             f"'{command_name}' requires contao-cli-bridge which is not installed on this server.\n"
             f"Install with: composer require webwerkwien/contao-cli-bridge"
         )
-    raise click.UsageError(f"'{command_name}' is not yet implemented in this CLI version.")
 
 
 # ─── Root group ───────────────────────────────────────────────────────────────
@@ -405,18 +404,25 @@ def user_password(ctx, username, password, as_json):
 @click.argument("username")
 @click.option("--field", "fields", multiple=True,
               metavar="FIELD=VALUE", help="Field to update, e.g. --field email=new@example.com")
+@click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_update(ctx, username, fields):
-    """Update a backend user field. Requires contao-cli-bridge."""
+def user_update(ctx, username, fields, as_json):
+    """Update a backend user field via contao-cli-bridge."""
     _require_bridge(ctx, "user update")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(user_mod.user_update(b, username, parsed), as_json or ctx.obj.get("as_json"))
 
 
 @user.command("delete")
 @click.argument("username")
+@click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_delete(ctx, username):
-    """Delete a backend user. Requires contao-cli-bridge."""
+def user_delete(ctx, username, as_json):
+    """Delete a backend user via contao-cli-bridge."""
     _require_bridge(ctx, "user delete")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(user_mod.user_delete(b, username), as_json or ctx.obj.get("as_json"))
 
 
 # ─── member group ─────────────────────────────────────────────────────────────
@@ -469,18 +475,25 @@ def member_create_cmd(ctx, username, password, firstname, lastname, email, as_js
 @member.command("update")
 @click.argument("username")
 @click.option("--field", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def member_update(ctx, username, fields):
-    """Update a frontend member field. Requires contao-cli-bridge."""
+def member_update(ctx, username, fields, as_json):
+    """Update a frontend member field via contao-cli-bridge."""
     _require_bridge(ctx, "member update")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(member_mod.member_update(b, username, parsed), as_json or ctx.obj.get("as_json"))
 
 
 @member.command("delete")
 @click.argument("username")
+@click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def member_delete(ctx, username):
-    """Delete a frontend member. Requires contao-cli-bridge."""
+def member_delete(ctx, username, as_json):
+    """Delete a frontend member via contao-cli-bridge."""
     _require_bridge(ctx, "member delete")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(member_mod.member_delete(b, username), as_json or ctx.obj.get("as_json"))
 
 
 # ─── page group ───────────────────────────────────────────────────────────────
