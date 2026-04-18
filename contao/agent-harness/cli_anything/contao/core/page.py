@@ -1,4 +1,5 @@
 """Contao page management (tl_page)."""
+import json
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -39,3 +40,20 @@ def page_tree(backend: ContaoBackend) -> list:
             by_id[p["pid"]]["children"].append(p)
 
     return roots
+
+
+def page_create(backend: ContaoBackend, title: str, pid: int = 0,
+                type: str = "regular", alias: str = "", language: str = "de",
+                fields: dict = None) -> dict:
+    """Create a page via contao-cli-bridge."""
+    cmd = (f"contao:page:create --title='{title}' --pid={pid} "
+           f"--type={type} --language={language} --no-interaction")
+    if alias:
+        cmd += f" --alias={alias}"
+    if fields:
+        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"status": "ok", "output": result["stdout"]}

@@ -1,4 +1,5 @@
 """Contao content element management (tl_content)."""
+import json
 import re
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend
@@ -28,3 +29,17 @@ def content_list(backend: ContaoBackend, article_id: int = None) -> list:
         if isinstance(row, dict) and "headline" in row:
             row["headline"] = _parse_headline(row["headline"])
     return parsed
+
+
+def content_create(backend: ContaoBackend, type: str, pid: int,
+                   ptable: str = "tl_article", fields: dict = None) -> dict:
+    """Create a content element via contao-cli-bridge."""
+    cmd = (f"contao:content:create --type={type} --pid={pid} "
+           f"--ptable={ptable} --no-interaction")
+    if fields:
+        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"status": "ok", "output": result["stdout"]}
