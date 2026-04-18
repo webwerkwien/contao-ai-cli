@@ -333,3 +333,104 @@ class TestArticle:
         article_list(backend, page_id=2)
         call_arg = backend.run.call_args[0][0]
         assert "WHERE pid = 2" in call_arg
+
+
+# ─── dca_schema resolve_callback_options ──────────────────────────────────────
+
+from cli_anything.contao.core import dca_schema
+
+
+def _write_schema(path, table, fields):
+    """Helper: write a minimal schema JSON to path."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump({'table': table, 'fetched': '2026-01-01T00:00:00', 'fields': fields}, f)
+
+
+class TestResolveCallbackOptions:
+    def test_static_language_resolved(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        _write_schema(schema_path, 'tl_user', {
+            'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
+        assert 'language' in result
+        assert isinstance(result['language'], dict)
+        assert result['language']['de'] == 'German'
+        assert result['language']['en'] == 'English'
+        backend.run.assert_not_called()
+
+    def test_table_based_groups_resolved(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        _write_schema(schema_path, 'tl_user', {
+            'groups': {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        backend.run.return_value = {
+            'stdout': (
+                " ---- ----------- \n"
+                "  id   name       \n"
+                " ---- ----------- \n"
+                "  1    Admins     \n"
+                "  2    Editors    \n"
+                " ---- ----------- \n"
+            ),
+            'returncode': 0,
+        }
+        result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
+        assert result['groups'] == {'1': 'Admins', '2': 'Editors'}
+
+    def test_unknown_callback_stays_unresolved(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        _write_schema(schema_path, 'tl_user', {
+            'modules': {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
+        assert result['modules'] == '__unresolved__'
+
+    def test_no_schema_raises(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        backend = MagicMock()
+        with pytest.raises(ValueError, match="No schema"):
+            dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
+
+    def test_schema_updated_on_disk(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        _write_schema(schema_path, 'tl_user', {
+            'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
+        updated = json.load(open(schema_path))
+        assert updated['fields']['language']['options'] != '__callback__'
+        assert isinstance(updated['fields']['language']['options'], dict)
+
+    def test_page_type_resolved(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_page.json')
+        _write_schema(schema_path, 'tl_page', {
+            'type': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        result = dca_schema.resolve_callback_options(backend, 'tl_page', session_path)
+        assert 'regular' in result['type']
+        assert 'root' in result['type']
+
+    def test_single_field_resolve(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        _write_schema(schema_path, 'tl_user', {
+            'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
+            'modules':  {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path,
+                                                     field='language')
+        assert 'language' in result
+        assert 'modules' not in result

@@ -19,6 +19,7 @@ from typing import Optional
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 from cli_anything.contao.utils.vardump_parser import parse_vardump
+from cli_anything.contao.utils.table_parser import parse_table
 
 # Fallback tables used when the server DCA cache is not reachable
 FALLBACK_TABLES = [
@@ -31,6 +32,52 @@ FALLBACK_TABLES = [
 
 # Path to the compiled DCA cache relative to contao_root
 _DCA_CACHE_PATH = 'var/cache/prod/contao/dca'
+
+# Static options for PHP-function-based callbacks (Contao core, rarely changes)
+# ISO 639-1 language codes supported by Contao 5
+STATIC_OPTIONS: dict[tuple, dict] = {
+    ('tl_user', 'language'): {
+        'ar': 'Arabic', 'be': 'Belarusian', 'bg': 'Bulgarian', 'bs': 'Bosnian',
+        'ca': 'Catalan', 'cs': 'Czech', 'cy': 'Welsh', 'da': 'Danish',
+        'de': 'German', 'el': 'Greek', 'en': 'English', 'es': 'Spanish',
+        'et': 'Estonian', 'eu': 'Basque', 'fa': 'Persian', 'fi': 'Finnish',
+        'fr': 'French', 'gl': 'Galician', 'he': 'Hebrew', 'hr': 'Croatian',
+        'hu': 'Hungarian', 'hy': 'Armenian', 'id': 'Indonesian', 'it': 'Italian',
+        'ja': 'Japanese', 'ka': 'Georgian', 'ko': 'Korean', 'lt': 'Lithuanian',
+        'lv': 'Latvian', 'mk': 'Macedonian', 'ms': 'Malay', 'nl': 'Dutch',
+        'nn': 'Norwegian Nynorsk', 'no': 'Norwegian', 'pl': 'Polish',
+        'pt': 'Portuguese', 'rm': 'Romansh', 'ro': 'Romanian', 'ru': 'Russian',
+        'sk': 'Slovak', 'sl': 'Slovenian', 'sq': 'Albanian', 'sr': 'Serbian',
+        'sv': 'Swedish', 'sw': 'Swahili', 'th': 'Thai', 'tr': 'Turkish',
+        'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese', 'zh': 'Chinese',
+    },
+    ('tl_member', 'language'): {
+        'ar': 'Arabic', 'de': 'German', 'en': 'English', 'es': 'Spanish',
+        'fr': 'French', 'it': 'Italian', 'nl': 'Dutch', 'pl': 'Polish',
+        'pt': 'Portuguese', 'ru': 'Russian', 'tr': 'Turkish', 'zh': 'Chinese',
+    },
+    # Contao 5 core page types (extensions may register additional types)
+    ('tl_page', 'type'): {
+        'regular': 'Regular page', 'forward': 'Forward', 'redirect': 'Redirect',
+        'root': 'Root page', 'error_401': 'Error 401', 'error_403': 'Error 403',
+        'error_404': 'Error 404', 'error_410': 'Error 410', 'error_503': 'Error 503',
+        'logout': 'Logout',
+    },
+}
+
+# SQL queries to resolve table-based option callbacks
+# Returns rows with 'id' and 'name' columns
+TABLE_OPTION_QUERIES: dict[tuple, str] = {
+    ('tl_user',   'groups'):         'SELECT id, name FROM tl_user_group ORDER BY name',
+    ('tl_member', 'groups'):         'SELECT id, name FROM tl_member_group ORDER BY name',
+    ('tl_page',   'groups'):         'SELECT id, name FROM tl_member_group ORDER BY name',
+    ('tl_page',   'layout'):         'SELECT id, name FROM tl_layout ORDER BY name',
+    ('tl_page',   'subpageLayout'):  'SELECT id, name FROM tl_layout ORDER BY name',
+    ('tl_page',   'newsArchives'):   'SELECT id, title AS name FROM tl_news_archive ORDER BY title',
+    ('tl_page',   'eventCalendars'): 'SELECT id, title AS name FROM tl_calendar ORDER BY title',
+    ('tl_page',   'imgSize'):        'SELECT id, name FROM tl_image_size ORDER BY name',
+    ('tl_member', 'newsletter'):     'SELECT id, title AS name FROM tl_newsletter_channel ORDER BY title',
+}
 
 
 # ── storage helpers ──────────────────────────────────────────────────────────
@@ -211,6 +258,72 @@ def validate_fields(table: str, provided: dict, session_path: str) -> list[str]:
         if val is None or val == '':
             missing.append(fname)
     return missing
+
+
+def resolve_callback_options(
+    backend: ContaoBackend,
+    table: str,
+    session_path: str,
+    field: Optional[str] = None,
+) -> dict:
+    """
+    Resolve __callback__ options in the cached schema for *table*.
+
+    Tries static lists first, then live SQL queries via doctrine:query:sql.
+    Updates the cached schema JSON in-place and returns a result dict:
+      {field_name: resolved_options | '__unresolved__'}
+
+    If *field* is given, only that field is processed.
+    Raises ValueError if no schema is cached yet.
+    """
+    schema = load_schema(table, session_path)
+    if schema is None:
+        raise ValueError(f"No schema for '{table}'. Run: schema sync {table}")
+
+    if field:
+        if field not in schema['fields']:
+            raise ValueError(f"Field '{field}' not found in schema for '{table}'")
+        candidates = [(field, schema['fields'][field])]
+    else:
+        candidates = [
+            (f, d) for f, d in schema['fields'].items()
+            if d.get('options') == '__callback__'
+        ]
+
+    results = {}
+    changed = False
+
+    for fname, fdef in candidates:
+        key = (table, fname)
+
+        if key in STATIC_OPTIONS:
+            schema['fields'][fname]['options'] = STATIC_OPTIONS[key]
+            results[fname] = STATIC_OPTIONS[key]
+            changed = True
+            continue
+
+        if key in TABLE_OPTION_QUERIES:
+            try:
+                sql = TABLE_OPTION_QUERIES[key]
+                res = backend.run(f'doctrine:query:sql "{sql}"')
+                rows = parse_table(res['stdout'])
+                if rows and isinstance(rows, list):
+                    options = {str(r['id']): r['name'] for r in rows
+                               if 'id' in r and 'name' in r}
+                    schema['fields'][fname]['options'] = options
+                    results[fname] = options
+                    changed = True
+                    continue
+            except Exception:
+                pass
+
+        results[fname] = '__unresolved__'
+
+    if changed:
+        with open(_schema_path(table, session_path), 'w', encoding='utf-8') as f:
+            json.dump(schema, f, indent=2, ensure_ascii=False)
+
+    return results
 
 
 def field_summary(table: str, session_path: str) -> list[dict]:
