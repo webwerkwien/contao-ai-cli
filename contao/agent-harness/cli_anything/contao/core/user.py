@@ -1,6 +1,7 @@
 """Contao backend user management."""
 import json
 from cli_anything.contao.utils.contao_backend import ContaoBackend
+from cli_anything.contao.utils.table_parser import parse_table
 
 
 def user_list(backend: ContaoBackend) -> list:
@@ -8,7 +9,8 @@ def user_list(backend: ContaoBackend) -> list:
     try:
         return json.loads(result["stdout"])
     except json.JSONDecodeError:
-        return {"raw": result["stdout"]}
+        parsed = parse_table(result["stdout"])
+        return parsed if parsed else {"raw": result["stdout"]}
 
 
 def user_create(backend: ContaoBackend, username: str, password: str,

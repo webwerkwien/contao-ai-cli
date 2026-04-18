@@ -1,21 +1,22 @@
 """Contao frontend member management (tl_member)."""
 import json
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
+from cli_anything.contao.utils.table_parser import parse_table
 
 
 def member_list(backend: ContaoBackend) -> list:
     try:
         result = backend.run("contao:member:list --format=json")
-    except ContaoBackendError:
-        # No native member:list command — fall back to direct SQL
-        result = backend.run(
-            'doctrine:query:sql '
-            '"SELECT id, username, email, firstname, lastname, disable FROM tl_member"'
-        )
-    try:
         return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"raw": result["stdout"]}
+    except (ContaoBackendError, json.JSONDecodeError):
+        pass
+    # No native member:list command — fall back to direct SQL
+    result = backend.run(
+        'doctrine:query:sql '
+        '"SELECT id, username, email, firstname, lastname, disable FROM tl_member"'
+    )
+    parsed = parse_table(result["stdout"])
+    return parsed if parsed else {"raw": result["stdout"]}
 
 
 def member_create(backend: ContaoBackend, username: str, password: str,
