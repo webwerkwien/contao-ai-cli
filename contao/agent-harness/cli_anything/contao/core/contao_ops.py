@@ -59,3 +59,18 @@ def resize_images(backend: ContaoBackend) -> dict:
 def crawl(backend: ContaoBackend) -> dict:
     result = backend.run("contao:crawl --no-interaction")
     return {"status": "ok", "output": result["stdout"]}
+
+
+def automator(backend: ContaoBackend, task: str = "") -> dict:
+    """Run contao:automator tasks."""
+    cmd = "contao:automator --no-interaction"
+    if task:
+        cmd += f" {task}"
+    result = backend.run(cmd)
+    return {"status": "ok", "output": result["stdout"]}
+
+
+def setup(backend: ContaoBackend) -> dict:
+    """Run contao:setup (post-install setup)."""
+    result = backend.run("contao:setup --no-interaction")
+    return {"status": "ok", "output": result["stdout"]}
