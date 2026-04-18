@@ -545,6 +545,24 @@ def page_tree_cmd(ctx):
     _output(page_mod.page_tree(b), ctx.obj.get("as_json"))
 
 
+@page.command("create")
+@click.option("--title", required=True, help="Page title")
+@click.option("--pid", type=int, default=0, show_default=True, help="Parent page ID")
+@click.option("--type", "page_type", default="regular", show_default=True, help="Page type (regular, root, …)")
+@click.option("--alias", default="", help="Page alias (auto-generated if omitted)")
+@click.option("--language", default="de", show_default=True, help="Page language")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE", help="Extra fields, e.g. --set robots=noindex")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json):
+    """Create a page via contao-cli-bridge."""
+    _require_bridge(ctx, "page create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(page_mod.page_create(b, title, pid, page_type, alias, language, parsed),
+            as_json or ctx.obj.get("as_json"))
+
+
 # ─── article group ────────────────────────────────────────────────────────────
 
 @cli.group()
@@ -564,6 +582,22 @@ def article_list_cmd(ctx, page_id):
     _output(article_mod.article_list(b, page_id), ctx.obj.get("as_json"))
 
 
+@article.command("create")
+@click.option("--title", required=True, help="Article title")
+@click.option("--pid", type=int, required=True, help="Parent page ID")
+@click.option("--column", "in_column", default="main", show_default=True, help="Layout column")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_create_cmd(ctx, title, pid, in_column, fields, as_json):
+    """Create an article via contao-cli-bridge."""
+    _require_bridge(ctx, "article create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(article_mod.article_create(b, title, pid, in_column, parsed),
+            as_json or ctx.obj.get("as_json"))
+
+
 # ─── content group ────────────────────────────────────────────────────────────
 
 @cli.group()
@@ -581,6 +615,25 @@ def content_list_cmd(ctx, article_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(content_mod.content_list(b, article_id), ctx.obj.get("as_json"))
+
+
+@content.command("create")
+@click.option("--type", "el_type", required=True, help="Element type (text, headline, image, …)")
+@click.option("--pid", type=int, required=True, help="Parent ID (article ID)")
+@click.option("--ptable", default="tl_article", show_default=True, help="Parent table")
+@click.option("--text", default=None, help="Shortcut for --set text=VALUE")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def content_create_cmd(ctx, el_type, pid, ptable, text, fields, as_json):
+    """Create a content element via contao-cli-bridge."""
+    _require_bridge(ctx, "content create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    if text is not None:
+        parsed.setdefault("text", text)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(content_mod.content_create(b, el_type, pid, ptable, parsed),
+            as_json or ctx.obj.get("as_json"))
 
 
 # ─── faq group ────────────────────────────────────────────────────────────────
@@ -609,6 +662,22 @@ def faq_list_cmd(ctx, category_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(faq_mod.faq_list(b, category_id), ctx.obj.get("as_json"))
+
+
+@faq.command("create")
+@click.option("--question", required=True, help="FAQ question")
+@click.option("--pid", type=int, required=True, help="FAQ category ID")
+@click.option("--answer", default="", help="FAQ answer (HTML)")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_create_cmd(ctx, question, pid, answer, fields, as_json):
+    """Create a FAQ entry via contao-cli-bridge."""
+    _require_bridge(ctx, "faq create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(faq_mod.faq_create(b, question, pid, answer, parsed),
+            as_json or ctx.obj.get("as_json"))
 
 
 # ─── newsletter group ─────────────────────────────────────────────────────────
@@ -678,6 +747,22 @@ def news_list_cmd(ctx, archive_id):
     _output(news_mod.news_list(b, archive_id), ctx.obj.get("as_json"))
 
 
+@news.command("create")
+@click.option("--headline", required=True, help="News headline")
+@click.option("--pid", type=int, required=True, help="News archive ID")
+@click.option("--date", default=None, help="Publication date (YYYY-MM-DD, default: today)")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_create_cmd(ctx, headline, pid, date, fields, as_json):
+    """Create a news entry via contao-cli-bridge."""
+    _require_bridge(ctx, "news create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_create(b, headline, pid, date, parsed),
+            as_json or ctx.obj.get("as_json"))
+
+
 # ─── event group ──────────────────────────────────────────────────────────────
 
 @cli.group()
@@ -704,6 +789,23 @@ def event_list_cmd(ctx, calendar_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(event_mod.event_list(b, calendar_id), ctx.obj.get("as_json"))
+
+
+@event.command("create")
+@click.option("--title", required=True, help="Event title")
+@click.option("--pid", type=int, required=True, help="Calendar ID")
+@click.option("--start-date", "start_date", default=None, help="Start date (YYYY-MM-DD, default: today)")
+@click.option("--end-date", "end_date", default=None, help="End date (YYYY-MM-DD, default: start date)")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def event_create_cmd(ctx, title, pid, start_date, end_date, fields, as_json):
+    """Create a calendar event via contao-cli-bridge."""
+    _require_bridge(ctx, "event create")
+    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.event_create(b, title, pid, start_date, end_date, parsed),
+            as_json or ctx.obj.get("as_json"))
 
 
 # ─── comment group ────────────────────────────────────────────────────────────
