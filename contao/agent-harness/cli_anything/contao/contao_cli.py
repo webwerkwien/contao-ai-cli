@@ -21,6 +21,9 @@ from cli_anything.contao.core import (
     page as page_mod,
     article as article_mod,
     content as content_mod,
+    faq as faq_mod,
+    news as news_mod,
+    event as event_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -507,6 +510,90 @@ def content_list_cmd(ctx, article_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(content_mod.content_list(b, article_id), ctx.obj.get("as_json"))
+
+
+# ─── faq group ────────────────────────────────────────────────────────────────
+
+@cli.group()
+def faq():
+    """Manage Contao FAQ entries (tl_faq)."""
+    pass
+
+
+@faq.command("categories")
+@click.pass_context
+def faq_categories(ctx):
+    """List all FAQ categories."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(faq_mod.faq_category_list(b), ctx.obj.get("as_json"))
+
+
+@faq.command("list")
+@click.option("--category", "category_id", type=int, default=None,
+              help="Filter by category ID")
+@click.pass_context
+def faq_list_cmd(ctx, category_id):
+    """List FAQ entries, optionally filtered by category ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(faq_mod.faq_list(b, category_id), ctx.obj.get("as_json"))
+
+
+# ─── news group ───────────────────────────────────────────────────────────────
+
+@cli.group()
+def news():
+    """Manage Contao news entries (tl_news)."""
+    pass
+
+
+@news.command("archives")
+@click.pass_context
+def news_archives(ctx):
+    """List all news archives."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(news_mod.news_archive_list(b), ctx.obj.get("as_json"))
+
+
+@news.command("list")
+@click.option("--archive", "archive_id", type=int, default=None,
+              help="Filter by archive ID")
+@click.pass_context
+def news_list_cmd(ctx, archive_id):
+    """List news entries, optionally filtered by archive ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(news_mod.news_list(b, archive_id), ctx.obj.get("as_json"))
+
+
+# ─── event group ──────────────────────────────────────────────────────────────
+
+@cli.group()
+def event():
+    """Manage Contao calendar events (tl_calendar_events)."""
+    pass
+
+
+@event.command("calendars")
+@click.pass_context
+def event_calendars(ctx):
+    """List all calendars."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(event_mod.calendar_list(b), ctx.obj.get("as_json"))
+
+
+@event.command("list")
+@click.option("--calendar", "calendar_id", type=int, default=None,
+              help="Filter by calendar ID")
+@click.pass_context
+def event_list_cmd(ctx, calendar_id):
+    """List calendar events, optionally filtered by calendar ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(event_mod.event_list(b, calendar_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
