@@ -124,8 +124,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     """Connect to a Contao installation and save session config."""
     click.echo(click.style(
         "\n⚠️  Warning: contao-cli-agent can irreversibly modify or delete data on the target server.\n"
-        "   Always ensure you have a current backup before proceeding.\n"
-        "   Use 'contao-cli-agent backup create' to create one.\n",
+        "   Always ensure you have a current backup before proceeding.\n",
         fg="yellow"
     ))
     click.confirm("I understand and have a backup. Continue?", abort=True)
@@ -146,6 +145,14 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         saved = session_mod.save_session(config, session_path)
         data = {"status": "connected", "session": saved, "version": result["stdout"]}
         _output(data, as_json or ctx.obj.get("as_json"))
+
+        if click.confirm("Create a database backup now?", default=True):
+            click.echo("Creating backup...")
+            backup_result = backup_mod.backup_create(backend)
+            click.echo(click.style(f"✓ Backup created.", fg="green"))
+            if backup_result.get("output"):
+                click.echo(backup_result["output"].strip())
+
     except ContaoBackendError as e:
         click.echo(click.style(f"✗ Connection failed: {e}", fg="red"), err=True)
         sys.exit(1)
