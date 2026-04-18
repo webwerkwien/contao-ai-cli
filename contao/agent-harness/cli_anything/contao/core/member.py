@@ -1,6 +1,6 @@
 """Contao frontend member management (tl_member)."""
 import json
-from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
+from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError  # noqa: F401
 from cli_anything.contao.utils.table_parser import parse_table
 
 
@@ -35,3 +35,22 @@ def member_create(backend: ContaoBackend, username: str, password: str,
     )
     backend.run(f'doctrine:query:sql "{sql}"')
     return {"status": "created", "username": username}
+
+
+def member_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
+    """Update frontend member fields via contao-cli-bridge."""
+    set_args = " ".join(f"--set {k}={v}" for k, v in fields.items())
+    result = backend.run(f"contao:member:update {username} {set_args} --no-interaction")
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"status": "ok", "output": result["stdout"]}
+
+
+def member_delete(backend: ContaoBackend, username: str) -> dict:
+    """Delete a frontend member via contao-cli-bridge."""
+    result = backend.run(f"contao:member:delete {username} --no-interaction")
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"status": "ok", "output": result["stdout"]}
