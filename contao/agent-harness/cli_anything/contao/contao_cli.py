@@ -25,6 +25,7 @@ from cli_anything.contao.core import (
     newsletter as newsletter_mod,
     news as news_mod,
     event as event_mod,
+    comment as comment_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -634,6 +635,27 @@ def event_list_cmd(ctx, calendar_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(event_mod.event_list(b, calendar_id), ctx.obj.get("as_json"))
+
+
+# ─── comment group ────────────────────────────────────────────────────────────
+
+@cli.group()
+def comment():
+    """Manage Contao comments (tl_comments)."""
+    pass
+
+
+@comment.command("list")
+@click.option("--source", default=None,
+              help="Filter by source table (e.g. tl_news, tl_page)")
+@click.option("--parent", "parent_id", type=int, default=None,
+              help="Filter by parent record ID")
+@click.pass_context
+def comment_list_cmd(ctx, source, parent_id):
+    """List comments, optionally filtered by source and/or parent ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(comment_mod.comment_list(b, source, parent_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
