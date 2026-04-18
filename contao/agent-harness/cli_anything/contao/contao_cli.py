@@ -22,6 +22,7 @@ from cli_anything.contao.core import (
     article as article_mod,
     content as content_mod,
     faq as faq_mod,
+    newsletter as newsletter_mod,
     news as news_mod,
     event as event_mod,
     backup as backup_mod,
@@ -538,6 +539,45 @@ def faq_list_cmd(ctx, category_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(faq_mod.faq_list(b, category_id), ctx.obj.get("as_json"))
+
+
+# ─── newsletter group ─────────────────────────────────────────────────────────
+
+@cli.group()
+def newsletter():
+    """Manage Contao newsletters (tl_newsletter)."""
+    pass
+
+
+@newsletter.command("channels")
+@click.pass_context
+def newsletter_channels(ctx):
+    """List all newsletter channels."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(newsletter_mod.channel_list(b), ctx.obj.get("as_json"))
+
+
+@newsletter.command("list")
+@click.option("--channel", "channel_id", type=int, default=None,
+              help="Filter by channel ID")
+@click.pass_context
+def newsletter_list_cmd(ctx, channel_id):
+    """List newsletters, optionally filtered by channel ID."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(newsletter_mod.newsletter_list(b, channel_id), ctx.obj.get("as_json"))
+
+
+@newsletter.command("subscribers")
+@click.option("--channel", "channel_id", type=int, default=None,
+              help="Filter by channel ID")
+@click.pass_context
+def newsletter_subscribers(ctx, channel_id):
+    """List newsletter subscribers."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(newsletter_mod.subscriber_list(b, channel_id), ctx.obj.get("as_json"))
 
 
 # ─── news group ───────────────────────────────────────────────────────────────
