@@ -271,8 +271,8 @@ def user_list(ctx, as_json):
 @user.command("create")
 @click.option("--username", required=True)
 @click.option("--password", required=True)
-@click.option("--name", default="")
-@click.option("--email", default="")
+@click.option("--name", required=True, help="Full name (required by Contao)")
+@click.option("--email", required=True, help="E-mail address (required by Contao)")
 @click.option("--admin", is_flag=True)
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
