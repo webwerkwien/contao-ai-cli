@@ -27,6 +27,8 @@ from cli_anything.contao.core import (
     event as event_mod,
     comment as comment_mod,
     listing as listing_mod,
+    file as file_mod,
+    form as form_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -684,6 +686,62 @@ def listing_data_cmd(ctx, module_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(listing_mod.listing_data(b, module_id), ctx.obj.get("as_json"))
+
+
+# ─── file group ───────────────────────────────────────────────────────────────
+
+@cli.group()
+def file():
+    """Manage Contao files (DBAFS / tl_files)."""
+    pass
+
+
+@file.command("list")
+@click.option("--path", default=None, help="Filter by path prefix (e.g. files/images)")
+@click.option("--type", "type_filter", type=click.Choice(["file", "folder"]), default=None,
+              help="Show only files or only folders")
+@click.pass_context
+def file_list_cmd(ctx, path, type_filter):
+    """List files and folders from the Contao file manager."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(file_mod.file_list(b, path, type_filter), ctx.obj.get("as_json"))
+
+
+@file.command("sync")
+@click.pass_context
+def file_sync_cmd(ctx):
+    """Synchronize the DBAFS with the virtual filesystem (contao:filesync)."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(file_mod.file_sync(b), ctx.obj.get("as_json"))
+
+
+# ─── form group ───────────────────────────────────────────────────────────────
+
+@cli.group()
+def form():
+    """Manage Contao forms (tl_form / tl_form_field)."""
+    pass
+
+
+@form.command("list")
+@click.pass_context
+def form_list_cmd(ctx):
+    """List all forms."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(form_mod.form_list(b), ctx.obj.get("as_json"))
+
+
+@form.command("fields")
+@click.argument("form_id", type=int)
+@click.pass_context
+def form_fields_cmd(ctx, form_id):
+    """List all fields of a form (form_id = ID from tl_form)."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(form_mod.form_fields(b, form_id), ctx.obj.get("as_json"))
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
