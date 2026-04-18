@@ -122,6 +122,14 @@ def cli(ctx, session, as_json):
 @click.pass_context
 def connect(ctx, host, user, root, key, port, php, name, as_json):
     """Connect to a Contao installation and save session config."""
+    click.echo(click.style(
+        "\n⚠️  Warning: contao-cli-agent can irreversibly modify or delete data on the target server.\n"
+        "   Always ensure you have a current database backup before proceeding.\n"
+        "   Use 'contao-cli-agent backup create' to create one.\n",
+        fg="yellow"
+    ))
+    click.confirm("I understand and have a backup. Continue?", abort=True)
+
     session_path = session_mod.get_session_path(name)
     config = {
         "host": host,
