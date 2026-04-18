@@ -1,5 +1,5 @@
 """
-Session management for cli-anything-contao.
+Session management for contao-cli-agent.
 Stores SSH connection config and provides session file locking.
 """
 import json
@@ -15,7 +15,7 @@ else:
 from typing import Optional
 
 
-DEFAULT_SESSION_DIR = os.path.expanduser("~/.cli-anything-contao")
+DEFAULT_SESSION_DIR = os.path.expanduser("~/.contao-cli-agent")
 DEFAULT_SESSION_FILE = os.path.join(DEFAULT_SESSION_DIR, "session.json")
 
 

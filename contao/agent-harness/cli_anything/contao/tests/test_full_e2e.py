@@ -1,5 +1,5 @@
 """
-E2E tests for cli-anything-contao.
+E2E tests for contao-cli-agent.
 Requires: SSH access to a live Contao 5 installation.
 
 Set environment variables:
@@ -184,7 +184,7 @@ class TestDebug:
 # ─── CLI Subprocess tests ─────────────────────────────────────────────────────
 
 class TestCLISubprocess:
-    CLI_BASE = _resolve_cli("cli-anything-contao")
+    CLI_BASE = _resolve_cli("contao-cli-agent")
 
     def _run(self, args, check=False):
         return subprocess.run(

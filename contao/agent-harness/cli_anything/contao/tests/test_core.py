@@ -1,5 +1,5 @@
 """
-Unit tests for cli-anything-contao.
+Unit tests for contao-cli-agent.
 No SSH required — all tests use synthetic data.
 """
 import json

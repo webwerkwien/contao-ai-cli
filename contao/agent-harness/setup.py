@@ -1,7 +1,7 @@
 from setuptools import setup, find_namespace_packages
 
 setup(
-    name="cli-anything-contao",
+    name="contao-cli-agent",
     version="1.0.0",
     description="Agent-native CLI for Contao 5 CMS via SSH",
     author="web.werk.wien",
@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "cli-anything-contao=cli_anything.contao.contao_cli:cli",
+            "contao-cli-agent=cli_anything.contao.contao_cli:cli",
         ],
     },
     python_requires=">=3.10",
