@@ -17,6 +17,7 @@ from cli_anything.contao.core import (
     cache as cache_mod,
     contao_ops,
     user as user_mod,
+    member as member_mod,
     backup as backup_mod,
     debug_ops,
     messenger as messenger_mod,
@@ -47,6 +48,32 @@ def _output(data, as_json=False):
             click.echo(json.dumps(data, indent=2, ensure_ascii=False))
         else:
             click.echo(str(data))
+
+
+def _detect_bridge(backend) -> bool:
+    """Check if contao-cli-bridge commands are available on the server."""
+    try:
+        result = backend.run("list")
+        return "contao:user:update" in result["stdout"]
+    except Exception:
+        return False
+
+
+def _require_bridge(ctx, command_name: str):
+    """Raise UsageError with install hint if bridge is not available."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    try:
+        with open(session_path) as f:
+            cfg = json.load(f)
+        bridge_available = cfg.get("bridge_available", False)
+    except Exception:
+        bridge_available = False
+    if not bridge_available:
+        raise click.UsageError(
+            f"'{command_name}' requires contao-cli-bridge which is not installed on this server.\n"
+            f"Install with: composer require webwerkwien/contao-cli-bridge"
+        )
+    raise click.UsageError(f"'{command_name}' is not yet implemented in this CLI version.")
 
 
 # ─── Root group ───────────────────────────────────────────────────────────────
@@ -101,6 +128,19 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     except ContaoBackendError as e:
         click.echo(click.style(f"✗ Connection failed: {e}", fg="red"), err=True)
         sys.exit(1)
+
+    b = ContaoBackend.from_session(session_path)
+    bridge = _detect_bridge(b)
+    with open(session_path) as f:
+        cfg = json.load(f)
+    cfg["bridge_available"] = bridge
+    with open(session_path, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+    if bridge:
+        click.echo("Bridge: available (full CRUD support enabled)")
+    else:
+        click.echo("Bridge: not installed — install webwerkwien/contao-cli-bridge for full CRUD support")
 
 
 @cli.command("session-list")
@@ -317,6 +357,88 @@ def user_password(ctx, username, password, as_json):
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_password(b, username, password),
             as_json or ctx.obj.get("as_json"))
+
+
+@user.command("update")
+@click.argument("username")
+@click.option("--field", "fields", multiple=True,
+              metavar="FIELD=VALUE", help="Field to update, e.g. --field email=new@example.com")
+@click.pass_context
+def user_update(ctx, username, fields):
+    """Update a backend user field. Requires contao-cli-bridge."""
+    _require_bridge(ctx, "user update")
+
+
+@user.command("delete")
+@click.argument("username")
+@click.pass_context
+def user_delete(ctx, username):
+    """Delete a backend user. Requires contao-cli-bridge."""
+    _require_bridge(ctx, "user delete")
+
+
+# ─── member group ─────────────────────────────────────────────────────────────
+
+@cli.group()
+def member():
+    """Manage Contao frontend members (tl_member)."""
+    pass
+
+
+@member.command("list")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def member_list_cmd(ctx, as_json):
+    """List all frontend members."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    b = _get_backend(session_path)
+    _output(member_mod.member_list(b), as_json or ctx.obj.get("as_json"))
+
+
+@member.command("create")
+@click.option("--username", required=True)
+@click.option("--password", required=True)
+@click.option("--firstname", required=True)
+@click.option("--lastname", required=True)
+@click.option("--email", required=True)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def member_create_cmd(ctx, username, password, firstname, lastname, email, as_json):
+    """Create a new frontend member."""
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    missing = dca_schema.validate_fields(
+        'tl_member',
+        {'username': username, 'password': password,
+         'firstname': firstname, 'lastname': lastname, 'email': email},
+        session_path
+    )
+    if missing:
+        schema = dca_schema.load_schema('tl_member', session_path)
+        if schema:
+            details = [f"--{f} ({schema['fields'][f].get('label') or f})" for f in missing]
+        else:
+            details = [f"--{f}" for f in missing]
+        raise click.UsageError(f"Missing mandatory field(s) for tl_member: {', '.join(details)}")
+    b = _get_backend(session_path)
+    _output(member_mod.member_create(b, username, password, firstname, lastname, email),
+            as_json or ctx.obj.get("as_json"))
+
+
+@member.command("update")
+@click.argument("username")
+@click.option("--field", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.pass_context
+def member_update(ctx, username, fields):
+    """Update a frontend member field. Requires contao-cli-bridge."""
+    _require_bridge(ctx, "member update")
+
+
+@member.command("delete")
+@click.argument("username")
+@click.pass_context
+def member_delete(ctx, username):
+    """Delete a frontend member. Requires contao-cli-bridge."""
+    _require_bridge(ctx, "member delete")
 
 
 # ─── backup group ─────────────────────────────────────────────────────────────
