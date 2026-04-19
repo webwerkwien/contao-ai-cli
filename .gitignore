@@ -32,3 +32,6 @@ Thumbs.db
 # Session files (contain credentials)
 ~/.cli-anything-contao/
 *.session.json
+
+# Git worktrees
+/.worktrees/
