@@ -5,6 +5,11 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBacken
 from cli_anything.contao.utils.table_parser import parse_table
 
 
+def _q(s: str) -> str:
+    """Escape a string value for SQL single-quoted literals."""
+    return s.replace("'", "''")
+
+
 def member_list(backend: ContaoBackend) -> list:
     try:
         result = backend.run("contao:member:list --format=json")
@@ -31,7 +36,7 @@ def member_create(backend: ContaoBackend, username: str, password: str,
     sql = (
         f"INSERT INTO tl_member "
         f"(username, password, firstname, lastname, email, dateAdded, tstamp) "
-        f"VALUES ('{username}', '{pw_hash}', '{firstname}', '{lastname}', '{email}', "
+        f"VALUES ('{_q(username)}', '{_q(pw_hash)}', '{_q(firstname)}', '{_q(lastname)}', '{_q(email)}', "
         f"UNIX_TIMESTAMP(), UNIX_TIMESTAMP())"
     )
     backend.run(f'doctrine:query:sql "{sql}"')
