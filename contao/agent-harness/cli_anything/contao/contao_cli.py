@@ -921,7 +921,10 @@ def file_process_cmd(ctx, path, allowed_types, max_width, max_height, as_json):
 def file_meta_cmd(ctx, path, fields, as_json):
     """Update metadata fields on a tl_files record via contao-cli-bridge."""
     _require_bridge(ctx, "file meta")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    invalid = [f for f in fields if "=" not in f]
+    if invalid:
+        raise click.UsageError(f"Invalid --set value(s): {invalid!r}. Expected format: FIELD=VALUE")
+    parsed = dict(f.split("=", 1) for f in fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_meta_update(b, path, parsed), as_json or ctx.obj.get("as_json"))
 
