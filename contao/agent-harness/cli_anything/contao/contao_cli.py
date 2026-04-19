@@ -887,38 +887,39 @@ def file_sync_cmd(ctx):
 
 @file.command("folder-create")
 @click.option("--path", required=True, help="Folder path relative to Contao root, e.g. files/images/gallery")
-@click.option("--public", "is_public", is_flag=True, help="Mark folder as publicly accessible")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def file_folder_create_cmd(ctx, path, is_public, as_json):
+def file_folder_create_cmd(ctx, path, as_json):
     """Create a folder in the Contao file system via contao-cli-bridge."""
     _require_bridge(ctx, "file folder-create")
     b = _get_backend(ctx.obj.get("session"))
-    _output(file_mod.folder_create(b, path, is_public), as_json or ctx.obj.get("as_json"))
+    _output(file_mod.folder_create(b, path), as_json or ctx.obj.get("as_json"))
 
 
 @file.command("process")
 @click.option("--path", required=True, help="File path relative to Contao root, e.g. files/images/photo.jpg")
 @click.option("--allowed-types", default="", help="Comma-separated allowed extensions (overrides Contao config)")
-@click.option("--max-width",  type=int, default=0, help="Max image width in pixels (0 = use Contao config)")
-@click.option("--max-height", type=int, default=0, help="Max image height in pixels (0 = use Contao config)")
+@click.option("--max-width",     type=int, default=0, help="Max image width in pixels (0 = use Contao config)")
+@click.option("--max-height",    type=int, default=0, help="Max image height in pixels (0 = use Contao config)")
+@click.option("--max-file-size", type=int, default=0, help="Max file size in bytes (0 = use Contao config)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def file_process_cmd(ctx, path, allowed_types, max_width, max_height, as_json):
+def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_size, as_json):
     """Validate and optionally resize a file already on the server via contao-cli-bridge."""
     _require_bridge(ctx, "file process")
     b = _get_backend(ctx.obj.get("session"))
-    _output(file_mod.file_process(b, path, allowed_types, max_width, max_height),
+    _output(file_mod.file_process(b, path, allowed_types, max_width, max_height, max_file_size),
             as_json or ctx.obj.get("as_json"))
 
 
 @file.command("meta")
 @click.option("--path", required=True, help="File or folder path relative to Contao root")
+@click.option("--lang", default="en", show_default=True, help="Language key matching the Contao root-page language")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE",
-              help="Metadata field to update, e.g. --set alt=Landschaft --set title=Bergblick")
+              help="Metadata field to update, e.g. --set alt=Landscape --set title=Mountain View")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def file_meta_cmd(ctx, path, fields, as_json):
+def file_meta_cmd(ctx, path, lang, fields, as_json):
     """Update metadata fields on a tl_files record via contao-cli-bridge."""
     _require_bridge(ctx, "file meta")
     invalid = [f for f in fields if "=" not in f]
@@ -926,7 +927,7 @@ def file_meta_cmd(ctx, path, fields, as_json):
         raise click.UsageError(f"Invalid --set value(s): {invalid!r}. Expected format: FIELD=VALUE")
     parsed = dict(f.split("=", 1) for f in fields)
     b = _get_backend(ctx.obj.get("session"))
-    _output(file_mod.file_meta_update(b, path, parsed), as_json or ctx.obj.get("as_json"))
+    _output(file_mod.file_meta_update(b, path, parsed, lang), as_json or ctx.obj.get("as_json"))
 
 
 # ─── form group ───────────────────────────────────────────────────────────────
