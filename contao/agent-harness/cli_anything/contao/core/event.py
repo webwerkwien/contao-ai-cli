@@ -25,6 +25,16 @@ def event_list(backend: ContaoBackend, calendar_id: int = None) -> list:
     return parsed if parsed else {"raw": result["stdout"]}
 
 
+def event_read(backend: ContaoBackend, event_id: int) -> dict:
+    """Read all fields of a tl_calendar_events record."""
+    cmd = f"contao:event:read {event_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def event_create(backend: ContaoBackend, title: str, pid: int,
                  start_date: str = None, end_date: str = None,
                  fields: dict = None) -> dict:

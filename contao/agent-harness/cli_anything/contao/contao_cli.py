@@ -28,6 +28,9 @@ from cli_anything.contao.core import (
     comment as comment_mod,
     listing as listing_mod,
     file as file_mod,
+    layout as layout_mod,
+    version as version_mod,
+    template as template_mod,
     form as form_mod,
     backup as backup_mod,
     debug_ops,
@@ -545,6 +548,17 @@ def page_tree_cmd(ctx):
     _output(page_mod.page_tree(b), ctx.obj.get("as_json"))
 
 
+@page.command("read")
+@click.argument("page_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def page_read_cmd(ctx, page_id, as_json):
+    """Read all fields of a page record (incl. effective layout)."""
+    _require_bridge(ctx, "page read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(page_mod.page_read(b, page_id), as_json or ctx.obj.get("as_json"))
+
+
 @page.command("create")
 @click.option("--title", required=True, help="Page title")
 @click.option("--pid", type=int, default=0, show_default=True, help="Parent page ID")
@@ -561,6 +575,25 @@ def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json
     b = _get_backend(ctx.obj.get("session"))
     _output(page_mod.page_create(b, title, pid, page_type, alias, language, parsed),
             as_json or ctx.obj.get("as_json"))
+
+
+# ─── layout group ────────────────────────────────────────────────────────────
+
+@cli.group()
+def layout():
+    """Manage Contao layouts (tl_layout)."""
+    pass
+
+
+@layout.command("read")
+@click.argument("layout_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def layout_read_cmd(ctx, layout_id, as_json):
+    """Read all fields of a layout record."""
+    _require_bridge(ctx, "layout read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(layout_mod.layout_read(b, layout_id), as_json or ctx.obj.get("as_json"))
 
 
 # ─── article group ────────────────────────────────────────────────────────────
@@ -580,6 +613,17 @@ def article_list_cmd(ctx, page_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(article_mod.article_list(b, page_id), ctx.obj.get("as_json"))
+
+
+@article.command("read")
+@click.argument("article_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_read_cmd(ctx, article_id, as_json):
+    """Read all fields of an article record."""
+    _require_bridge(ctx, "article read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(article_mod.article_read(b, article_id), as_json or ctx.obj.get("as_json"))
 
 
 @article.command("create")
@@ -615,6 +659,17 @@ def content_list_cmd(ctx, article_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(content_mod.content_list(b, article_id), ctx.obj.get("as_json"))
+
+
+@content.command("read")
+@click.argument("content_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def content_read_cmd(ctx, content_id, as_json):
+    """Read all fields of a content element record (headline deserialized)."""
+    _require_bridge(ctx, "content read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(content_mod.content_read(b, content_id), as_json or ctx.obj.get("as_json"))
 
 
 @content.command("create")
@@ -662,6 +717,17 @@ def faq_list_cmd(ctx, category_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(faq_mod.faq_list(b, category_id), ctx.obj.get("as_json"))
+
+
+@faq.command("read")
+@click.argument("faq_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_read_cmd(ctx, faq_id, as_json):
+    """Read all fields of a FAQ entry record."""
+    _require_bridge(ctx, "faq read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(faq_mod.faq_read(b, faq_id), as_json or ctx.obj.get("as_json"))
 
 
 @faq.command("create")
@@ -747,6 +813,17 @@ def news_list_cmd(ctx, archive_id):
     _output(news_mod.news_list(b, archive_id), ctx.obj.get("as_json"))
 
 
+@news.command("read")
+@click.argument("news_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_read_cmd(ctx, news_id, as_json):
+    """Read all fields of a news entry (headline deserialized)."""
+    _require_bridge(ctx, "news read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_read(b, news_id), as_json or ctx.obj.get("as_json"))
+
+
 @news.command("create")
 @click.option("--headline", required=True, help="News headline")
 @click.option("--pid", type=int, required=True, help="News archive ID")
@@ -789,6 +866,17 @@ def event_list_cmd(ctx, calendar_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(event_mod.event_list(b, calendar_id), ctx.obj.get("as_json"))
+
+
+@event.command("read")
+@click.argument("event_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def event_read_cmd(ctx, event_id, as_json):
+    """Read all fields of a calendar event record."""
+    _require_bridge(ctx, "event read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.event_read(b, event_id), as_json or ctx.obj.get("as_json"))
 
 
 @event.command("create")
@@ -856,6 +944,64 @@ def listing_data_cmd(ctx, module_id):
     _output(listing_mod.listing_data(b, module_id), ctx.obj.get("as_json"))
 
 
+# ─── version group ───────────────────────────────────────────────────────────
+
+@cli.group()
+def version():
+    """Contao version history management (tl_version)."""
+    pass
+
+
+@version.command("list")
+@click.option("--table", required=True, help="Table name, e.g. tl_content")
+@click.option("--id",    "record_id", type=int, required=True, help="Record ID")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def version_list_cmd(ctx, table, record_id, as_json):
+    """List all version snapshots for a record."""
+    _require_bridge(ctx, "version list")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(version_mod.version_list(b, table, record_id), as_json or ctx.obj.get("as_json"))
+
+
+@version.command("read")
+@click.option("--table",   required=True, help="Table name, e.g. tl_content")
+@click.option("--id",      "record_id", type=int, required=True, help="Record ID")
+@click.option("--version", "ver", type=int, required=True, help="Version number")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def version_read_cmd(ctx, table, record_id, ver, as_json):
+    """Read a specific version snapshot (data field deserialized)."""
+    _require_bridge(ctx, "version read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(version_mod.version_read(b, table, record_id, ver), as_json or ctx.obj.get("as_json"))
+
+
+@version.command("restore")
+@click.option("--table",   required=True, help="Table name, e.g. tl_content")
+@click.option("--id",      "record_id", type=int, required=True, help="Record ID")
+@click.option("--version", "ver", type=int, required=True, help="Version number to restore")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def version_restore_cmd(ctx, table, record_id, ver, as_json):
+    """Restore a record to a specific version."""
+    _require_bridge(ctx, "version restore")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(version_mod.version_restore(b, table, record_id, ver), as_json or ctx.obj.get("as_json"))
+
+
+@version.command("create")
+@click.option("--table", required=True, help="Table name, e.g. tl_content")
+@click.option("--id",    "record_id", type=int, required=True, help="Record ID")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def version_create_cmd(ctx, table, record_id, as_json):
+    """Manually create a version snapshot for a record."""
+    _require_bridge(ctx, "version create")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(version_mod.version_create(b, table, record_id), as_json or ctx.obj.get("as_json"))
+
+
 # ─── file group ───────────────────────────────────────────────────────────────
 
 @cli.group()
@@ -912,6 +1058,36 @@ def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_s
             as_json or ctx.obj.get("as_json"))
 
 
+@file.command("write")
+@click.option("--path",    required=True, help="Destination path relative to Contao root, e.g. files/scripts/style.css")
+@click.option("--content", required=True, help="Text content to write (use @filename to read from a local file)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_write_cmd(ctx, path, content, as_json):
+    """Write a text file to files/ on the server and create a version snapshot."""
+    _require_bridge(ctx, "file write")
+    if content.startswith("@"):
+        local = content[1:]
+        try:
+            with open(local, encoding="utf-8") as f:
+                content = f.read()
+        except OSError as e:
+            raise click.UsageError(f"Cannot read local file {local!r}: {e}")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(file_mod.file_write(b, path, content), as_json or ctx.obj.get("as_json"))
+
+
+@file.command("read")
+@click.option("--path", required=True, help="File path relative to Contao root, e.g. files/scripts/style.css")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_read_cmd(ctx, path, as_json):
+    """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
+    _require_bridge(ctx, "file read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(file_mod.file_read(b, path), as_json or ctx.obj.get("as_json"))
+
+
 @file.command("meta")
 @click.option("--path", required=True, help="File or folder path relative to Contao root")
 @click.option("--lang", default="en", show_default=True, help="Language key matching the Contao root-page language")
@@ -928,6 +1104,63 @@ def file_meta_cmd(ctx, path, lang, fields, as_json):
     parsed = dict(f.split("=", 1) for f in fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_meta_update(b, path, parsed, lang), as_json or ctx.obj.get("as_json"))
+
+
+# ─── template group ──────────────────────────────────────────────────────────
+
+@cli.group()
+def template():
+    """Manage Contao Twig templates (templates/ directory)."""
+    pass
+
+
+@template.command("list")
+@click.option("--prefix", default="", help="Filter by path prefix, e.g. content_element/")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def template_list_cmd(ctx, prefix, as_json):
+    """List custom templates under templates/."""
+    _require_bridge(ctx, "template list")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(template_mod.template_list(b, prefix), as_json or ctx.obj.get("as_json"))
+
+
+@template.command("read")
+@click.option("--path", required=True, help="Template path relative to Contao root, e.g. templates/content_element/text.html.twig")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def template_read_cmd(ctx, path, as_json):
+    """Read a template file content."""
+    _require_bridge(ctx, "template read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(template_mod.template_read(b, path), as_json or ctx.obj.get("as_json"))
+
+
+@template.command("write")
+@click.option("--mode", required=True, type=click.Choice(["override", "partial", "variant"]),
+              help="override=replace core template, partial=include-only, variant=selectable in backend")
+@click.option("--base", required=True,
+              help="Base template path without extension, e.g. content_element/text")
+@click.option("--name", default="", help="Variant name (required for mode=variant)")
+@click.option("--content", required=True,
+              help="Template source as string, or @filename to read from a local file")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def template_write_cmd(ctx, mode, base, name, content, as_json):
+    """Write a Twig template. Path is calculated automatically from --mode and --base."""
+    _require_bridge(ctx, "template write")
+    if content.startswith("@"):
+        local = content[1:]
+        try:
+            with open(local, encoding="utf-8") as f:
+                content = f.read()
+        except OSError as e:
+            raise click.UsageError(f"Cannot read local file {local!r}: {e}")
+    if mode == "variant" and not name:
+        raise click.UsageError("--name is required for mode=variant")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(template_mod.template_write(b, mode, base, content, name),
+            as_json or ctx.obj.get("as_json"))
 
 
 # ─── form group ───────────────────────────────────────────────────────────────

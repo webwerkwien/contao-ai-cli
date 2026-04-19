@@ -25,6 +25,16 @@ def news_list(backend: ContaoBackend, archive_id: int = None) -> list:
     return parsed if parsed else {"raw": result["stdout"]}
 
 
+def news_read(backend: ContaoBackend, news_id: int) -> dict:
+    """Read all fields of a tl_news record (headline deserialized)."""
+    cmd = f"contao:news:read {news_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def news_create(backend: ContaoBackend, headline: str, pid: int,
                 date: str = None, fields: dict = None) -> dict:
     """Create a news entry via contao-cli-bridge."""

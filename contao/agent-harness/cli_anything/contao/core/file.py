@@ -74,6 +74,47 @@ def file_process(
         return {"raw": result["stdout"]}
 
 
+def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
+    """Write text content to a file under files/ via contao-cli-bridge.
+
+    Uploads content via SCP to a temp file, then calls contao:file:write.
+    Creates a tl_version snapshot if the file is already registered in DBAFS.
+    """
+    import os
+    import tempfile
+
+    # Write content to a local temp file, then SCP it to the server
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.tmp', delete=False, encoding='utf-8') as f:
+        f.write(content)
+        local_tmp = f.name
+
+    try:
+        # SCP the temp file to /tmp on the server
+        remote_tmp = f'/tmp/contao_write_{os.path.basename(local_tmp)}'
+        scp_result = backend.scp_upload(local_tmp, remote_tmp)
+        if scp_result.get('returncode', 0) != 0:
+            return {'status': 'error', 'message': f"SCP upload failed: {scp_result.get('stderr', '')}"}
+
+        cmd = f'contao:file:write --path {shlex.quote(path)} --source {shlex.quote(remote_tmp)}'
+        result = backend.run(cmd)
+        try:
+            return json.loads(result["stdout"])
+        except Exception:
+            return {"raw": result["stdout"]}
+    finally:
+        os.unlink(local_tmp)
+
+
+def file_read(backend: ContaoBackend, path: str) -> dict:
+    """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
+    cmd = f'contao:file:read --path {shlex.quote(path)}'
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except Exception:
+        return {"raw": result["stdout"]}
+
+
 def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = "en") -> dict:
     """Update tl_files metadata fields for a file or folder.
 
