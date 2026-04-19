@@ -17,7 +17,7 @@ def version_list(backend: ContaoBackend, table: str, record_id: int) -> dict:
 
 def version_read(backend: ContaoBackend, table: str, record_id: int, version: int) -> dict:
     """Read a specific version snapshot (data field deserialized as dict)."""
-    cmd = f'contao:version:read --table {shlex.quote(table)} --id {record_id} --version {version}'
+    cmd = f'contao:version:read --table {shlex.quote(table)} --id {record_id} --ver {version}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
@@ -27,7 +27,7 @@ def version_read(backend: ContaoBackend, table: str, record_id: int, version: in
 
 def version_restore(backend: ContaoBackend, table: str, record_id: int, version: int) -> dict:
     """Restore a record to a specific version."""
-    cmd = f'contao:version:restore --table {shlex.quote(table)} --id {record_id} --version {version}'
+    cmd = f'contao:version:restore --table {shlex.quote(table)} --id {record_id} --ver {version}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
