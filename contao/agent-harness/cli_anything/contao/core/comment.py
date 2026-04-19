@@ -11,7 +11,8 @@ def comment_list(backend: ContaoBackend, source: str = None, parent_id: int = No
     """
     conditions = []
     if source:
-        conditions.append(f"source = '{source}'")
+        safe_source = source.replace("'", "''")
+        conditions.append(f"source = '{safe_source}'")
     if parent_id is not None:
         conditions.append(f"parent = {parent_id}")
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
