@@ -25,6 +25,16 @@ def faq_list(backend: ContaoBackend, category_id: int = None) -> list:
     return parsed if parsed else {"raw": result["stdout"]}
 
 
+def faq_read(backend: ContaoBackend, faq_id: int) -> dict:
+    """Read all fields of a tl_faq record."""
+    cmd = f"contao:faq:read {faq_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def faq_create(backend: ContaoBackend, question: str, pid: int,
                answer: str = "", fields: dict = None) -> dict:
     """Create a FAQ entry via contao-cli-bridge."""

@@ -14,6 +14,16 @@ def article_list(backend: ContaoBackend, page_id: int = None) -> list:
     return parsed if parsed else {"raw": result["stdout"]}
 
 
+def article_read(backend: ContaoBackend, article_id: int) -> dict:
+    """Read all fields of a tl_article record."""
+    cmd = f"contao:article:read {article_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def article_create(backend: ContaoBackend, title: str, pid: int,
                    in_column: str = "main", fields: dict = None) -> dict:
     """Create an article via contao-cli-bridge."""

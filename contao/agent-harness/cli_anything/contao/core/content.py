@@ -32,6 +32,16 @@ def content_list(backend: ContaoBackend, article_id: int = None) -> list:
     return parsed
 
 
+def content_read(backend: ContaoBackend, content_id: int) -> dict:
+    """Read all fields of a tl_content record (headline deserialized)."""
+    cmd = f"contao:content:read {content_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def content_create(backend: ContaoBackend, type: str, pid: int,
                    ptable: str = "tl_article", fields: dict = None) -> dict:
     """Create a content element via contao-cli-bridge."""

@@ -43,6 +43,16 @@ def page_tree(backend: ContaoBackend) -> list:
     return roots
 
 
+def page_read(backend: ContaoBackend, page_id: int) -> dict:
+    """Read all fields of a tl_page record incl. resolved effective layout."""
+    cmd = f"contao:page:read {page_id}"
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
 def page_create(backend: ContaoBackend, title: str, pid: int = 0,
                 type: str = "regular", alias: str = "", language: str = "de",
                 fields: dict = None) -> dict:

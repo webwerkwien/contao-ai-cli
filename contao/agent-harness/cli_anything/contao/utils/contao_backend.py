@@ -142,6 +142,34 @@ class ContaoBackend:
         except json.JSONDecodeError:
             return result["stdout"]
 
+    def scp_upload(self, local_path: str, remote_path: str) -> dict:
+        """Upload a local file to the remote server via SCP."""
+        scp = shutil.which("scp")
+        if sys.platform == "win32":
+            native_scp = r"C:\Windows\System32\OpenSSH\scp.exe"
+            if os.path.exists(native_scp):
+                scp = native_scp
+        if not scp:
+            raise ContaoBackendError("scp not found. Install OpenSSH client.")
+
+        args = [scp, "-o", "StrictHostKeyChecking=no",
+                "-o", "BatchMode=yes",
+                "-P", str(self.port)]
+        if self.key_path:
+            args += ["-i", self.key_path]
+        args += [local_path, f"{self.user}@{self.host}:{remote_path}"]
+
+        env = os.environ.copy()
+        env["MSYS_NO_PATHCONV"] = "1"
+        env["MSYS2_ARG_CONV_EXCL"] = "*"
+
+        result = subprocess.run(args, capture_output=True, text=True, env=env)
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
+
     @classmethod
     def from_session(cls, session_path: str) -> "ContaoBackend":
         """Create a backend from a session config file."""
