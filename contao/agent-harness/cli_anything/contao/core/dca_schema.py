@@ -14,6 +14,7 @@ Usage:
 """
 import json
 import os
+import shlex
 from datetime import datetime
 from typing import Optional
 
@@ -152,7 +153,7 @@ def sync_table(backend: ContaoBackend, table: str, session_path: str) -> dict:
     Fetch DCA for *table* from the server and save a local schema JSON.
     Returns the schema dict.
     """
-    result = backend.run(f'debug:dca {table} fields')
+    result = backend.run(f'debug:dca {shlex.quote(table)} fields')
     raw = result['stdout']
 
     fields_raw = parse_vardump(raw)

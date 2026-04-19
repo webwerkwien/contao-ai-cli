@@ -1,5 +1,6 @@
 """Contao article management (tl_article)."""
 import json
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -16,10 +17,10 @@ def article_list(backend: ContaoBackend, page_id: int = None) -> list:
 def article_create(backend: ContaoBackend, title: str, pid: int,
                    in_column: str = "main", fields: dict = None) -> dict:
     """Create an article via contao-cli-bridge."""
-    cmd = (f"contao:article:create --title='{title}' --pid={pid} "
-           f"--inColumn={in_column} --no-interaction")
+    cmd = (f"contao:article:create --title={shlex.quote(title)} --pid={pid} "
+           f"--inColumn={shlex.quote(in_column)} --no-interaction")
     if fields:
-        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])

@@ -1,4 +1,5 @@
 """Cache management commands for Contao 5."""
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 
 
@@ -20,5 +21,5 @@ def cache_pool_list(backend: ContaoBackend) -> list:
 
 
 def cache_pool_clear(backend: ContaoBackend, pool: str = "cache.global_clearer") -> dict:
-    result = backend.run(f"cache:pool:clear {pool}")
+    result = backend.run(f"cache:pool:clear {shlex.quote(pool)}")
     return {"status": "cleared", "pool": pool, "output": result["stdout"]}

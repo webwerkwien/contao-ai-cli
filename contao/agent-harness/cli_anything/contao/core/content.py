@@ -1,6 +1,7 @@
 """Contao content element management (tl_content)."""
 import json
 import re
+import shlex
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
@@ -34,10 +35,10 @@ def content_list(backend: ContaoBackend, article_id: int = None) -> list:
 def content_create(backend: ContaoBackend, type: str, pid: int,
                    ptable: str = "tl_article", fields: dict = None) -> dict:
     """Create a content element via contao-cli-bridge."""
-    cmd = (f"contao:content:create --type={type} --pid={pid} "
-           f"--ptable={ptable} --no-interaction")
+    cmd = (f"contao:content:create --type={shlex.quote(type)} --pid={pid} "
+           f"--ptable={shlex.quote(ptable)} --no-interaction")
     if fields:
-        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])

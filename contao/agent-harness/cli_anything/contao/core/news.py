@@ -1,5 +1,6 @@
 """Contao news management (tl_news, tl_news_archive)."""
 import json
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -27,11 +28,11 @@ def news_list(backend: ContaoBackend, archive_id: int = None) -> list:
 def news_create(backend: ContaoBackend, headline: str, pid: int,
                 date: str = None, fields: dict = None) -> dict:
     """Create a news entry via contao-cli-bridge."""
-    cmd = f"contao:news:create --headline='{headline}' --pid={pid} --no-interaction"
+    cmd = f"contao:news:create --headline={shlex.quote(headline)} --pid={pid} --no-interaction"
     if date:
-        cmd += f" --date={date}"
+        cmd += f" --date={shlex.quote(date)}"
     if fields:
-        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])

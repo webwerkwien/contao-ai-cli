@@ -1,5 +1,6 @@
 """Contao calendar event management (tl_calendar_events, tl_calendar)."""
 import json
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -28,13 +29,13 @@ def event_create(backend: ContaoBackend, title: str, pid: int,
                  start_date: str = None, end_date: str = None,
                  fields: dict = None) -> dict:
     """Create a calendar event via contao-cli-bridge."""
-    cmd = f"contao:event:create --title='{title}' --pid={pid} --no-interaction"
+    cmd = f"contao:event:create --title={shlex.quote(title)} --pid={pid} --no-interaction"
     if start_date:
-        cmd += f" --startDate={start_date}"
+        cmd += f" --startDate={shlex.quote(start_date)}"
     if end_date:
-        cmd += f" --endDate={end_date}"
+        cmd += f" --endDate={shlex.quote(end_date)}"
     if fields:
-        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
