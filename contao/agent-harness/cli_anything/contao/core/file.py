@@ -38,11 +38,9 @@ def file_sync(backend: ContaoBackend) -> dict:
     return {"status": "ok", "output": result["stdout"].strip()}
 
 
-def folder_create(backend: ContaoBackend, path: str, public: bool = False) -> dict:
+def folder_create(backend: ContaoBackend, path: str) -> dict:
     """Create a folder in the Contao file system via contao-cli-bridge."""
     cmd = f'contao:folder:create --path "{path}"'
-    if public:
-        cmd += ' --public'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
@@ -56,6 +54,7 @@ def file_process(
     allowed_types: str = "",
     max_width: int = 0,
     max_height: int = 0,
+    max_file_size: int = 0,
 ) -> dict:
     """Validate and optionally resize a file already on the server."""
     cmd = f'contao:file:process --path "{path}"'
@@ -65,6 +64,8 @@ def file_process(
         cmd += f' --max-width {max_width}'
     if max_height:
         cmd += f' --max-height {max_height}'
+    if max_file_size:
+        cmd += f' --max-file-size {max_file_size}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
@@ -72,10 +73,13 @@ def file_process(
         return {"raw": result["stdout"]}
 
 
-def file_meta_update(backend: ContaoBackend, path: str, meta: dict) -> dict:
-    """Update tl_files metadata fields for a file or folder."""
+def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = "en") -> dict:
+    """Update tl_files metadata fields for a file or folder.
+
+    lang: language key matching the Contao root-page language (default: en).
+    """
     set_args = " ".join(f'--set "{k}={v}"' for k, v in meta.items())
-    cmd = f'contao:file:meta --path "{path}" {set_args}'
+    cmd = f'contao:file:meta --path "{path}" --lang "{lang}" {set_args}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
