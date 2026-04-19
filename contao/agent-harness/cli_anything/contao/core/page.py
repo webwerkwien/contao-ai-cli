@@ -1,5 +1,6 @@
 """Contao page management (tl_page)."""
 import json
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -46,12 +47,12 @@ def page_create(backend: ContaoBackend, title: str, pid: int = 0,
                 type: str = "regular", alias: str = "", language: str = "de",
                 fields: dict = None) -> dict:
     """Create a page via contao-cli-bridge."""
-    cmd = (f"contao:page:create --title='{title}' --pid={pid} "
-           f"--type={type} --language={language} --no-interaction")
+    cmd = (f"contao:page:create --title={shlex.quote(title)} --pid={pid} "
+           f"--type={shlex.quote(type)} --language={shlex.quote(language)} --no-interaction")
     if alias:
-        cmd += f" --alias={alias}"
+        cmd += f" --alias={shlex.quote(alias)}"
     if fields:
-        cmd += " " + " ".join(f"--set {k}={v}" for k, v in fields.items())
+        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])

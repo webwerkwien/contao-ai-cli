@@ -4,6 +4,7 @@ tl_files is the Database-Assisted File System (DBAFS) table.
 It stores metadata for files and folders under the configured upload path.
 """
 import json
+import shlex
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
@@ -40,7 +41,7 @@ def file_sync(backend: ContaoBackend) -> dict:
 
 def folder_create(backend: ContaoBackend, path: str) -> dict:
     """Create a folder in the Contao file system via contao-cli-bridge."""
-    cmd = f'contao:folder:create --path "{path}"'
+    cmd = f'contao:folder:create --path {shlex.quote(path)}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
@@ -57,9 +58,9 @@ def file_process(
     max_file_size: int = 0,
 ) -> dict:
     """Validate and optionally resize a file already on the server."""
-    cmd = f'contao:file:process --path "{path}"'
+    cmd = f'contao:file:process --path {shlex.quote(path)}'
     if allowed_types:
-        cmd += f' --allowed-types "{allowed_types}"'
+        cmd += f' --allowed-types {shlex.quote(allowed_types)}'
     if max_width:
         cmd += f' --max-width {max_width}'
     if max_height:
@@ -78,8 +79,8 @@ def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = 
 
     lang: language key matching the Contao root-page language (default: en).
     """
-    set_args = " ".join(f'--set "{k}={v}"' for k, v in meta.items())
-    cmd = f'contao:file:meta --path "{path}" --lang "{lang}" {set_args}'
+    set_args = " ".join(f'--set {shlex.quote(f"{k}={v}")}' for k, v in meta.items())
+    cmd = f'contao:file:meta --path {shlex.quote(path)} --lang {shlex.quote(lang)} {set_args}'
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])

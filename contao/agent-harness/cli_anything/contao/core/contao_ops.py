@@ -1,4 +1,5 @@
 """Core Contao operations: migrate, crawl, cron, filesync, maintenance."""
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 
 
@@ -65,7 +66,7 @@ def automator(backend: ContaoBackend, task: str = "") -> dict:
     """Run contao:automator tasks."""
     cmd = "contao:automator --no-interaction"
     if task:
-        cmd += f" {task}"
+        cmd += f" {shlex.quote(task)}"
     result = backend.run(cmd)
     return {"status": "ok", "output": result["stdout"]}
 

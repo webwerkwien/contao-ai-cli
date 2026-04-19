@@ -1,5 +1,6 @@
 """Contao backend user management."""
 import json
+import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.utils.table_parser import parse_table
 
@@ -18,11 +19,11 @@ def user_create(backend: ContaoBackend, username: str, password: str,
                 admin: bool = False) -> dict:
     """Create a backend user. username, name, email, language, password are mandatory."""
     cmd = (f"contao:user:create "
-           f"--username={username} "
-           f"--password={password} "
-           f"--name='{name}' "
-           f"--email={email} "
-           f"--language={language} "
+           f"--username={shlex.quote(username)} "
+           f"--password={shlex.quote(password)} "
+           f"--name={shlex.quote(name)} "
+           f"--email={shlex.quote(email)} "
+           f"--language={shlex.quote(language)} "
            f"--no-interaction")
     if admin:
         cmd += " --admin"
@@ -32,8 +33,8 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 
 def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update backend user fields via contao-cli-bridge."""
-    set_args = " ".join(f"--set {k}={v}" for k, v in fields.items())
-    result = backend.run(f"contao:user:update {username} {set_args} --no-interaction")
+    set_args = " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
+    result = backend.run(f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction")
     try:
         return json.loads(result["stdout"])
     except json.JSONDecodeError:
@@ -42,7 +43,7 @@ def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
 
 def user_delete(backend: ContaoBackend, username: str) -> dict:
     """Delete a backend user via contao-cli-bridge."""
-    result = backend.run(f"contao:user:delete {username} --no-interaction")
+    result = backend.run(f"contao:user:delete {shlex.quote(username)} --no-interaction")
     try:
         return json.loads(result["stdout"])
     except json.JSONDecodeError:
@@ -52,8 +53,8 @@ def user_delete(backend: ContaoBackend, username: str) -> dict:
 def user_password(backend: ContaoBackend, username: str, password: str) -> dict:
     # username is a positional argument, not a flag
     cmd = (f"contao:user:password "
-           f"--password={password} "
+           f"--password={shlex.quote(password)} "
            f"--no-interaction "
-           f"{username}")
+           f"{shlex.quote(username)}")
     result = backend.run(cmd)
     return {"status": "updated", "username": username, "output": result["stdout"]}
