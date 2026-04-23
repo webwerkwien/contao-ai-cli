@@ -90,7 +90,11 @@ def run_sql_table(backend: ContaoBackend, sql: str) -> list[dict]:
 
 
 def run_json_or_raw(backend: ContaoBackend, cmd: str) -> dict:
-    """Run a Contao console command and parse JSON output, falling back to raw string."""
+    """Run a Contao console command and parse JSON output, falling back to raw string.
+
+    Caller is responsible for quoting any user-supplied arguments in `cmd`
+    (e.g. via shlex.quote).
+    """
     result = backend.run(cmd)
     try:
         return json.loads(result["stdout"])
