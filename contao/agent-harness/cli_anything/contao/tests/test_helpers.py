@@ -25,7 +25,7 @@ class TestRunSqlTable:
         """Test that run_sql_table returns empty list when no rows are returned."""
         backend = MagicMock()
         backend.run.return_value = {"stdout": ""}
-        with patch("cli_anything.contao.core.contao_ops.parse_table", return_value=[]):
+        with patch("cli_anything.contao.core.contao_ops.parse_table", return_value=None):
             result = run_sql_table(backend, "SELECT id FROM tl_article WHERE id = 9999")
         assert result == []
 
