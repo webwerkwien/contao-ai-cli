@@ -1,6 +1,8 @@
 """Core Contao operations: migrate, crawl, cron, filesync, maintenance."""
+import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
+from cli_anything.contao.utils.table_parser import parse_table
 
 
 def migrate(backend: ContaoBackend, dry_run: bool = False) -> dict:
@@ -75,3 +77,29 @@ def setup(backend: ContaoBackend) -> dict:
     """Run contao:setup (post-install setup)."""
     result = backend.run("contao:setup --no-interaction")
     return {"status": "ok", "output": result["stdout"]}
+
+
+# ─── Helper Functions ─────────────────────────────────────────────────────────
+
+
+def run_sql_table(backend: ContaoBackend, sql: str) -> list[dict]:
+    """Run a doctrine:query:sql and parse the table output. Returns [] on empty result."""
+    result = backend.run(f'doctrine:query:sql {shlex.quote(sql)}')
+    parsed = parse_table(result["stdout"])
+    return parsed if isinstance(parsed, list) else []
+
+
+def run_json_or_raw(backend: ContaoBackend, cmd: str) -> dict:
+    """Run a Contao console command and parse JSON output, falling back to raw string."""
+    result = backend.run(cmd)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
+def build_set_args(fields: dict[str, str]) -> str:
+    """Build --set key=value argument string for Contao console commands."""
+    if not fields:
+        return ""
+    return " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
