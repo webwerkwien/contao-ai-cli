@@ -3,6 +3,7 @@ Unit tests for contao_ops helper functions.
 Tests for run_sql_table, run_json_or_raw, and build_set_args.
 """
 import json
+import shlex
 from unittest.mock import MagicMock, patch
 import pytest
 
@@ -20,6 +21,10 @@ class TestRunSqlTable:
             result = run_sql_table(backend, "SELECT id, title FROM tl_article")
         assert result == [{"id": "1", "title": "Foo"}]
         backend.run.assert_called_once()
+        # Verify SQL is properly quoted when passed to backend.run
+        call_cmd = backend.run.call_args[0][0]
+        assert call_cmd.startswith("doctrine:query:sql ")
+        assert "SELECT id, title FROM tl_article" in call_cmd
 
     def test_run_sql_table_returns_empty_list_on_no_rows(self):
         """Test that run_sql_table returns empty list when no rows are returned."""
@@ -59,3 +64,6 @@ class TestBuildSetArgs:
         # Both keys should be in the result
         assert "email" in result
         assert "name" in result
+        # Verify values are actually shell-quoted using shlex.quote
+        assert shlex.quote("email=foo@bar.com") in result
+        assert shlex.quote("name=O'Hara") in result
