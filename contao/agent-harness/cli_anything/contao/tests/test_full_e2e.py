@@ -46,10 +46,12 @@ def _skip_if_no_server():
 
 
 def _get_test_backend():
-    host = os.environ.get("CONTAO_TEST_HOST", "c5.axeltest.at")
-    user = os.environ.get("CONTAO_TEST_USER", "c155929_C5")
-    root = os.environ.get("CONTAO_TEST_ROOT", "/var/www/clients/client1/web246/web")
+    host = os.environ.get("CONTAO_TEST_HOST")
+    user = os.environ.get("CONTAO_TEST_USER")
+    root = os.environ.get("CONTAO_TEST_ROOT", "/var/www/html")
     key = os.environ.get("CONTAO_TEST_KEY")
+    if not host or not user:
+        pytest.skip("CONTAO_TEST_HOST / CONTAO_TEST_USER not set")
     return ContaoBackend(host=host, user=user, contao_root=root, key_path=key)
 
 
@@ -69,11 +71,14 @@ def backend():
 @pytest.fixture
 def saved_session(tmp_dir):
     path = os.path.join(tmp_dir, "test_session.json")
+    host = os.environ.get("CONTAO_TEST_HOST")
+    user = os.environ.get("CONTAO_TEST_USER")
+    if not host or not user:
+        pytest.skip("CONTAO_TEST_HOST / CONTAO_TEST_USER not set")
     config = {
-        "host": os.environ.get("CONTAO_TEST_HOST", "c5.axeltest.at"),
-        "user": os.environ.get("CONTAO_TEST_USER", "c155929_C5"),
-        "contao_root": os.environ.get("CONTAO_TEST_ROOT",
-                                       "/var/www/clients/client1/web246/web"),
+        "host": host,
+        "user": user,
+        "contao_root": os.environ.get("CONTAO_TEST_ROOT", "/var/www/html"),
         "key_path": os.environ.get("CONTAO_TEST_KEY"),
         "port": 22,
         "php_path": "php",
