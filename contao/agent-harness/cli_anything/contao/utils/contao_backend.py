@@ -7,6 +7,7 @@ import os
 import sys
 import subprocess
 import shutil
+import shlex
 
 
 class ContaoBackendError(Exception):
@@ -84,7 +85,7 @@ class ContaoBackend:
         Does NOT prepend 'php bin/console' — use for ls, find, etc.
         Returns dict with keys: returncode, stdout, stderr
         """
-        full_cmd = f"cd '{self.contao_root}' && {shell_command}"
+        full_cmd = f"cd {shlex.quote(self.contao_root)} && {shell_command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
@@ -110,7 +111,7 @@ class ContaoBackend:
         Run a Contao console command via SSH.
         Returns dict with keys: returncode, stdout, stderr
         """
-        full_cmd = f"cd '{self.contao_root}' && {self.php_path} bin/console {command}"
+        full_cmd = f"cd {shlex.quote(self.contao_root)} && {shlex.quote(self.php_path)} bin/console {command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
 
         # Disable Git Bash / MSYS2 path conversion on Windows
