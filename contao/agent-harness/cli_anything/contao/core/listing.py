@@ -11,6 +11,7 @@ def listing_module_list(backend: ContaoBackend) -> list:
     """List all configured listing modules (tl_module WHERE type='listing')."""
     sql = (
         "SELECT id, name, list_table, list_fields, list_where "
+        # 0x6c697374696e67 = ASCII "listing" — hex avoids shell quote-escaping issues
         "FROM tl_module WHERE type = 0x6c697374696e67 ORDER BY name"
     )
     return run_sql_table(backend, sql)

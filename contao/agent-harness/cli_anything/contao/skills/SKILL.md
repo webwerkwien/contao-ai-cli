@@ -26,9 +26,9 @@ pip install -e .
 ```bash
 # Connect to a Contao installation
 cli-anything-contao connect \
-  --host your-server.example.com \
-  --user ssh-username \
-  --root /var/www/contao
+  --host example.com \
+  --user deploy \
+  --root /var/www/html
 
 # Named sessions (multiple installations)
 cli-anything-contao connect --host staging.example.com --user deploy --root /var/www --name staging
