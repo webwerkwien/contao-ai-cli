@@ -37,8 +37,15 @@ Designed to be used directly from the terminal or handed to an AI agent (e.g. Cl
 
 ### Installation
 
+The recommended way to install CLI tools on any platform is [pipx](https://pipx.pypa.io) — it ensures the `contao-ai-cli` command is available system-wide without PATH issues.
+
 ```bash
-pip install git+https://github.com/webwerkwien/contao-ai-cli.git
+# Install pipx if you don't have it yet
+pip install pipx
+pipx ensurepath
+
+# Install contao-ai-cli
+pipx install git+https://github.com/webwerkwien/contao-ai-cli.git
 ```
 
 ### Quick Start
@@ -108,8 +115,15 @@ Gedacht für den direkten Einsatz im Terminal oder als Werkzeugset für einen KI
 
 ### Installation
 
+Empfohlene Installationsmethode für CLI-Tools ist [pipx](https://pipx.pypa.io) — stellt den Befehl `contao-ai-cli` systemweit ohne PATH-Probleme bereit.
+
 ```bash
-pip install git+https://github.com/webwerkwien/contao-ai-cli.git
+# pipx installieren falls noch nicht vorhanden
+pip install pipx
+pipx ensurepath
+
+# contao-ai-cli installieren
+pipx install git+https://github.com/webwerkwien/contao-ai-cli.git
 ```
 
 ### Schnellstart
