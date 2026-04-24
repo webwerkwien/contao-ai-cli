@@ -56,7 +56,7 @@ def template_write(backend: ContaoBackend, mode: str, base: str,
         result = backend.run(cmd)
         try:
             return json.loads(result["stdout"])
-        except Exception:
+        except json.JSONDecodeError:
             return {"raw": result["stdout"]}
     finally:
         os.unlink(local_tmp)

@@ -9,7 +9,7 @@ def channel_list(backend: ContaoBackend) -> list:
     return run_sql_table(backend, sql)
 
 
-def newsletter_list(backend: ContaoBackend, channel_id: int = None) -> list:
+def newsletter_list(backend: ContaoBackend, channel_id: int | None = None) -> list:
     """List newsletters. Optionally filter by channel ID (pid)."""
     where = f"WHERE pid = {int(channel_id)}" if channel_id is not None else ""
     sql = (
@@ -19,7 +19,7 @@ def newsletter_list(backend: ContaoBackend, channel_id: int = None) -> list:
     return run_sql_table(backend, sql)
 
 
-def subscriber_list(backend: ContaoBackend, channel_id: int = None) -> list:
+def subscriber_list(backend: ContaoBackend, channel_id: int | None = None) -> list:
     """List newsletter subscribers (tl_newsletter_recipients)."""
     where = f"WHERE pid = {int(channel_id)}" if channel_id is not None else ""
     sql = (

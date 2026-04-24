@@ -10,7 +10,7 @@ def calendar_list(backend: ContaoBackend) -> list:
     return run_sql_table(backend, sql)
 
 
-def event_list(backend: ContaoBackend, calendar_id: int = None) -> list:
+def event_list(backend: ContaoBackend, calendar_id: int | None = None) -> list:
     """List calendar events. Optionally filter by calendar ID (pid)."""
     where = f"WHERE pid = {int(calendar_id)}" if calendar_id is not None else ""
     sql = (
@@ -26,8 +26,8 @@ def event_read(backend: ContaoBackend, event_id: int) -> dict:
 
 
 def event_create(backend: ContaoBackend, title: str, pid: int,
-                 start_date: str = None, end_date: str = None,
-                 fields: dict = None) -> dict:
+                 start_date: str | None = None, end_date: str | None = None,
+                 fields: dict | None = None) -> dict:
     """Create a calendar event via contao-cli-bridge."""
     cmd = f"contao:event:create --title={shlex.quote(title)} --pid={pid} --no-interaction"
     if start_date:

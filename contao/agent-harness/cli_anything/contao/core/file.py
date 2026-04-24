@@ -9,7 +9,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
-def file_list(backend: ContaoBackend, path: str = None, type_filter: str = None) -> list:
+def file_list(backend: ContaoBackend, path: str | None = None, type_filter: str | None = None) -> list:
     """
     List files/folders from tl_files.
 

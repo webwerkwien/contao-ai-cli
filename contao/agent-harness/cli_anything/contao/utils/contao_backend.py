@@ -8,6 +8,7 @@ import sys
 import subprocess
 import shutil
 import shlex
+from typing import Any
 
 
 class ContaoBackendError(Exception):
@@ -152,7 +153,7 @@ class ContaoBackend:
 
         return output
 
-    def run_json(self, command: str) -> any:
+    def run_json(self, command: str) -> Any:
         """Run command and parse JSON output. Appends --format=json if needed."""
         result = self.run(command)
         try:

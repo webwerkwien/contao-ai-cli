@@ -4,7 +4,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
-def article_list(backend: ContaoBackend, page_id: int = None) -> list:
+def article_list(backend: ContaoBackend, page_id: int | None = None) -> list:
     """List articles. Optionally filter by page ID (pid)."""
     where = f"WHERE pid = {int(page_id)}" if page_id is not None else ""
     sql = f"SELECT id, pid, title, alias, published, inColumn FROM tl_article {where} ORDER BY pid, sorting"
@@ -17,7 +17,7 @@ def article_read(backend: ContaoBackend, article_id: int) -> dict:
 
 
 def article_create(backend: ContaoBackend, title: str, pid: int,
-                   in_column: str = "main", fields: dict = None) -> dict:
+                   in_column: str = "main", fields: dict | None = None) -> dict:
     """Create an article via contao-cli-bridge."""
     cmd = (f"contao:article:create --title={shlex.quote(title)} --pid={pid} "
            f"--inColumn={shlex.quote(in_column)} --no-interaction")

@@ -10,7 +10,7 @@ def faq_category_list(backend: ContaoBackend) -> list:
     return run_sql_table(backend, sql)
 
 
-def faq_list(backend: ContaoBackend, category_id: int = None) -> list:
+def faq_list(backend: ContaoBackend, category_id: int | None = None) -> list:
     """List FAQ entries. Optionally filter by category ID (pid)."""
     where = f"WHERE pid = {int(category_id)}" if category_id is not None else ""
     sql = (
@@ -26,7 +26,7 @@ def faq_read(backend: ContaoBackend, faq_id: int) -> dict:
 
 
 def faq_create(backend: ContaoBackend, question: str, pid: int,
-               answer: str = "", fields: dict = None) -> dict:
+               answer: str = "", fields: dict | None = None) -> dict:
     """Create a FAQ entry via contao-cli-bridge."""
     cmd = f"contao:faq:create --question={shlex.quote(question)} --pid={pid} --no-interaction"
     if answer:
