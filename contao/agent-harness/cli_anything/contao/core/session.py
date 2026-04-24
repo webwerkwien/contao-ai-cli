@@ -1,12 +1,12 @@
 """
-Session management for contao-cli-agent.
+Session management for contao-ai-cli.
 Stores SSH connection config and provides session file locking.
 """
 import json
 import os
 from pathlib import Path
 
-DEFAULT_SESSION_DIR = os.path.expanduser("~/.contao-cli-agent")
+DEFAULT_SESSION_DIR = os.path.expanduser("~/.contao-ai-cli")
 DEFAULT_SESSION_FILE = os.path.join(DEFAULT_SESSION_DIR, "session.json")
 
 

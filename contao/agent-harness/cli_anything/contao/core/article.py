@@ -18,7 +18,7 @@ def article_read(backend: ContaoBackend, article_id: int) -> dict:
 
 def article_create(backend: ContaoBackend, title: str, pid: int,
                    in_column: str = "main", fields: dict | None = None) -> dict:
-    """Create an article via contao-cli-bridge."""
+    """Create an article via contao-ai-core-bundle."""
     cmd = (f"contao:article:create --title={shlex.quote(title)} --pid={pid} "
            f"--inColumn={shlex.quote(in_column)} --no-interaction")
     if fields:

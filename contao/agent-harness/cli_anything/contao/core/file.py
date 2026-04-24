@@ -37,7 +37,7 @@ def file_sync(backend: ContaoBackend) -> dict:
 
 
 def folder_create(backend: ContaoBackend, path: str) -> dict:
-    """Create a folder in the Contao file system via contao-cli-bridge."""
+    """Create a folder in the Contao file system via contao-ai-core-bundle."""
     return run_json_or_raw(backend, f'contao:folder:create --path {shlex.quote(path)}')
 
 
@@ -63,7 +63,7 @@ def file_process(
 
 
 def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
-    """Write text content to a file under files/ via contao-cli-bridge.
+    """Write text content to a file under files/ via contao-ai-core-bundle.
 
     Uploads content via SCP to a temp file, then calls contao:file:write.
     Creates a tl_version snapshot if the file is already registered in DBAFS.
@@ -77,8 +77,11 @@ def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
         local_tmp = f.name
 
     try:
-        # SCP the temp file to /tmp on the server
-        remote_tmp = f'/tmp/contao_write_{os.path.basename(local_tmp)}'
+        # SCP the temp file to var/bridge-uploads/ in the Contao root
+        upload_dir = f'{backend.contao_root}/var/bridge-uploads'
+        backend.run_raw(f'mkdir -p {shlex.quote(upload_dir)}')
+        basename = os.path.basename(local_tmp)
+        remote_tmp = f'{upload_dir}/contao_write_{basename}'
         scp_result = backend.scp_upload(local_tmp, remote_tmp)
         if scp_result.get('returncode', 0) != 0:
             return {'status': 'error', 'message': f"SCP upload failed: {scp_result.get('stderr', '')}"}

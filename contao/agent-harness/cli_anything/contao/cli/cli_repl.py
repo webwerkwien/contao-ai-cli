@@ -20,7 +20,7 @@ def repl(ctx):
         skin.info(f"Connected: {session_cfg.get('user')}@{session_cfg.get('host')} "
                   f"  {session_cfg.get('contao_root')}")
     else:
-        skin.warning("No session. Run: contao-cli-agent connect --host HOST --user USER --root PATH")
+        skin.warning("No session. Run: contao-ai-cli connect --host HOST --user USER --root PATH")
 
     pt_session = skin.create_prompt_session()
     commands = {

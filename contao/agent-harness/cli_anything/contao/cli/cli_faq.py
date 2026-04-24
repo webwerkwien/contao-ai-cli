@@ -52,7 +52,7 @@ def faq_read_cmd(ctx, faq_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def faq_create_cmd(ctx, question, pid, answer, fields, as_json):
-    """Create a FAQ entry via contao-cli-bridge."""
+    """Create a FAQ entry via contao-ai-core-bundle."""
     _require_bridge(ctx, "faq create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))

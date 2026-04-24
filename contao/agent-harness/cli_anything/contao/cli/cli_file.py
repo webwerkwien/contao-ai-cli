@@ -39,7 +39,7 @@ def file_sync_cmd(ctx):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_folder_create_cmd(ctx, path, as_json):
-    """Create a folder in the Contao file system via contao-cli-bridge."""
+    """Create a folder in the Contao file system via contao-ai-core-bundle."""
     _require_bridge(ctx, "file folder-create")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.folder_create(b, path), as_json or ctx.obj.get("as_json"))
@@ -54,7 +54,7 @@ def file_folder_create_cmd(ctx, path, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_size, as_json):
-    """Validate and optionally resize a file already on the server via contao-cli-bridge."""
+    """Validate and optionally resize a file already on the server via contao-ai-core-bundle."""
     _require_bridge(ctx, "file process")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_process(b, path, allowed_types, max_width, max_height, max_file_size),
@@ -99,7 +99,7 @@ def file_read_cmd(ctx, path, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_meta_cmd(ctx, path, lang, fields, as_json):
-    """Update metadata fields on a tl_files record via contao-cli-bridge."""
+    """Update metadata fields on a tl_files record via contao-ai-core-bundle."""
     _require_bridge(ctx, "file meta")
     invalid = [f for f in fields if "=" not in f]
     if invalid:

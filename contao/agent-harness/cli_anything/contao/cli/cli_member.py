@@ -58,7 +58,7 @@ def member_create_cmd(ctx, username, password, firstname, lastname, email, as_js
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def member_update(ctx, username, fields, as_json):
-    """Update a frontend member field via contao-cli-bridge."""
+    """Update a frontend member field via contao-ai-core-bundle."""
     _require_bridge(ctx, "member update")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))
@@ -70,7 +70,7 @@ def member_update(ctx, username, fields, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def member_delete(ctx, username, as_json):
-    """Delete a frontend member via contao-cli-bridge."""
+    """Delete a frontend member via contao-ai-core-bundle."""
     _require_bridge(ctx, "member delete")
     b = _get_backend(ctx.obj.get("session"))
     _output(member_mod.member_delete(b, username), as_json or ctx.obj.get("as_json"))

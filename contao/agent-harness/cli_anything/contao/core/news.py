@@ -27,7 +27,7 @@ def news_read(backend: ContaoBackend, news_id: int) -> dict:
 
 def news_create(backend: ContaoBackend, headline: str, pid: int,
                 date: str | None = None, fields: dict | None = None) -> dict:
-    """Create a news entry via contao-cli-bridge."""
+    """Create a news entry via contao-ai-core-bundle."""
     cmd = f"contao:news:create --headline={shlex.quote(headline)} --pid={pid} --no-interaction"
     if date:
         cmd += f" --date={shlex.quote(date)}"

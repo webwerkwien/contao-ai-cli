@@ -44,7 +44,7 @@ def content_read_cmd(ctx, content_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def content_create_cmd(ctx, el_type, pid, ptable, text, fields, as_json):
-    """Create a content element via contao-cli-bridge."""
+    """Create a content element via contao-ai-core-bundle."""
     _require_bridge(ctx, "content create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     if text is not None:

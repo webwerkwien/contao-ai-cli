@@ -1,12 +1,12 @@
 """
-DCA schema sync for contao-cli-agent.
+DCA schema sync for contao-ai-cli.
 
 Fetches field definitions from the live Contao server via debug:dca,
 extracts field metadata (mandatory, inputType, options, label),
 and stores them as a local JSON schema per session.
 
 Schema files are stored at:
-  ~/.contao-cli-agent/schemas/<session-name>/<table>.json
+  ~/.contao-ai-cli/schemas/<session-name>/<table>.json
 
 Usage:
   schema = sync_table(backend, 'tl_user', session_path)

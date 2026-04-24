@@ -31,14 +31,14 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 
 
 def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
-    """Update backend user fields via contao-cli-bridge."""
+    """Update backend user fields via contao-ai-core-bundle."""
     set_args = build_set_args(fields)
     cmd = f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction"
     return run_json_or_raw(backend, " ".join(cmd.split()))
 
 
 def user_delete(backend: ContaoBackend, username: str) -> dict:
-    """Delete a backend user via contao-cli-bridge."""
+    """Delete a backend user via contao-ai-core-bundle."""
     return run_json_or_raw(backend, f"contao:user:delete {shlex.quote(username)} --no-interaction")
 
 

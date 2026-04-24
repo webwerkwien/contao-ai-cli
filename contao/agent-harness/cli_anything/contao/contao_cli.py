@@ -1,5 +1,5 @@
 """
-contao-cli-agent: Agent-native CLI for Contao 5 via SSH.
+contao-ai-cli: Agent-native CLI for Contao 5 via SSH.
 
 Wraps Contao's Symfony Console (php bin/console) with a Python CLI
 that agents can use over SSH. The real Contao installation is a
@@ -45,7 +45,7 @@ from cli_anything.contao.cli.cli_repl import repl
 @click.version_option(__version__)
 @click.pass_context
 def cli(ctx, session, as_json):
-    """contao-cli-agent — Agent-native CLI for Contao 5 via SSH.\n
+    """contao-ai-cli — Agent-native CLI for Contao 5 via SSH.\n
     Connect to a Contao installation and run console commands remotely.
     Run without arguments to enter REPL mode.
     """
