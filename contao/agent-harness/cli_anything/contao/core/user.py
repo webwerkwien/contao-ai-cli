@@ -11,7 +11,12 @@ def user_list(backend: ContaoBackend) -> list:
 def user_create(backend: ContaoBackend, username: str, password: str,
                 name: str, email: str, language: str = "en",
                 admin: bool = False) -> dict:
-    """Create a backend user. username, name, email, language, password are mandatory."""
+    """Create a backend user. username, name, email, language, password are mandatory.
+
+    TODO (H3): --password= is visible in SSH command logs and /proc/cmdline.
+    Real fix requires Contao command to support --password-stdin or reading from
+    an env var directly (not via shell expansion into argv).
+    """
     cmd = (f"contao:user:create "
            f"--username={shlex.quote(username)} "
            f"--password={shlex.quote(password)} "
@@ -38,6 +43,7 @@ def user_delete(backend: ContaoBackend, username: str) -> dict:
 
 
 def user_password(backend: ContaoBackend, username: str, password: str) -> dict:
+    # TODO (H3): --password= visible in /proc/cmdline; long-term fix = --password-stdin
     # username is a positional argument, not a flag
     cmd = (f"contao:user:password "
            f"--password={shlex.quote(password)} "

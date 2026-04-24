@@ -87,6 +87,10 @@ def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
         return run_json_or_raw(backend, cmd)
     finally:
         os.unlink(local_tmp)
+        try:
+            backend.run_raw(f'rm -f {shlex.quote(remote_tmp)}')
+        except Exception:
+            pass
 
 
 def file_read(backend: ContaoBackend, path: str) -> dict:
