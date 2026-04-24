@@ -35,3 +35,6 @@ Thumbs.db
 
 # Git worktrees
 /.worktrees/
+
+# Internal planning docs
+/docs/superpowers/
