@@ -28,7 +28,8 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update backend user fields via contao-cli-bridge."""
     set_args = build_set_args(fields)
-    return run_json_or_raw(backend, f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction")
+    cmd = f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction"
+    return run_json_or_raw(backend, " ".join(cmd.split()))
 
 
 def user_delete(backend: ContaoBackend, username: str) -> dict:

@@ -101,4 +101,4 @@ def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = 
     """
     set_args = build_set_args(meta)
     cmd = f'contao:file:meta --path {shlex.quote(path)} --lang {shlex.quote(lang)} {set_args}'
-    return run_json_or_raw(backend, cmd.strip())
+    return run_json_or_raw(backend, " ".join(cmd.split()))
