@@ -1,4 +1,5 @@
 """Contao frontend member management (tl_member)."""
+import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError  # noqa: F401
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
@@ -12,9 +13,8 @@ def _q(s: str) -> str:
 def member_list(backend: ContaoBackend) -> list:
     try:
         result = backend.run("contao:member:list --format=json")
-        import json
         return json.loads(result["stdout"])
-    except (ContaoBackendError, Exception):
+    except (ContaoBackendError, json.JSONDecodeError):
         pass
     # No native member:list command — fall back to direct SQL
     sql = "SELECT id, username, email, firstname, lastname, disable FROM tl_member"
@@ -42,7 +42,8 @@ def member_create(backend: ContaoBackend, username: str, password: str,
 def member_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update frontend member fields via contao-cli-bridge."""
     set_args = build_set_args(fields)
-    return run_json_or_raw(backend, f"contao:member:update {shlex.quote(username)} {set_args} --no-interaction")
+    cmd = f"contao:member:update {shlex.quote(username)} {set_args} --no-interaction"
+    return run_json_or_raw(backend, " ".join(cmd.split()))
 
 
 def member_delete(backend: ContaoBackend, username: str) -> dict:
