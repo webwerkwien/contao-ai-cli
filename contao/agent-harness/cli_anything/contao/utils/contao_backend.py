@@ -100,9 +100,10 @@ class ContaoBackend:
             "stderr": result.stderr.strip(),
         }
         if result.returncode != 0:
+            # shell_command may contain passwords — omit it from the error message
             raise ContaoBackendError(
-                f"Shell command failed (exit {result.returncode}): {shell_command}\n"
-                f"stderr: {result.stderr.strip()}"
+                f"Shell command failed (exit {result.returncode}). "
+                f"Stderr: {result.stderr.strip()[:500]}"
             )
         return output
 
@@ -137,9 +138,10 @@ class ContaoBackend:
         }
 
         if result.returncode != 0:
+            truncated = command[:100] + ("..." if len(command) > 100 else "")
             raise ContaoBackendError(
-                f"Command failed (exit {result.returncode}): {command}\n"
-                f"stderr: {result.stderr.strip()}"
+                f"Command failed (exit {result.returncode}): {truncated}\n"
+                f"Stderr: {result.stderr.strip()[:500]}"
             )
 
         if json_output:
