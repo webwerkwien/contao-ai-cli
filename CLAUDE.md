@@ -17,11 +17,11 @@ Session files are stored in `~/.contao-ai-cli/<name>.json`.
 
 ```bash
 contao-ai-cli connect \
-  --host your-server.example.com \
-  --user ssh-username \
-  --root /var/www/contao \
-  --key ~/.ssh/id_ed25519 \
-  --name my-site
+  --host your-server.example.com \   # hostname or IP of your web server
+  --user ssh-username \              # SSH login user
+  --root /path/to/contao \          # absolute path to the Contao root on the server
+  --key ~/.ssh/id_ed25519 \         # path to your SSH private key (adjust if different)
+  --name my-site                    # local session name (your choice)
 ```
 
 The connect command will:
