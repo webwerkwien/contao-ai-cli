@@ -1,6 +1,6 @@
 import sys
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from cli_anything.contao.utils.contao_backend import ContaoBackend
 
 
