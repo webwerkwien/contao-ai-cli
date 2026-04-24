@@ -10,7 +10,7 @@ def news_archive_list(backend: ContaoBackend) -> list:
     return run_sql_table(backend, sql)
 
 
-def news_list(backend: ContaoBackend, archive_id: int = None) -> list:
+def news_list(backend: ContaoBackend, archive_id: int | None = None) -> list:
     """List news entries. Optionally filter by archive ID (pid)."""
     where = f"WHERE pid = {int(archive_id)}" if archive_id is not None else ""
     sql = (
@@ -26,7 +26,7 @@ def news_read(backend: ContaoBackend, news_id: int) -> dict:
 
 
 def news_create(backend: ContaoBackend, headline: str, pid: int,
-                date: str = None, fields: dict = None) -> dict:
+                date: str | None = None, fields: dict | None = None) -> dict:
     """Create a news entry via contao-cli-bridge."""
     cmd = f"contao:news:create --headline={shlex.quote(headline)} --pid={pid} --no-interaction"
     if date:

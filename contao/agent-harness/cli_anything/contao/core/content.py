@@ -14,7 +14,7 @@ def _parse_headline(value: str) -> str:
     return match.group(1) if match else value
 
 
-def content_list(backend: ContaoBackend, article_id: int = None) -> list:
+def content_list(backend: ContaoBackend, article_id: int | None = None) -> list:
     """List content elements. Optionally filter by article ID (pid)."""
     where = f"WHERE pid = {int(article_id)}" if article_id is not None else ""
     sql = (
@@ -34,7 +34,7 @@ def content_read(backend: ContaoBackend, content_id: int) -> dict:
 
 
 def content_create(backend: ContaoBackend, type: str, pid: int,
-                   ptable: str = "tl_article", fields: dict = None) -> dict:
+                   ptable: str = "tl_article", fields: dict | None = None) -> dict:
     """Create a content element via contao-cli-bridge."""
     cmd = (f"contao:content:create --type={shlex.quote(type)} --pid={pid} "
            f"--ptable={shlex.quote(ptable)} --no-interaction")

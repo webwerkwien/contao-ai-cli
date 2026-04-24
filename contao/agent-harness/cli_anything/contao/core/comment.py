@@ -3,7 +3,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.core.contao_ops import run_sql_table
 
 
-def comment_list(backend: ContaoBackend, source: str = None, parent_id: int = None) -> list:
+def comment_list(backend: ContaoBackend, source: str | None = None, parent_id: int | None = None) -> list:
     """
     List comments. Optionally filter by source table and/or parent ID.
     source: e.g. 'tl_news', 'tl_page', 'tl_faq'

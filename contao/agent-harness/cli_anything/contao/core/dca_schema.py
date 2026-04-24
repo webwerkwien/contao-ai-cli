@@ -13,14 +13,16 @@ Usage:
   fields = mandatory_fields('tl_user', session_path)
 """
 import json
+import logging
 import os
 import shlex
 from datetime import datetime
-from typing import Optional
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 from cli_anything.contao.utils.vardump_parser import parse_vardump
 from cli_anything.contao.utils.table_parser import parse_table
+
+logger = logging.getLogger(__name__)
 
 # Fallback tables used when the server DCA cache is not reachable
 FALLBACK_TABLES = [
@@ -95,7 +97,7 @@ def _schema_path(table: str, session_path: str) -> str:
 
 # ── extraction helpers ───────────────────────────────────────────────────────
 
-def _extract_label(raw_label) -> Optional[str]:
+def _extract_label(raw_label) -> str | None:
     """Extract human-readable label from DCA label value."""
     if isinstance(raw_label, dict):
         return raw_label.get(0) or raw_label.get('0')
@@ -106,7 +108,7 @@ def _extract_label(raw_label) -> Optional[str]:
     return None
 
 
-def _extract_options(fdef: dict) -> Optional[object]:
+def _extract_options(fdef: dict) -> object | None:
     """Extract allowed options, or '__callback__' if dynamic."""
     opts = fdef.get('options')
     if opts in ('__closure__', '__callback__') or callable(opts):
@@ -193,12 +195,13 @@ def discover_tables(backend: ContaoBackend) -> list[str]:
             if fname.endswith('.php') and fname.startswith('tl_')
         )
         return tables if tables else FALLBACK_TABLES
-    except Exception:
+    except Exception as e:
+        logger.warning("discover_tables failed, falling back to static list: %s", e)
         return FALLBACK_TABLES
 
 
 def sync_all(backend: ContaoBackend, session_path: str,
-             tables: Optional[list] = None) -> dict:
+             tables: list | None = None) -> dict:
     """
     Sync schemas for multiple tables. Returns {table: schema|error}.
     If *tables* is None, discovers all registered tables from the server.
@@ -214,7 +217,7 @@ def sync_all(backend: ContaoBackend, session_path: str,
     return results
 
 
-def load_schema(table: str, session_path: str) -> Optional[dict]:
+def load_schema(table: str, session_path: str) -> dict | None:
     """Load cached schema for *table*. Returns None if not synced yet."""
     path = _schema_path(table, session_path)
     if not os.path.exists(path):
@@ -265,7 +268,7 @@ def resolve_callback_options(
     backend: ContaoBackend,
     table: str,
     session_path: str,
-    field: Optional[str] = None,
+    field: str | None = None,
 ) -> dict:
     """
     Resolve __callback__ options in the cached schema for *table*.
@@ -315,8 +318,8 @@ def resolve_callback_options(
                     results[fname] = options
                     changed = True
                     continue
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("resolve_callback_options failed for %s.%s: %s", table, fname, e)
 
         results[fname] = '__unresolved__'
 

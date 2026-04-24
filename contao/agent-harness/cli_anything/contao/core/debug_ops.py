@@ -18,11 +18,6 @@ def debug_pages(backend: ContaoBackend) -> dict:
     return {"output": result["stdout"]}
 
 
-def debug_fragments(backend: ContaoBackend) -> dict:
-    result = backend.run("debug:fragments")
-    return {"output": result["stdout"]}
-
-
 def debug_router(backend: ContaoBackend, path: str = "") -> dict:
     cmd = "debug:router"
     if path:

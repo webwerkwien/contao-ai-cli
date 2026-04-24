@@ -4,28 +4,19 @@ Stores SSH connection config and provides session file locking.
 """
 import json
 import os
-import sys
 from pathlib import Path
-
-# fcntl is Unix-only
-if sys.platform != "win32":
-    import fcntl
-else:
-    fcntl = None
-from typing import Optional
-
 
 DEFAULT_SESSION_DIR = os.path.expanduser("~/.contao-cli-agent")
 DEFAULT_SESSION_FILE = os.path.join(DEFAULT_SESSION_DIR, "session.json")
 
 
-def get_session_path(session_name: Optional[str] = None) -> str:
+def get_session_path(session_name: str | None = None) -> str:
     if session_name:
         return os.path.join(DEFAULT_SESSION_DIR, f"{session_name}.json")
     return DEFAULT_SESSION_FILE
 
 
-def save_session(config: dict, session_path: Optional[str] = None) -> str:
+def save_session(config: dict, session_path: str | None = None) -> str:
     """Save session config with restricted permissions (owner-read-only, 0o600)."""
     path = session_path or DEFAULT_SESSION_FILE
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -35,7 +26,7 @@ def save_session(config: dict, session_path: Optional[str] = None) -> str:
     return path
 
 
-def load_session(session_path: Optional[str] = None) -> dict:
+def load_session(session_path: str | None = None) -> dict:
     """Load session config."""
     path = session_path or DEFAULT_SESSION_FILE
     if not os.path.exists(path):
@@ -44,7 +35,7 @@ def load_session(session_path: Optional[str] = None) -> dict:
         return json.load(f)
 
 
-def delete_session(session_path: Optional[str] = None):
+def delete_session(session_path: str | None = None):
     """Delete session file."""
     path = session_path or DEFAULT_SESSION_FILE
     if os.path.exists(path):

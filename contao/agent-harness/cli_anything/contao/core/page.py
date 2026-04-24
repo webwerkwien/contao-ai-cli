@@ -4,7 +4,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
-def page_list(backend: ContaoBackend, pid: int = None) -> list:
+def page_list(backend: ContaoBackend, pid: int | None = None) -> list:
     """List pages. Optionally filter by parent ID."""
     where = f"WHERE pid = {int(pid)}" if pid is not None else ""
     sql = f"SELECT id, pid, title, alias, type, published, hide FROM tl_page {where} ORDER BY sorting"
@@ -46,7 +46,7 @@ def page_read(backend: ContaoBackend, page_id: int) -> dict:
 
 def page_create(backend: ContaoBackend, title: str, pid: int = 0,
                 type: str = "regular", alias: str = "", language: str = "de",
-                fields: dict = None) -> dict:
+                fields: dict | None = None) -> dict:
     """Create a page via contao-cli-bridge."""
     cmd = (f"contao:page:create --title={shlex.quote(title)} --pid={pid} "
            f"--type={shlex.quote(type)} --language={shlex.quote(language)} --no-interaction")
