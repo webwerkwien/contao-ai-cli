@@ -57,22 +57,22 @@ class ContaoBackend:
             )
         return found
 
-    def _verify_ssh(self):
-        pass  # _ssh_bin is already set in __init__ via _find_ssh()
-
     def _ssh_args(self) -> list[str]:
-        control_path = os.path.expanduser(
-            f"~/.ssh/cm-contao-{self.user}@{self.host}:{self.port}"
-        )
         args = [
             self._ssh_bin,
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", "BatchMode=yes",
-            "-o", "ControlMaster=auto",
-            "-o", f"ControlPath={control_path}",
-            "-o", "ControlPersist=60s",
             "-p", str(self.port),
         ]
+        if sys.platform != "win32":
+            control_path = os.path.expanduser(
+                f"~/.ssh/cm-contao-{self.user}@{self.host}:{self.port}"
+            )
+            args += [
+                "-o", "ControlMaster=auto",
+                "-o", f"ControlPath={control_path}",
+                "-o", "ControlPersist=60s",
+            ]
         if self.key_path:
             args += ["-i", self.key_path]
         args.append(f"{self.user}@{self.host}")
@@ -89,7 +89,10 @@ class ContaoBackend:
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
-        result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=60)
+        try:
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=60)
+        except subprocess.TimeoutExpired:
+            raise ContaoBackendError("SSH command timed out after 60s")
         output = {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),
@@ -115,13 +118,16 @@ class ContaoBackend:
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
 
-        result = subprocess.run(
-            ssh_cmd,
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=60,
-        )
+        try:
+            result = subprocess.run(
+                ssh_cmd,
+                capture_output=True,
+                text=True,
+                env=env,
+                timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            raise ContaoBackendError("SSH command timed out after 60s")
 
         output = {
             "returncode": result.returncode,
@@ -172,7 +178,10 @@ class ContaoBackend:
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
 
-        result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=120)
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=120)
+        except subprocess.TimeoutExpired:
+            raise ContaoBackendError("SSH command timed out after 120s")
         return {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),
