@@ -86,3 +86,13 @@ class TestMemberCreate:
         backend.run.return_value = {"stdout": '{"status": "created"}'}
         member_create(backend, "testuser", "secret123", "Test", "User", "t@t.com")
         backend.run_raw.assert_not_called()
+
+    def test_member_create_quotes_special_chars(self):
+        """Test that member_create properly escapes passwords with special characters."""
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": '{"status": "created"}'}
+        dangerous_pw = "pass word; rm -rf /"
+        member_create(backend, "user", dangerous_pw, "Test", "User", "t@t.com")
+        call_args = backend.run.call_args[0][0]
+        assert shlex.quote(dangerous_pw) in call_args
+        assert "rm -rf /" not in call_args.replace(shlex.quote(dangerous_pw), "")
