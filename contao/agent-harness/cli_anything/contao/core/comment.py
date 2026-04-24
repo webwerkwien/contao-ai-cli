@@ -1,6 +1,6 @@
 """Contao comment management (tl_comments)."""
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table
 
 
 def comment_list(backend: ContaoBackend, source: str = None, parent_id: int = None) -> list:
@@ -14,12 +14,10 @@ def comment_list(backend: ContaoBackend, source: str = None, parent_id: int = No
         safe_source = source.replace("'", "''")
         conditions.append(f"source = '{safe_source}'")
     if parent_id is not None:
-        conditions.append(f"parent = {parent_id}")
+        conditions.append(f"parent = {int(parent_id)}")
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     sql = (
         f"SELECT id, source, parent, date, name, email, comment, published "
         f"FROM tl_comments {where} ORDER BY date DESC"
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)

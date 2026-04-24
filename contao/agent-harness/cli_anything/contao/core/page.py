@@ -1,17 +1,14 @@
 """Contao page management (tl_page)."""
-import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def page_list(backend: ContaoBackend, pid: int = None) -> list:
     """List pages. Optionally filter by parent ID."""
-    where = f"WHERE pid = {pid}" if pid is not None else ""
+    where = f"WHERE pid = {int(pid)}" if pid is not None else ""
     sql = f"SELECT id, pid, title, alias, type, published, hide FROM tl_page {where} ORDER BY sorting"
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def page_tree(backend: ContaoBackend) -> list:
@@ -20,8 +17,7 @@ def page_tree(backend: ContaoBackend) -> list:
     Each page has a 'children' key with sub-pages.
     """
     sql = "SELECT id, pid, title, alias, type, published FROM tl_page ORDER BY sorting"
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    pages = parse_table(result["stdout"])
+    pages = run_sql_table(backend, sql)
     if not isinstance(pages, list):
         return pages  # error fallback
 
@@ -45,12 +41,7 @@ def page_tree(backend: ContaoBackend) -> list:
 
 def page_read(backend: ContaoBackend, page_id: int) -> dict:
     """Read all fields of a tl_page record incl. resolved effective layout."""
-    cmd = f"contao:page:read {page_id}"
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, f"contao:page:read {page_id}")
 
 
 def page_create(backend: ContaoBackend, title: str, pid: int = 0,
@@ -62,9 +53,5 @@ def page_create(backend: ContaoBackend, title: str, pid: int = 0,
     if alias:
         cmd += f" --alias={shlex.quote(alias)}"
     if fields:
-        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+        cmd += " " + build_set_args(fields)
+    return run_json_or_raw(backend, cmd)

@@ -1,38 +1,28 @@
 """Contao calendar event management (tl_calendar_events, tl_calendar)."""
-import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def calendar_list(backend: ContaoBackend) -> list:
     """List all calendars (tl_calendar)."""
     sql = "SELECT id, title FROM tl_calendar ORDER BY title"
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def event_list(backend: ContaoBackend, calendar_id: int = None) -> list:
     """List calendar events. Optionally filter by calendar ID (pid)."""
-    where = f"WHERE pid = {calendar_id}" if calendar_id is not None else ""
+    where = f"WHERE pid = {int(calendar_id)}" if calendar_id is not None else ""
     sql = (
         f"SELECT id, pid, title, alias, published, startDate, endDate "
         f"FROM tl_calendar_events {where} ORDER BY startDate DESC"
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def event_read(backend: ContaoBackend, event_id: int) -> dict:
     """Read all fields of a tl_calendar_events record."""
-    cmd = f"contao:event:read {event_id}"
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, f"contao:event:read {event_id}")
 
 
 def event_create(backend: ContaoBackend, title: str, pid: int,
@@ -45,9 +35,5 @@ def event_create(backend: ContaoBackend, title: str, pid: int,
     if end_date:
         cmd += f" --endDate={shlex.quote(end_date)}"
     if fields:
-        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+        cmd += " " + build_set_args(fields)
+    return run_json_or_raw(backend, cmd)

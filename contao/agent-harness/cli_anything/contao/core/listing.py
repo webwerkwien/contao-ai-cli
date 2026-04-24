@@ -4,7 +4,7 @@ The listing bundle has no own table. It adds a 'listing' module type to
 tl_module. Each module stores which DB table and fields to list.
 """
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table
 
 
 def listing_module_list(backend: ContaoBackend) -> list:
@@ -13,9 +13,7 @@ def listing_module_list(backend: ContaoBackend) -> list:
         "SELECT id, name, list_table, list_fields, list_where "
         "FROM tl_module WHERE type = 0x6c697374696e67 ORDER BY name"
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def listing_data(backend: ContaoBackend, module_id: int) -> list:
@@ -27,10 +25,9 @@ def listing_data(backend: ContaoBackend, module_id: int) -> list:
     # Get module config
     cfg_sql = (
         f"SELECT list_table, list_fields, list_where "
-        f"FROM tl_module WHERE id = {module_id}"
+        f"FROM tl_module WHERE id = {int(module_id)}"
     )
-    cfg_result = backend.run(f'doctrine:query:sql "{cfg_sql}"')
-    rows = parse_table(cfg_result["stdout"])
+    rows = run_sql_table(backend, cfg_sql)
     if not rows:
         return {"error": f"Module {module_id} not found or not a listing module"}
 
@@ -46,6 +43,4 @@ def listing_data(backend: ContaoBackend, module_id: int) -> list:
     where_clause = where_clause.replace('"', "'")
     where = f"WHERE {where_clause}" if where_clause else ""
     sql = f"SELECT {fields} FROM {table} {where} ORDER BY id"
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)

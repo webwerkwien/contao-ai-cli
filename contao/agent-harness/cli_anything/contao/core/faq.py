@@ -1,38 +1,28 @@
 """Contao FAQ management (tl_faq, tl_faq_category)."""
-import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def faq_category_list(backend: ContaoBackend) -> list:
     """List all FAQ categories (tl_faq_category)."""
     sql = "SELECT id, title FROM tl_faq_category ORDER BY id"
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def faq_list(backend: ContaoBackend, category_id: int = None) -> list:
     """List FAQ entries. Optionally filter by category ID (pid)."""
-    where = f"WHERE pid = {category_id}" if category_id is not None else ""
+    where = f"WHERE pid = {int(category_id)}" if category_id is not None else ""
     sql = (
         f"SELECT id, pid, question, alias, published "
         f"FROM tl_faq {where} ORDER BY sorting"
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def faq_read(backend: ContaoBackend, faq_id: int) -> dict:
     """Read all fields of a tl_faq record."""
-    cmd = f"contao:faq:read {faq_id}"
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, f"contao:faq:read {faq_id}")
 
 
 def faq_create(backend: ContaoBackend, question: str, pid: int,
@@ -42,9 +32,5 @@ def faq_create(backend: ContaoBackend, question: str, pid: int,
     if answer:
         cmd += f" --answer={shlex.quote(answer)}"
     if fields:
-        cmd += " " + " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+        cmd += " " + build_set_args(fields)
+    return run_json_or_raw(backend, cmd)
