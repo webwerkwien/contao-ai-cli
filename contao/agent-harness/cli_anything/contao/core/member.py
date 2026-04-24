@@ -1,8 +1,7 @@
 """Contao frontend member management (tl_member)."""
-import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError  # noqa: F401
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def _q(s: str) -> str:
@@ -13,16 +12,13 @@ def _q(s: str) -> str:
 def member_list(backend: ContaoBackend) -> list:
     try:
         result = backend.run("contao:member:list --format=json")
+        import json
         return json.loads(result["stdout"])
-    except (ContaoBackendError, json.JSONDecodeError):
+    except (ContaoBackendError, Exception):
         pass
     # No native member:list command — fall back to direct SQL
-    result = backend.run(
-        'doctrine:query:sql '
-        '"SELECT id, username, email, firstname, lastname, disable FROM tl_member"'
-    )
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    sql = "SELECT id, username, email, firstname, lastname, disable FROM tl_member"
+    return run_sql_table(backend, sql)
 
 
 def member_create(backend: ContaoBackend, username: str, password: str,
@@ -39,24 +35,16 @@ def member_create(backend: ContaoBackend, username: str, password: str,
         f"VALUES ('{_q(username)}', '{_q(pw_hash)}', '{_q(firstname)}', '{_q(lastname)}', '{_q(email)}', "
         f"UNIX_TIMESTAMP(), UNIX_TIMESTAMP())"
     )
-    backend.run(f'doctrine:query:sql "{sql}"')
+    backend.run(f'doctrine:query:sql {shlex.quote(sql)}')
     return {"status": "created", "username": username}
 
 
 def member_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update frontend member fields via contao-cli-bridge."""
-    set_args = " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
-    result = backend.run(f"contao:member:update {shlex.quote(username)} {set_args} --no-interaction")
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+    set_args = build_set_args(fields)
+    return run_json_or_raw(backend, f"contao:member:update {shlex.quote(username)} {set_args} --no-interaction")
 
 
 def member_delete(backend: ContaoBackend, username: str) -> dict:
     """Delete a frontend member via contao-cli-bridge."""
-    result = backend.run(f"contao:member:delete {shlex.quote(username)} --no-interaction")
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+    return run_json_or_raw(backend, f"contao:member:delete {shlex.quote(username)} --no-interaction")

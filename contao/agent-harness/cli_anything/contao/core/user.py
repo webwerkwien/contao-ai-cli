@@ -1,17 +1,11 @@
 """Contao backend user management."""
-import json
 import shlex
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def user_list(backend: ContaoBackend) -> list:
-    result = backend.run("contao:user:list --format=json")
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        parsed = parse_table(result["stdout"])
-        return parsed if parsed else {"raw": result["stdout"]}
+    return run_json_or_raw(backend, "contao:user:list --format=json")
 
 
 def user_create(backend: ContaoBackend, username: str, password: str,
@@ -33,21 +27,13 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 
 def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update backend user fields via contao-cli-bridge."""
-    set_args = " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
-    result = backend.run(f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction")
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+    set_args = build_set_args(fields)
+    return run_json_or_raw(backend, f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction")
 
 
 def user_delete(backend: ContaoBackend, username: str) -> dict:
     """Delete a backend user via contao-cli-bridge."""
-    result = backend.run(f"contao:user:delete {shlex.quote(username)} --no-interaction")
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        return {"status": "ok", "output": result["stdout"]}
+    return run_json_or_raw(backend, f"contao:user:delete {shlex.quote(username)} --no-interaction")
 
 
 def user_password(backend: ContaoBackend, username: str, password: str) -> dict:

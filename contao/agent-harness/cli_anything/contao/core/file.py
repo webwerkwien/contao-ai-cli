@@ -3,11 +3,10 @@
 tl_files is the Database-Assisted File System (DBAFS) table.
 It stores metadata for files and folders under the configured upload path.
 """
-import json
 import shlex
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend
-from cli_anything.contao.utils.table_parser import parse_table
+from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
 def file_list(backend: ContaoBackend, path: str = None, type_filter: str = None) -> list:
@@ -28,9 +27,7 @@ def file_list(backend: ContaoBackend, path: str = None, type_filter: str = None)
         f"SELECT id, path, name, type, extension, hash, found, lastModified "
         f"FROM tl_files {where} ORDER BY path"
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
+    return run_sql_table(backend, sql)
 
 
 def file_sync(backend: ContaoBackend) -> dict:
@@ -41,12 +38,7 @@ def file_sync(backend: ContaoBackend) -> dict:
 
 def folder_create(backend: ContaoBackend, path: str) -> dict:
     """Create a folder in the Contao file system via contao-cli-bridge."""
-    cmd = f'contao:folder:create --path {shlex.quote(path)}'
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except Exception:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, f'contao:folder:create --path {shlex.quote(path)}')
 
 
 def file_process(
@@ -67,11 +59,7 @@ def file_process(
         cmd += f' --max-height {max_height}'
     if max_file_size:
         cmd += f' --max-file-size {max_file_size}'
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except Exception:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, cmd)
 
 
 def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
@@ -96,23 +84,14 @@ def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
             return {'status': 'error', 'message': f"SCP upload failed: {scp_result.get('stderr', '')}"}
 
         cmd = f'contao:file:write --path {shlex.quote(path)} --source {shlex.quote(remote_tmp)}'
-        result = backend.run(cmd)
-        try:
-            return json.loads(result["stdout"])
-        except Exception:
-            return {"raw": result["stdout"]}
+        return run_json_or_raw(backend, cmd)
     finally:
         os.unlink(local_tmp)
 
 
 def file_read(backend: ContaoBackend, path: str) -> dict:
     """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
-    cmd = f'contao:file:read --path {shlex.quote(path)}'
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except Exception:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, f'contao:file:read --path {shlex.quote(path)}')
 
 
 def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = "en") -> dict:
@@ -120,10 +99,6 @@ def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = 
 
     lang: language key matching the Contao root-page language (default: en).
     """
-    set_args = " ".join(f'--set {shlex.quote(f"{k}={v}")}' for k, v in meta.items())
+    set_args = build_set_args(meta)
     cmd = f'contao:file:meta --path {shlex.quote(path)} --lang {shlex.quote(lang)} {set_args}'
-    result = backend.run(cmd)
-    try:
-        return json.loads(result["stdout"])
-    except Exception:
-        return {"raw": result["stdout"]}
+    return run_json_or_raw(backend, cmd.strip())
