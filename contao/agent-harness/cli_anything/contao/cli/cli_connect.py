@@ -103,26 +103,29 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             except ContaoBackendError as e:
                 click.echo(click.style(f"[ERROR] Installation failed: {e}", fg="red"))
     else:
-        latest_version = get_core_bundle_latest_version()
-        if latest_version and installed_version.lstrip("v") != latest_version.lstrip("v"):
-            click.echo(click.style(
-                f"\n[!] contao-ai-core-bundle update available: "
-                f"{installed_version} → v{latest_version}",
-                fg="yellow"
-            ))
-            if click.confirm("Update contao-ai-core-bundle now?", default=True):
-                click.echo("Updating via composer...")
-                try:
-                    b.run_raw(
-                        "composer update webwerkwien/contao-ai-core-bundle --no-interaction",
-                        timeout=180,
-                    )
-                    b.run("cache:warmup --env=prod")
-                    click.echo(click.style("[OK] contao-ai-core-bundle updated.", fg="green"))
-                except ContaoBackendError as e:
-                    click.echo(click.style(f"[ERROR] Update failed: {e}", fg="red"))
+        if installed_version.startswith("dev-"):
+            click.echo(f"contao-ai-core-bundle {installed_version}: development version, skipping update check.")
         else:
-            click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")
+            latest_version = get_core_bundle_latest_version()
+            if latest_version and installed_version.lstrip("v") != latest_version.lstrip("v"):
+                click.echo(click.style(
+                    f"\n[!] contao-ai-core-bundle update available: "
+                    f"{installed_version} → v{latest_version}",
+                    fg="yellow"
+                ))
+                if click.confirm("Update contao-ai-core-bundle now?", default=True):
+                    click.echo("Updating via composer...")
+                    try:
+                        b.run_raw(
+                            "composer update webwerkwien/contao-ai-core-bundle --no-interaction",
+                            timeout=180,
+                        )
+                        b.run("cache:warmup --env=prod")
+                        click.echo(click.style("[OK] contao-ai-core-bundle updated.", fg="green"))
+                    except ContaoBackendError as e:
+                        click.echo(click.style(f"[ERROR] Update failed: {e}", fg="red"))
+            else:
+                click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")
         bridge = True
 
     # ── Save bridge flag to session ───────────────────────────────────────────

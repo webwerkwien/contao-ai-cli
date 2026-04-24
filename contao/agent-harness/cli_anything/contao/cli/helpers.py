@@ -35,10 +35,12 @@ def check_cli_update() -> dict:
 def get_core_bundle_installed_version(backend) -> str | None:
     """Return the installed version of contao-ai-core-bundle on the remote server, or None."""
     try:
-        result = backend.run_raw(
-            r"php -r '$d=json_decode(file_get_contents(\"vendor/composer/installed.json\"),true);"
-            r"foreach($d[\"packages\"] as $p) if($p[\"name\"]===\"webwerkwien/contao-ai-core-bundle\") echo $p[\"version\"];'"
+        php_code = (
+            'if($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true)){'
+            'foreach($d["packages"] as $p)'
+            'if($p["name"]==="webwerkwien/contao-ai-core-bundle")echo $p["version"];}'
         )
+        result = backend.run_raw(f"php -r '{php_code}'")
         return result["stdout"].strip() or None
     except Exception:
         return None
