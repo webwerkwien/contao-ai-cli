@@ -28,7 +28,7 @@ def event_read(backend: ContaoBackend, event_id: int) -> dict:
 def event_create(backend: ContaoBackend, title: str, pid: int,
                  start_date: str | None = None, end_date: str | None = None,
                  fields: dict | None = None) -> dict:
-    """Create a calendar event via contao-cli-bridge."""
+    """Create a calendar event via contao-ai-core-bundle."""
     cmd = f"contao:event:create --title={shlex.quote(title)} --pid={pid} --no-interaction"
     if start_date:
         cmd += f" --startDate={shlex.quote(start_date)}"

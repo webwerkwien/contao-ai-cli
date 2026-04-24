@@ -18,7 +18,7 @@ def member_list(backend: ContaoBackend) -> list:
 
 def member_create(backend: ContaoBackend, username: str, password: str,
                   firstname: str, lastname: str, email: str) -> dict:
-    """Create a frontend member via contao-cli-bridge (handles password hashing server-side).
+    """Create a frontend member via contao-ai-core-bundle (handles password hashing server-side).
 
     TODO (H3): --password= is visible in SSH command logs and /proc/cmdline.
     Real fix requires the bridge command to support --password-stdin.
@@ -37,18 +37,18 @@ def member_create(backend: ContaoBackend, username: str, password: str,
     except ContaoBackendError as e:
         if "is not defined" in str(e) or "Unknown command" in str(e):
             raise ContaoBackendError(
-                "contao:member:create not available. Update contao-cli-bridge to v1.x+"
+                "contao:member:create not available. Update contao-ai-core-bundle to v1.x+"
             ) from e
         raise
 
 
 def member_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
-    """Update frontend member fields via contao-cli-bridge."""
+    """Update frontend member fields via contao-ai-core-bundle."""
     set_args = build_set_args(fields)
     cmd = f"contao:member:update {shlex.quote(username)} {set_args} --no-interaction"
     return run_json_or_raw(backend, " ".join(cmd.split()))
 
 
 def member_delete(backend: ContaoBackend, username: str) -> dict:
-    """Delete a frontend member via contao-cli-bridge."""
+    """Delete a frontend member via contao-ai-core-bundle."""
     return run_json_or_raw(backend, f"contao:member:delete {shlex.quote(username)} --no-interaction")

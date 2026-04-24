@@ -1,5 +1,5 @@
 """
-Shared helpers for the contao-cli-agent CLI modules.
+Shared helpers for the contao-ai-cli CLI modules.
 """
 import json
 import sys
@@ -36,7 +36,7 @@ def _output(data, as_json=False):
 
 
 def _detect_bridge(backend) -> bool:
-    """Check if contao-cli-bridge commands are available on the server."""
+    """Check if contao-ai-core-bundle commands are available on the server."""
     try:
         result = backend.run("list")
         return "contao:user:update" in result["stdout"]
@@ -55,6 +55,6 @@ def _require_bridge(ctx, command_name: str):
         bridge_available = False
     if not bridge_available:
         raise click.UsageError(
-            f"'{command_name}' requires contao-cli-bridge which is not installed on this server.\n"
-            f"Install with: composer require webwerkwien/contao-cli-bridge"
+            f"'{command_name}' requires contao-ai-core-bundle which is not installed on this server.\n"
+            f"Install with: composer require webwerkwien/contao-ai-core-bundle"
         )

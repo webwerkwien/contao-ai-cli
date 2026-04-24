@@ -35,7 +35,7 @@ def content_read(backend: ContaoBackend, content_id: int) -> dict:
 
 def content_create(backend: ContaoBackend, type: str, pid: int,
                    ptable: str = "tl_article", fields: dict | None = None) -> dict:
-    """Create a content element via contao-cli-bridge."""
+    """Create a content element via contao-ai-core-bundle."""
     cmd = (f"contao:content:create --type={shlex.quote(type)} --pid={pid} "
            f"--ptable={shlex.quote(ptable)} --no-interaction")
     if fields:

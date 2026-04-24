@@ -53,7 +53,7 @@ def page_read_cmd(ctx, page_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json):
-    """Create a page via contao-cli-bridge."""
+    """Create a page via contao-ai-core-bundle."""
     _require_bridge(ctx, "page create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))

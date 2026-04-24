@@ -27,7 +27,7 @@ def faq_read(backend: ContaoBackend, faq_id: int) -> dict:
 
 def faq_create(backend: ContaoBackend, question: str, pid: int,
                answer: str = "", fields: dict | None = None) -> dict:
-    """Create a FAQ entry via contao-cli-bridge."""
+    """Create a FAQ entry via contao-ai-core-bundle."""
     cmd = f"contao:faq:create --question={shlex.quote(question)} --pid={pid} --no-interaction"
     if answer:
         cmd += f" --answer={shlex.quote(answer)}"

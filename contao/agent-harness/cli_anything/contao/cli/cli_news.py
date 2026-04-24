@@ -52,7 +52,7 @@ def news_read_cmd(ctx, news_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def news_create_cmd(ctx, headline, pid, date, fields, as_json):
-    """Create a news entry via contao-cli-bridge."""
+    """Create a news entry via contao-ai-core-bundle."""
     _require_bridge(ctx, "news create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))

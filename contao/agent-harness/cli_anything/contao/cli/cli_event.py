@@ -53,7 +53,7 @@ def event_read_cmd(ctx, event_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def event_create_cmd(ctx, title, pid, start_date, end_date, fields, as_json):
-    """Create a calendar event via contao-cli-bridge."""
+    """Create a calendar event via contao-ai-core-bundle."""
     _require_bridge(ctx, "event create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))

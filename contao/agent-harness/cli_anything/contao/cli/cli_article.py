@@ -43,7 +43,7 @@ def article_read_cmd(ctx, article_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def article_create_cmd(ctx, title, pid, in_column, fields, as_json):
-    """Create an article via contao-cli-bridge."""
+    """Create an article via contao-ai-core-bundle."""
     _require_bridge(ctx, "article create")
     parsed = dict(f.split("=", 1) for f in fields if "=" in f)
     b = _get_backend(ctx.obj.get("session"))
