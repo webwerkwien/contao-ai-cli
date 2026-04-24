@@ -69,8 +69,11 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         click.echo("Bridge: available (full CRUD support enabled)")
     else:
         click.echo("Bridge: not installed — contao-ai-core-bundle enables CRUD operations (update, delete, create).")
-        click.echo("  Manual install: composer require webwerkwien/contao-ai-core-bundle")
-        click.echo("  (Automatic installation not yet available — package is not public on Packagist.)")
+        # TODO: Automatic install requires package to be public on Packagist or a GitHub
+        #       auth token configured on the server (~/.composer/auth.json).
+        if click.confirm("Install contao-ai-core-bundle via composer now?", default=False):
+            click.echo("Feature not yet available — package is not public on Packagist.")
+            click.echo("  Manual install: composer require webwerkwien/contao-ai-core-bundle")
 
 
 @click.command("session-list")
