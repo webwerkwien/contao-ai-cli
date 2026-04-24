@@ -256,8 +256,7 @@ class TestMember:
 
     def test_member_create(self):
         backend = MagicMock()
-        backend.run_raw.return_value = {"stdout": "$2y$10$hashedpassword", "returncode": 0}
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+        backend.run.return_value = {"stdout": '{"status": "created", "username": "jdoe"}', "returncode": 0}
         result = member_create(backend, "jdoe", "secret", "Jane", "Doe", "jdoe@example.com")
         assert result["status"] == "created"
         assert result["username"] == "jdoe"

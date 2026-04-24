@@ -8,6 +8,8 @@ from unittest.mock import MagicMock, patch
 from cli_anything.contao.core.contao_ops import (
     run_sql_table, run_json_or_raw, build_set_args
 )
+from cli_anything.contao.core.member import member_create
+from cli_anything.contao.utils.contao_backend import ContaoBackendError
 
 
 class TestRunSqlTable:
@@ -65,3 +67,22 @@ class TestBuildSetArgs:
         # Verify values are actually shell-quoted using shlex.quote
         assert shlex.quote("email=foo@bar.com") in result
         assert shlex.quote("name=O'Hara") in result
+
+
+class TestMemberCreate:
+    def test_member_create_uses_bridge_command(self):
+        """Test that member_create uses contao:member:create bridge command, not php -r."""
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": '{"status": "created"}'}
+        result = member_create(backend, "testuser", "secret123", "Test", "User", "t@t.com")
+        call_args = backend.run.call_args[0][0]
+        assert "contao:member:create" in call_args
+        assert "php -r" not in call_args
+        assert "password_hash" not in call_args
+
+    def test_member_create_does_not_use_raw_sql(self):
+        """Test that member_create does not use raw SQL INSERT or run_raw."""
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": '{"status": "created"}'}
+        member_create(backend, "testuser", "secret123", "Test", "User", "t@t.com")
+        backend.run_raw.assert_not_called()

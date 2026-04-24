@@ -5,9 +5,6 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBacken
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
 
 
-def _q(s: str) -> str:
-    """Escape a string value for SQL single-quoted literals."""
-    return s.replace("'", "''")
 
 
 def member_list(backend: ContaoBackend) -> list:
@@ -23,20 +20,24 @@ def member_list(backend: ContaoBackend) -> list:
 
 def member_create(backend: ContaoBackend, username: str, password: str,
                   firstname: str, lastname: str, email: str) -> dict:
-    escaped = password.replace("'", "'\\''")
-    hash_result = backend.run_raw(
-        f"php -r \"echo password_hash('{escaped}', PASSWORD_DEFAULT);\""
+    """Create a frontend member via contao-cli-bridge (handles password hashing server-side)."""
+    cmd = (
+        f"contao:member:create "
+        f"--username={shlex.quote(username)} "
+        f"--password={shlex.quote(password)} "
+        f"--firstname={shlex.quote(firstname)} "
+        f"--lastname={shlex.quote(lastname)} "
+        f"--email={shlex.quote(email)} "
+        f"--no-interaction"
     )
-    pw_hash = hash_result["stdout"].strip()
-
-    sql = (
-        f"INSERT INTO tl_member "
-        f"(username, password, firstname, lastname, email, dateAdded, tstamp) "
-        f"VALUES ('{_q(username)}', '{_q(pw_hash)}', '{_q(firstname)}', '{_q(lastname)}', '{_q(email)}', "
-        f"UNIX_TIMESTAMP(), UNIX_TIMESTAMP())"
-    )
-    backend.run(f'doctrine:query:sql {shlex.quote(sql)}')
-    return {"status": "created", "username": username}
+    try:
+        return run_json_or_raw(backend, cmd)
+    except ContaoBackendError as e:
+        if "Unknown command" in str(e):
+            raise ContaoBackendError(
+                "contao:member:create not available. Update contao-cli-bridge to v1.x+"
+            ) from e
+        raise
 
 
 def member_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
