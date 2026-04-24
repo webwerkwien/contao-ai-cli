@@ -2,9 +2,11 @@ from setuptools import setup, find_namespace_packages
 
 setup(
     name="contao-ai-cli",
-    version="1.0.0",
+    version="0.1.0",
     description="Agent-native CLI for Contao 5 CMS via SSH",
     author="web.werk.wien",
+    license="MIT",
+    url="https://github.com/webwerkwien/contao-ai-cli",
     packages=find_namespace_packages(include=["cli_anything.*"]),
     package_data={
         "cli_anything.contao": ["skills/*.md"],
