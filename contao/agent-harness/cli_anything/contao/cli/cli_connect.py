@@ -68,14 +68,9 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     if bridge:
         click.echo("Bridge: available (full CRUD support enabled)")
     else:
-        click.echo("Bridge: not installed — contao-cli-bridge enables CRUD operations (update, delete, create).")
-        # TODO: Implement automatic bridge installation via composer require.
-        #       Requires either a public Composer repository or a configured GitHub
-        #       auth token on the server (~/.composer/auth.json).
-        #       Until then, manual install: composer require webwerkwien/contao-cli-bridge
-        if click.confirm("Install contao-cli-bridge now?", default=False):
-            click.echo("Feature not yet available — please install manually:")
-            click.echo("  composer require webwerkwien/contao-cli-bridge")
+        click.echo("Bridge: not installed — contao-ai-core-bundle enables CRUD operations (update, delete, create).")
+        click.echo("  Manual install: composer require webwerkwien/contao-ai-core-bundle")
+        click.echo("  (Automatic installation not yet available — package is not public on Packagist.)")
 
 
 @click.command("session-list")
