@@ -26,22 +26,12 @@ def get_session_path(session_name: Optional[str] = None) -> str:
 
 
 def save_session(config: dict, session_path: Optional[str] = None) -> str:
-    """Save session config with file locking."""
+    """Save session config with restricted permissions (owner-read-only, 0o600)."""
     path = session_path or DEFAULT_SESSION_FILE
     os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    if os.path.exists(path) and fcntl is not None:
-        with open(path, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            try:
-                f.seek(0)
-                f.truncate()
-                json.dump(config, f, indent=2)
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
-    else:
-        with open(path, "w") as f:
-            json.dump(config, f, indent=2)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f:
+        json.dump(config, f, indent=2)
     return path
 
 

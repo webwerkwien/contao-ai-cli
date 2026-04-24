@@ -1,7 +1,7 @@
 import sys
 import pytest
-from unittest.mock import patch
-from cli_anything.contao.utils.contao_backend import ContaoBackend
+from unittest.mock import patch, MagicMock
+from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 
 
 def make_backend():
@@ -41,6 +41,36 @@ def test_ssh_args_does_not_contain_no_host_checking():
     args = b._ssh_args()
     args_str = " ".join(args)
     assert "StrictHostKeyChecking=no" not in args_str
+
+
+def test_run_raw_exception_does_not_include_shell_command():
+    """Sensitive shell_command must not appear verbatim in ContaoBackendError."""
+    b = make_backend()
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stderr = "permission denied"
+    mock_result.stdout = ""
+    with patch("subprocess.run", return_value=mock_result):
+        with pytest.raises(ContaoBackendError) as exc_info:
+            b.run_raw("echo secret_password_xyz123")
+        assert "secret_password_xyz123" not in str(exc_info.value)
+        assert "permission denied" in str(exc_info.value)
+
+
+def test_run_exception_truncates_long_command():
+    """run() exception must truncate commands longer than 100 chars."""
+    b = make_backend()
+    long_command = "contao:member:create --password=" + "x" * 200
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stderr = "some error"
+    mock_result.stdout = ""
+    with patch("subprocess.run", return_value=mock_result):
+        with pytest.raises(ContaoBackendError) as exc_info:
+            b.run(long_command)
+        error_msg = str(exc_info.value)
+        assert "..." in error_msg
+        assert "x" * 200 not in error_msg
 
 
 def test_init_caches_ssh_bin():
