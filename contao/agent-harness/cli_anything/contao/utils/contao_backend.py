@@ -7,7 +7,6 @@ import os
 import sys
 import subprocess
 import shutil
-from typing import Optional
 
 
 class ContaoBackendError(Exception):
@@ -23,7 +22,7 @@ class ContaoBackend:
     """
 
     def __init__(self, host: str, user: str, contao_root: str,
-                 key_path: Optional[str] = None, port: int = 22,
+                 key_path: str | None = None, port: int = 22,
                  php_path: str = "php"):
         self.host = host
         self.user = user
@@ -31,7 +30,7 @@ class ContaoBackend:
         self.key_path = key_path or self._default_key()
         self.port = port
         self.php_path = php_path
-        self._verify_ssh()
+        self._ssh_bin: str = self._find_ssh()  # cache — find_ssh called once
 
     def _default_key(self) -> str:
         candidates = [
@@ -59,12 +58,21 @@ class ContaoBackend:
         return found
 
     def _verify_ssh(self):
-        self._find_ssh()  # raises if not found
+        pass  # _ssh_bin is already set in __init__ via _find_ssh()
 
-    def _ssh_args(self) -> list:
-        args = [self._find_ssh(), "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-p", str(self.port)]
+    def _ssh_args(self) -> list[str]:
+        control_path = os.path.expanduser(
+            f"~/.ssh/cm-contao-{self.user}@{self.host}:{self.port}"
+        )
+        args = [
+            self._ssh_bin,
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "BatchMode=yes",
+            "-o", "ControlMaster=auto",
+            "-o", f"ControlPath={control_path}",
+            "-o", "ControlPersist=60s",
+            "-p", str(self.port),
+        ]
         if self.key_path:
             args += ["-i", self.key_path]
         args.append(f"{self.user}@{self.host}")
@@ -81,7 +89,7 @@ class ContaoBackend:
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
-        result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env)
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=60)
         output = {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),
@@ -112,6 +120,7 @@ class ContaoBackend:
             capture_output=True,
             text=True,
             env=env,
+            timeout=60,
         )
 
         output = {
@@ -152,7 +161,7 @@ class ContaoBackend:
         if not scp:
             raise ContaoBackendError("scp not found. Install OpenSSH client.")
 
-        args = [scp, "-o", "StrictHostKeyChecking=no",
+        args = [scp, "-o", "StrictHostKeyChecking=accept-new",
                 "-o", "BatchMode=yes",
                 "-P", str(self.port)]
         if self.key_path:
@@ -163,7 +172,7 @@ class ContaoBackend:
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
 
-        result = subprocess.run(args, capture_output=True, text=True, env=env)
+        result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=120)
         return {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),
