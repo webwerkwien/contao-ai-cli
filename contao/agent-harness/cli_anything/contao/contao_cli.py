@@ -8,6 +8,7 @@ hard dependency — this CLI does not reimplement Contao functionality.
 import json
 import os
 import sys
+import shlex
 import click
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
@@ -1286,7 +1287,7 @@ def debug_router(ctx, as_json):
 def debug_match(ctx, path_info, as_json):
     """Match a URL path to its Symfony route."""
     b = _get_backend(ctx.obj.get("session"))
-    result = b.run(f"router:match {path_info}")
+    result = b.run(f"router:match {shlex.quote(path_info)}")
     _output({"output": result["stdout"]}, as_json or ctx.obj.get("as_json"))
 
 
