@@ -36,7 +36,7 @@ is a hard dependency.
 
 ## E2E Test Plan (test_full_e2e.py)
 
-Requires: SSH access to your-server.example.com, session configured.
+Requires: SSH access to a Contao installation, session configured via `CONTAO_TEST_HOST` env var.
 
 ### Connection
 - `test_connect_and_save_session` — connect, verify session file created
