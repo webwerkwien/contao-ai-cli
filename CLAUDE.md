@@ -24,11 +24,14 @@ contao-ai-cli connect \
   --name my-site                    # local session name (your choice)
 ```
 
-The connect command will:
-- Test the SSH connection
-- Offer to create a database backup
-- Check for CLI updates
-- Check whether contao-ai-core-bundle is installed (and offer to install/update it)
+The connect command is interactive — it will prompt for confirmation at several points:
+1. A warning that data can be irreversibly modified → confirm to proceed
+2. Offer to create a database backup → recommended: confirm
+3. Check for CLI updates → confirm to install if available
+4. Check whether contao-ai-core-bundle is installed → confirm to install/update if needed
+
+> ⚠️ `connect` requires a human operator. Do not attempt to run it autonomously.
+> For automated workflows, use an existing session (`session-list`) instead.
 
 > ⚠️ Never hardcode real hostnames, usernames, passwords, or key paths
 > in any committed file. Always ask the user for connection details.
