@@ -15,11 +15,15 @@ Handles:
 """
 
 
+_MAX_DEPTH = 200  # guard against deeply nested DCA arrays hitting Python recursion limit
+
+
 class VarDumpParser:
     def __init__(self, text: str):
         self.text = text
         self.pos = 0
         self._refs: dict = {}  # ref-id → value (for back-references)
+        self._depth = 0
 
     # ── whitespace ──────────────────────────────────────────────────────────
 
@@ -106,6 +110,9 @@ class VarDumpParser:
     # ── array ────────────────────────────────────────────────────────────────
 
     def _array(self):
+        self._depth += 1
+        if self._depth > _MAX_DEPTH:
+            raise ValueError(f"VarDump nesting exceeds {_MAX_DEPTH} levels — possible malformed input")
         # skip 'array:N ['
         while self.pos < len(self.text) and self.text[self.pos] != '[':
             self.pos += 1
@@ -138,6 +145,7 @@ class VarDumpParser:
             val = self._value()
             result[key] = val
 
+        self._depth -= 1
         return result
 
     # ── key (string or integer) ──────────────────────────────────────────────

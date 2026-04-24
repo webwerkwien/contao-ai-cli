@@ -26,9 +26,9 @@ pip install -e .
 ```bash
 # Connect to a Contao installation
 cli-anything-contao connect \
-  --host c5.axeltest.at \
-  --user c155929_C5 \
-  --root /var/www/clients/client1/web246/web
+  --host example.com \
+  --user deploy \
+  --root /var/www/html
 
 # Named sessions (multiple installations)
 cli-anything-contao connect --host staging.example.com --user deploy --root /var/www --name staging
