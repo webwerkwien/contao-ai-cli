@@ -17,22 +17,23 @@ def listing_module_list(backend: ContaoBackend) -> list:
     return run_sql_table(backend, sql)
 
 
-def listing_data(backend: ContaoBackend, module_id: int) -> list:
+def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> list:
     """
     Fetch the actual listing data for a given listing module ID.
-    Reads list_table and list_fields from the module config, then queries
-    the configured table directly.
-    """
-    # Get module config
-    cfg_sql = (
-        f"SELECT list_table, list_fields, list_where "
-        f"FROM tl_module WHERE id = {int(module_id)}"
-    )
-    rows = run_sql_table(backend, cfg_sql)
-    if not rows:
-        return {"error": f"Module {module_id} not found or not a listing module"}
 
-    cfg = rows[0]
+    Pass cfg (a row from listing_module_list) to skip the first SSH roundtrip.
+    Otherwise the module config is fetched from tl_module first.
+    """
+    if cfg is None:
+        cfg_sql = (
+            f"SELECT list_table, list_fields, list_where "
+            f"FROM tl_module WHERE id = {int(module_id)}"
+        )
+        rows = run_sql_table(backend, cfg_sql)
+        if not rows:
+            return {"error": f"Module {module_id} not found or not a listing module"}
+        cfg = rows[0]
+
     table = cfg.get("list_table", "").strip()
     fields = cfg.get("list_fields", "").strip()
     where_clause = cfg.get("list_where", "").strip()
