@@ -18,7 +18,11 @@ def member_list(backend: ContaoBackend) -> list:
 
 def member_create(backend: ContaoBackend, username: str, password: str,
                   firstname: str, lastname: str, email: str) -> dict:
-    """Create a frontend member via contao-cli-bridge (handles password hashing server-side)."""
+    """Create a frontend member via contao-cli-bridge (handles password hashing server-side).
+
+    TODO (H3): --password= is visible in SSH command logs and /proc/cmdline.
+    Real fix requires the bridge command to support --password-stdin.
+    """
     cmd = (
         f"contao:member:create "
         f"--username={shlex.quote(username)} "

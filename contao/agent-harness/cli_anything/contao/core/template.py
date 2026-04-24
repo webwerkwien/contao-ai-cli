@@ -60,3 +60,7 @@ def template_write(backend: ContaoBackend, mode: str, base: str,
             return {"raw": result["stdout"]}
     finally:
         os.unlink(local_tmp)
+        try:
+            backend.run_raw(f'rm -f {shlex.quote(remote_tmp)}')
+        except Exception:
+            pass
