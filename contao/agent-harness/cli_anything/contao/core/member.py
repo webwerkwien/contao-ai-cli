@@ -1,10 +1,8 @@
 """Contao frontend member management (tl_member)."""
 import json
 import shlex
-from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError  # noqa: F401
+from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 from cli_anything.contao.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
-
-
 
 
 def member_list(backend: ContaoBackend) -> list:
@@ -33,7 +31,7 @@ def member_create(backend: ContaoBackend, username: str, password: str,
     try:
         return run_json_or_raw(backend, cmd)
     except ContaoBackendError as e:
-        if "Unknown command" in str(e):
+        if "is not defined" in str(e) or "Unknown command" in str(e):
             raise ContaoBackendError(
                 "contao:member:create not available. Update contao-cli-bridge to v1.x+"
             ) from e
