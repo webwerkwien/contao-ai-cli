@@ -80,7 +80,7 @@ class ContaoBackend:
         args.append(f"{self.user}@{self.host}")
         return args
 
-    def run_raw(self, shell_command: str) -> dict:
+    def run_raw(self, shell_command: str, timeout: int = 60) -> dict:
         """
         Run an arbitrary shell command on the remote server via SSH.
         Does NOT prepend 'php bin/console' — use for ls, find, etc.
@@ -92,9 +92,9 @@ class ContaoBackend:
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
         try:
-            result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=60)
+            result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=timeout)
         except subprocess.TimeoutExpired:
-            raise ContaoBackendError("SSH command timed out after 60s")
+            raise ContaoBackendError(f"SSH command timed out after {timeout}s")
         output = {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),

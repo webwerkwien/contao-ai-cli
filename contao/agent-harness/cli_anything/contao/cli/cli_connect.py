@@ -7,7 +7,10 @@ import click
 
 from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBackendError
 from cli_anything.contao.core import session as session_mod, backup as backup_mod
-from .helpers import _output, _detect_bridge
+from .helpers import (
+    _output, _detect_bridge,
+    check_cli_update, get_core_bundle_installed_version, get_core_bundle_latest_version,
+)
 
 
 @click.command()
@@ -49,7 +52,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         if click.confirm("Create a database backup now?", default=True):
             click.echo("Creating backup...")
             backup_result = backup_mod.backup_create(backend)
-            click.echo(click.style(f"[OK] Backup created.", fg="green"))
+            click.echo(click.style("[OK] Backup created.", fg="green"))
             if backup_result.get("output"):
                 click.echo(backup_result["output"].strip())
 
@@ -58,22 +61,76 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         sys.exit(1)
 
     b = ContaoBackend.from_session(session_path)
-    bridge = _detect_bridge(b)
+
+    # ── 1. CLI self-update check ──────────────────────────────────────────────
+    click.echo("\nChecking for updates...")
+    cli_update = check_cli_update()
+    if cli_update["update_available"]:
+        click.echo(click.style(
+            f"[!] contao-ai-cli update available: v{cli_update['current']} → v{cli_update['latest']}",
+            fg="yellow"
+        ))
+        if click.confirm("Install CLI update now?", default=True):
+            import subprocess as _sp
+            click.echo("Updating contao-ai-cli...")
+            _sp.run(
+                ["pip", "install", "--upgrade",
+                 "git+https://github.com/webwerkwien/contao-ai-cli.git"],
+                check=False,
+            )
+            click.echo(click.style(
+                "[OK] Update installed. Please restart contao-ai-cli.", fg="green"
+            ))
+    else:
+        click.echo(f"contao-ai-cli v{cli_update['current']}: up to date.")
+
+    # ── 2. core-bundle check ──────────────────────────────────────────────────
+    installed_version = get_core_bundle_installed_version(b)
+    bridge = False
+
+    if installed_version is None:
+        click.echo("\ncontao-ai-core-bundle: not installed — enables full CRUD support.")
+        if click.confirm("Install contao-ai-core-bundle now?", default=True):
+            click.echo("Installing via composer (this may take a moment)...")
+            try:
+                b.run_raw(
+                    "composer require webwerkwien/contao-ai-core-bundle --no-interaction",
+                    timeout=180,
+                )
+                b.run("cache:warmup --env=prod")
+                click.echo(click.style("[OK] contao-ai-core-bundle installed.", fg="green"))
+                bridge = True
+            except ContaoBackendError as e:
+                click.echo(click.style(f"[ERROR] Installation failed: {e}", fg="red"))
+    else:
+        latest_version = get_core_bundle_latest_version()
+        if latest_version and installed_version.lstrip("v") != latest_version.lstrip("v"):
+            click.echo(click.style(
+                f"\n[!] contao-ai-core-bundle update available: "
+                f"{installed_version} → v{latest_version}",
+                fg="yellow"
+            ))
+            if click.confirm("Update contao-ai-core-bundle now?", default=True):
+                click.echo("Updating via composer...")
+                try:
+                    b.run_raw(
+                        "composer update webwerkwien/contao-ai-core-bundle --no-interaction",
+                        timeout=180,
+                    )
+                    b.run("cache:warmup --env=prod")
+                    click.echo(click.style("[OK] contao-ai-core-bundle updated.", fg="green"))
+                except ContaoBackendError as e:
+                    click.echo(click.style(f"[ERROR] Update failed: {e}", fg="red"))
+        else:
+            click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")
+        bridge = True
+
+    # ── Save bridge flag to session ───────────────────────────────────────────
     with open(session_path) as f:
         cfg = json.load(f)
     cfg["bridge_available"] = bridge
     with open(session_path, "w") as f:
         json.dump(cfg, f, indent=2)
-
-    if bridge:
-        click.echo("Bridge: available (full CRUD support enabled)")
-    else:
-        click.echo("Bridge: not installed — contao-ai-core-bundle enables CRUD operations (update, delete, create).")
-        # TODO: Automatic install requires package to be public on Packagist or a GitHub
-        #       auth token configured on the server (~/.composer/auth.json).
-        if click.confirm("Install contao-ai-core-bundle via composer now?", default=False):
-            click.echo("Feature not yet available — package is not public on Packagist.")
-            click.echo("  Manual install: composer require webwerkwien/contao-ai-core-bundle")
 
 
 @click.command("session-list")
