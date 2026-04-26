@@ -75,12 +75,15 @@ def user_password(ctx, username, password, as_json):
 @click.argument("username")
 @click.option("--field", "fields", multiple=True,
               metavar="FIELD=VALUE", help="Field to update, e.g. --field email=new@example.com")
+@click.option("--set", "set_fields", multiple=True,
+              metavar="FIELD=VALUE", help="Alias for --field, e.g. --set disable=1")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_update(ctx, username, fields, as_json):
+def user_update(ctx, username, fields, set_fields, as_json):
     """Update a backend user field via contao-ai-core-bundle."""
     _require_bridge(ctx, "user update")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    combined = list(fields) + list(set_fields)
+    parsed = dict(f.split("=", 1) for f in combined if "=" in f)
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_update(b, username, parsed), as_json or ctx.obj.get("as_json"))
 
