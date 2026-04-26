@@ -93,6 +93,8 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         if click.confirm("Install contao-ai-core-bundle now?", default=True):
             click.echo("Installing via composer (this may take a moment)...")
             try:
+                b.run_raw("composer config allow-plugins.contao-components/installer true")
+                b.run_raw("composer config allow-plugins.contao/manager-plugin true")
                 b.run_raw(
                     "composer require webwerkwien/contao-ai-core-bundle --no-interaction",
                     timeout=180,
@@ -116,6 +118,8 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
                 if click.confirm("Update contao-ai-core-bundle now?", default=True):
                     click.echo("Updating via composer...")
                     try:
+                        b.run_raw("composer config allow-plugins.contao-components/installer true")
+                        b.run_raw("composer config allow-plugins.contao/manager-plugin true")
                         b.run_raw(
                             "composer update webwerkwien/contao-ai-core-bundle --no-interaction",
                             timeout=180,
