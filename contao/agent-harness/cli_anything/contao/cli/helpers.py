@@ -11,7 +11,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBacken
 from cli_anything.contao.utils.repl_skin import ReplSkin
 from cli_anything.contao.core import session as session_mod
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 PACKAGIST_API = f"https://packagist.org/packages/{CORE_BUNDLE}.json"
