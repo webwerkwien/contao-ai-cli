@@ -74,8 +74,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             import subprocess as _sp
             click.echo("Updating contao-ai-cli...")
             _sp.run(
-                ["pip", "install", "--upgrade",
-                 "git+https://github.com/webwerkwien/contao-ai-cli.git"],
+                ["pipx", "upgrade", "contao-ai-cli"],
                 check=False,
             )
             click.echo(click.style(
