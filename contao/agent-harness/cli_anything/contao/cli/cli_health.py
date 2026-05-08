@@ -91,7 +91,7 @@ def health(ctx):
     cli_color = "green" if cli_status["up_to_date"] else "yellow"
     cli_msg = f"  CLI       v{cli_status['installed']}"
     if not cli_status["up_to_date"] and cli_status["latest"]:
-        cli_msg += f"   → update available: v{cli_status['latest']}"
+        cli_msg += f"   -> update available: v{cli_status['latest']}"
     elif cli_status["latest"] is None:
         cli_msg += "   (could not reach GitHub)"
     else:
@@ -112,7 +112,7 @@ def health(ctx):
             click.echo(click.style(f"  Core      {installed}   up to date", fg="green"))
         elif latest:
             click.echo(click.style(
-                f"  Core      {installed}   → update available: v{latest}",
+                f"  Core      {installed}   -> update available: v{latest}",
                 fg="yellow",
             ))
         else:
