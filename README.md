@@ -2,7 +2,7 @@
 
 Agent-native Python CLI for managing Contao 5 installations from the terminal — over SSH for CRUD, over HTTPS for bulk LLM macros. Designed to be used directly or handed to an AI agent (e.g. Claude Code) as a tool set.
 
-> **Beta software.** CLI commands and session formats may change without notice. Use at your own risk. Always maintain a current backup of your Contao installation before use.
+> **Beta software.** CLI command names/options and session JSON format may change between minor versions. Always back up your Contao installation before use.
 
 ## The contao-ai ecosystem
 
