@@ -36,6 +36,7 @@ from cli_anything.contao.cli.cli_search import search
 from cli_anything.contao.cli.cli_schema import schema
 from cli_anything.contao.cli.cli_repl import repl
 from cli_anything.contao.cli.cli_bridge import bridge
+from cli_anything.contao.cli.cli_health import health
 
 
 # ─── Root group ───────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ cli.add_command(security)
 cli.add_command(search)
 cli.add_command(schema)
 cli.add_command(bridge)
+cli.add_command(health)
 
 
 if __name__ == "__main__":
