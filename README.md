@@ -17,7 +17,7 @@ Dieses Paket ist Teil der **contao-ai**-Familie — einer Sammlung von Werkzeuge
 |---|---|---|
 | [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle) | Contao bundle — exposes CMS operations as Symfony console commands / Contao-Bundle — stellt CMS-Operationen als Symfony-Console-Commands bereit | Required as the foundation layer. Install on any Contao site you want to manage via AI. / Wird als Grundlage benötigt. Auf jeder Contao-Seite installieren, die KI-gesteuert verwaltet werden soll. |
 | **contao-ai-cli** *(this package)* | Python CLI — connects to Contao via SSH and runs commands / Python-CLI — verbindet sich via SSH mit Contao und führt Commands aus | For developers and agencies: manage Contao from the terminal or hand control to an AI agent. / Für Entwickler und Agenturen: Contao vom Terminal aus verwalten oder die Kontrolle an einen KI-Agenten übergeben. |
-| contao-ai-backend-bundle *(planned / geplant)* | Contao backend module — browser-based AI chat interface with support for multiple AI providers (Anthropic Claude, OpenAI, and more) / Contao-Backend-Modul — browser-basierte KI-Chat-Oberfläche mit Unterstützung für mehrere KI-Anbieter (Anthropic Claude, OpenAI u.a.) | For end users and editors: use AI directly inside the Contao backend, no SSH or terminal needed. / Für Redakteure und Endnutzer: KI direkt im Contao-Backend nutzen, ohne SSH oder Terminal. |
+| [contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) | Contao backend module — browser-based AI chat interface with support for multiple AI providers (Anthropic Claude, OpenAI, and more) / Contao-Backend-Modul — browser-basierte KI-Chat-Oberfläche mit Unterstützung für mehrere KI-Anbieter (Anthropic Claude, OpenAI u.a.) | For end users and editors: use AI directly inside the Contao backend, no SSH or terminal needed. / Für Redakteure und Endnutzer: KI direkt im Contao-Backend nutzen, ohne SSH oder Terminal. |
 
 ---
 
@@ -90,6 +90,38 @@ contao-ai-cli repl
 | `newsletter` | Manage newsletters |
 | `security` | Inspect security configuration |
 | `debug` | Debug utilities |
+| `bridge` | Call backend macro tools (record_clone, record_rewrite) over HTTPS — see below |
+| `health` | Show CLI / core-bundle / bridge update status (read-only) |
+
+### Backend bridge — bulk LLM operations without browser
+
+For bulk LLM jobs (translate 50 news entries, clone an entire page tree with all children, rewrite a whole news archive) the SSH+console roundtrip is the wrong tool — every console call is a separate PHP process spawn, the audit trail is split across N tl_version rows, and the consuming agent burns time and tokens.
+
+The `bridge` group calls macro tools in [contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) directly over HTTPS, so the entire job runs once on the server with full voter pipeline + atomic audit.
+
+**One-time setup** (the backend bundle must be installed on the target site):
+
+1. In the Contao backend → User profile → AI agent → CLI bridge token → **Generate** → copy the cleartext token (shown once).
+2. On the workstation:
+   ```bash
+   contao-ai-cli --session your-site bridge configure \
+       --url https://your-site.example.com \
+       --token 5.abc123...  --test
+   ```
+
+**Usage:**
+```bash
+# Clone a news archive with all entries (one HTTP call, server-side cascade)
+contao-ai-cli --session your-site --json bridge clone \
+    --table tl_news_archive --source-id 1 --mod title="Pressreleases 2026"
+
+# Translate all news in archive 5 (server-side LLM loop, one call)
+contao-ai-cli --session your-site --json bridge rewrite \
+    --table tl_news_archive --id 5 --recursive \
+    --instructions "Translate to English, keep technical terms."
+```
+
+`contao-ai-cli health` shows CLI/core/bridge update status without requiring a re-connect.
 
 ### License
 
