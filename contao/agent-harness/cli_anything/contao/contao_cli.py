@@ -5,9 +5,12 @@ Wraps Contao's Symfony Console (php bin/console) with a Python CLI
 that agents can use over SSH. The real Contao installation is a
 hard dependency — this CLI does not reimplement Contao functionality.
 """
+import os
+
 import click
 
 from cli_anything.contao.cli.helpers import __version__
+from cli_anything.contao.core import session as session_mod
 from cli_anything.contao.cli.cli_connect import connect, session_list, session_delete
 from cli_anything.contao.cli.cli_cache import cache
 from cli_anything.contao.cli.cli_contao import contao_group
@@ -42,7 +45,7 @@ from cli_anything.contao.cli.cli_health import health
 # ─── Root group ───────────────────────────────────────────────────────────────
 
 @click.group(invoke_without_command=True)
-@click.option("--session", default=None, help="Session file path")
+@click.option("--session", default=None, help="Session name (e.g. 'c5-axeltest') or full path to a session.json file")
 @click.option("--json", "as_json", is_flag=True, help="JSON output")
 @click.version_option(__version__)
 @click.pass_context
@@ -52,6 +55,12 @@ def cli(ctx, session, as_json):
     Run without arguments to enter REPL mode.
     """
     ctx.ensure_object(dict)
+    # Accept --session as either a bare session name (resolved against the
+    # default session dir) OR a full path to a *.json file. Without this,
+    # `--session c5-axeltest` was interpreted as a literal relative path
+    # and resolved to a non-existent file.
+    if session and not session.endswith(".json") and os.sep not in session and "/" not in session:
+        session = session_mod.get_session_path(session)
     ctx.obj["session"] = session
     ctx.obj["as_json"] = as_json
     if ctx.invoked_subcommand is None:

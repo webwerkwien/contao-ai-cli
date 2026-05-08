@@ -133,7 +133,8 @@ def health(ctx):
         and not core_status.get("up_to_date")
         and not (core_status.get("installed") or "").startswith("dev-")
     ):
+        # ASCII only — non-ASCII chars get mangled into ? on Windows cp1252 stdout.
         click.echo(click.style(
-            "  Tipp: 'contao-ai-cli connect ...' (Re-Connect) installiert verfügbare Updates.",
+            "  Tip: re-run 'contao-ai-cli connect ...' to install available updates.",
             fg="cyan",
         ))
