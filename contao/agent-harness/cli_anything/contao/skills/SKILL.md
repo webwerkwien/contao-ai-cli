@@ -71,6 +71,7 @@ contao-ai-cli session-list
 | `newsletter` | Manage newsletters |
 | `security` | Inspect security configuration |
 | `debug` | Debug utilities |
+| `bridge` | Call backend macro tools over HTTPS (record_clone, record_rewrite) |
 
 ## JSON Output (for agents)
 
@@ -132,3 +133,45 @@ contao-ai-cli backup create
 contao-ai-cli cache clear
 contao-ai-cli cache warmup
 ```
+
+## Backend Macro Bridge — when SSH+console is the wrong tool
+
+`contao-ai-cli` defaults to running individual `php bin/console` commands over
+SSH. That's correct for one-off CRUD (`page read`, `news update`) but wrong for
+**bulk LLM-driven jobs** ("translate all news in archive 5 to English",
+"clone this page tree with all children"). Each console call is a separate
+PHP process spawn; orchestrating 50+ of them from the agent over SSH burns
+time, tokens, and the audit trail is split across N `tl_version` rows.
+
+The `bridge` group calls the **contao-ai-backend-bundle** macro tools
+(record_clone, record_rewrite) directly via HTTPS, so the entire job runs
+once on the server with full Voter pipeline + atomic audit.
+
+**When to suggest `bridge` to the user instead of CRUD loops:**
+- LLM transformation across **>10 records** ("rewrite all", "translate all")
+- Cloning a **container with cascade** (news archive, calendar, FAQ category, page tree)
+- Anything where the agent would otherwise emit ≥10 console calls in a row
+
+**Setup (one-time per session):**
+```bash
+# In the Contao backend, generate a token under User Profile → AI agent
+# → CLI bridge token → Generate. Copy it (only shown once).
+contao-ai-cli bridge configure --url https://your-site.example.com \
+    --token 5.abc123…  --test
+```
+
+**Usage:**
+```bash
+# Clone a news archive with all 50 entries (one HTTP call, server-side cascade)
+contao-ai-cli --json bridge clone --table tl_news_archive --source-id 1 \
+    --mod title="Pressemitteilungen 2026"
+
+# Rewrite all news in archive 5 to German (server-side LLM loop, one call)
+contao-ai-cli --json bridge rewrite --table tl_news_archive --id 5 --recursive \
+    --instructions "Übersetze ins Deutsche, behalte Fachbegriffe."
+```
+
+**When NOT to use bridge:**
+- Single-record reads or trivial updates — SSH+console is fine
+- Server doesn't have `contao-ai-backend-bundle` installed (`bridge configure --test` will fail with 404 / connection error)
+- Caller wants per-record progress / interactive confirmation — bridge runs synchronously and returns one summary JSON
