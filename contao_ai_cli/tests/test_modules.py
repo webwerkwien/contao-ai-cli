@@ -373,6 +373,7 @@ class TestFile:
 
     def test_file_write(self):
         backend = MagicMock()
+        backend.contao_root = "/var/www/contao"
         backend.scp_upload.return_value = {"returncode": 0}
         backend.run.return_value = {"stdout": json.dumps({"status": "written"}), "returncode": 0}
         tmp = _TempFile("C:/tmp/write.tmp")
@@ -380,8 +381,9 @@ class TestFile:
             result = file_write(backend, "files/demo.txt", "hello")
         assert result["status"] == "written"
         assert tmp.content == "hello"
-        backend.scp_upload.assert_called_once_with("C:/tmp/write.tmp", "/tmp/contao_write_write.tmp")
-        assert "contao:file:write --path files/demo.txt --source /tmp/contao_write_write.tmp" in backend.run.call_args[0][0]
+        expected_remote = "/var/www/contao/var/bridge-uploads/contao_write_write.tmp"
+        backend.scp_upload.assert_called_once_with("C:/tmp/write.tmp", expected_remote)
+        assert f"contao:file:write --path files/demo.txt --source {expected_remote}" in backend.run.call_args[0][0]
         unlink.assert_called_once_with("C:/tmp/write.tmp")
 
 
