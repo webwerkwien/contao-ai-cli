@@ -87,3 +87,43 @@ def test_init_caches_ssh_bin():
         # _find_ssh should be called once during __init__
         assert mock_find.call_count == 1
         assert b._ssh_bin == "/usr/bin/ssh"
+
+
+def test_run_decodes_utf8_not_locale_default():
+    """Multibyte UTF-8 (umlauts etc.) must round-trip through subprocess unchanged.
+
+    Regression for issue where Windows cp1252 decoded '\xc3\xa4' (UTF-8 ä)
+    as 'Ã¤' (two chars), shifting all columns to the right of an umlaut by 1
+    char and silently truncating cell values in any list-style command
+    (event list, news list, page list, member list, ...).
+
+    Fix: subprocess.run uses encoding='utf-8'.
+    """
+    b = make_backend()
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "Jährliche Konferenz"
+    mock_result.stderr = ""
+    with patch("cli_anything.contao.utils.contao_backend.subprocess.run",
+               return_value=mock_result) as mock_run:
+        b.run("debug:container")
+    # Verify encoding='utf-8' was used (not text=True with platform default)
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs.get("encoding") == "utf-8", \
+        f"subprocess.run must use encoding='utf-8' to handle umlauts on Windows; got {kwargs.get('encoding')}"
+    assert kwargs.get("text") is None or kwargs.get("text") is False, \
+        "Do not pass text=True alongside explicit encoding"
+
+
+def test_run_raw_decodes_utf8_not_locale_default():
+    """Same UTF-8 guarantee for run_raw (used by SCP and shell commands)."""
+    b = make_backend()
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = "ä ö ü ß"
+    mock_result.stderr = ""
+    with patch("cli_anything.contao.utils.contao_backend.subprocess.run",
+               return_value=mock_result) as mock_run:
+        b.run_raw("ls")
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs.get("encoding") == "utf-8"

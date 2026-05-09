@@ -92,7 +92,8 @@ class ContaoBackend:
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
         try:
-            result = subprocess.run(ssh_cmd, capture_output=True, text=True, env=env, timeout=timeout)
+            result = subprocess.run(ssh_cmd, capture_output=True, encoding="utf-8", errors="replace",
+                                    env=env, timeout=timeout)
         except subprocess.TimeoutExpired:
             raise ContaoBackendError(f"SSH command timed out after {timeout}s")
         output = {
@@ -125,7 +126,8 @@ class ContaoBackend:
             result = subprocess.run(
                 ssh_cmd,
                 capture_output=True,
-                text=True,
+                encoding="utf-8",
+                errors="replace",
                 env=env,
                 timeout=60,
             )
@@ -183,7 +185,8 @@ class ContaoBackend:
         env["MSYS2_ARG_CONV_EXCL"] = "*"
 
         try:
-            result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=120)
+            result = subprocess.run(args, capture_output=True, encoding="utf-8", errors="replace",
+                                    env=env, timeout=120)
         except subprocess.TimeoutExpired:
             raise ContaoBackendError("SSH command timed out after 120s")
         return {
