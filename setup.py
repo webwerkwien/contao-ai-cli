@@ -1,16 +1,15 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 setup(
     name="contao-ai-cli",
-    version="0.3.4",
+    version="0.4.0",
     description="Agent-native CLI for Contao 5 CMS via SSH",
     author="web.werk.wien",
     license="MIT",
     url="https://github.com/webwerkwien/contao-ai-cli",
-    package_dir={"": "contao/agent-harness"},
-    packages=find_namespace_packages(where="contao/agent-harness", include=["cli_anything.*"]),
+    packages=find_packages(include=["contao_ai_cli", "contao_ai_cli.*"]),
     package_data={
-        "cli_anything.contao": ["skills/*.md"],
+        "contao_ai_cli": ["skills/*.md"],
     },
     install_requires=[
         "click>=8.0",
@@ -18,7 +17,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "contao-ai-cli=cli_anything.contao.contao_cli:cli",
+            "contao-ai-cli=contao_ai_cli.contao_cli:cli",
         ],
     },
     python_requires=">=3.10",

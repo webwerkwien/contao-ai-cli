@@ -1,0 +1,14 @@
+"""Security operations."""
+import shlex
+from contao_ai_cli.utils.contao_backend import ContaoBackend
+
+
+def hash_password(backend: ContaoBackend, password: str, algorithm: str = "auto") -> dict:
+    cmd = "security:hash-password --no-interaction"
+    if algorithm != "auto":
+        cmd += f" --algorithm={shlex.quote(algorithm)}"
+    # shlex.quote wraps password in single quotes — safe against shell expansion
+    result = backend.run_raw(
+        f'echo {shlex.quote(password)} | php bin/console {cmd}'
+    )
+    return {"output": result["stdout"].strip()}
