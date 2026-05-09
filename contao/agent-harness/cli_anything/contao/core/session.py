@@ -21,7 +21,7 @@ def save_session(config: dict, session_path: str | None = None) -> str:
     path = session_path or DEFAULT_SESSION_FILE
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, 'w') as f:
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
     return path
 
@@ -31,7 +31,7 @@ def load_session(session_path: str | None = None) -> dict:
     path = session_path or DEFAULT_SESSION_FILE
     if not os.path.exists(path):
         return {}
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -49,7 +49,7 @@ def list_sessions() -> list:
     sessions = []
     for f in Path(DEFAULT_SESSION_DIR).glob("*.json"):
         try:
-            with open(f) as fp:
+            with open(f, encoding='utf-8') as fp:
                 cfg = json.load(fp)
             sessions.append({
                 "name": f.stem,

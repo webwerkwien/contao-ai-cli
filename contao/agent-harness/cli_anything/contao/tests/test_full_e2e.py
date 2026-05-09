@@ -194,7 +194,7 @@ class TestCLISubprocess:
     def _run(self, args, check=False):
         return subprocess.run(
             self.CLI_BASE + args,
-            capture_output=True, text=True, check=check
+            capture_output=True, encoding="utf-8", errors="replace", check=check
         )
 
     def test_help(self):
@@ -225,19 +225,19 @@ class TestCLISubprocess:
 
         # 1. Check maintenance status
         r = subprocess.run(base + ["contao", "maintenance", "status"],
-                           capture_output=True, text=True)
+                           capture_output=True, encoding="utf-8", errors="replace")
         assert r.returncode == 0
         print(f"\n  maintenance status: {r.stdout[:100]}")
 
         # 2. Run migration dry-run
         r = subprocess.run(base + ["contao", "migrate", "--dry-run"],
-                           capture_output=True, text=True)
+                           capture_output=True, encoding="utf-8", errors="replace")
         assert r.returncode == 0
         print(f"  migrate --dry-run: OK")
 
         # 3. Clear cache
         r = subprocess.run(base + ["cache", "clear"],
-                           capture_output=True, text=True)
+                           capture_output=True, encoding="utf-8", errors="replace")
         assert r.returncode == 0
         print(f"  cache clear: OK")
 
@@ -248,7 +248,7 @@ class TestCLISubprocess:
         """User list returns valid JSON."""
         base = self.CLI_BASE + ["--session", saved_session, "--json"]
         r = subprocess.run(base + ["user", "list"],
-                           capture_output=True, text=True)
+                           capture_output=True, encoding="utf-8", errors="replace")
         assert r.returncode == 0
         data = json.loads(r.stdout)
         assert isinstance(data, list)

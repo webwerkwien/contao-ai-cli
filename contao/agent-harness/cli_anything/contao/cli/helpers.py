@@ -11,7 +11,7 @@ from cli_anything.contao.utils.contao_backend import ContaoBackend, ContaoBacken
 from cli_anything.contao.utils.repl_skin import ReplSkin
 from cli_anything.contao.core import session as session_mod
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 PACKAGIST_API = f"https://packagist.org/packages/{CORE_BUNDLE}.json"
@@ -95,7 +95,7 @@ def _require_bridge(ctx, command_name: str):
     """Raise UsageError with install hint if bridge is not available."""
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     try:
-        with open(session_path) as f:
+        with open(session_path, encoding="utf-8") as f:
             cfg = json.load(f)
         bridge_available = cfg.get("bridge_available", False)
     except Exception:

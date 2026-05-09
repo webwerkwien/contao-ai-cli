@@ -132,10 +132,10 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         bridge = True
 
     # ── Save bridge flag to session ───────────────────────────────────────────
-    with open(session_path) as f:
+    with open(session_path, encoding="utf-8") as f:
         cfg = json.load(f)
     cfg["bridge_available"] = bridge
-    with open(session_path, "w") as f:
+    with open(session_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
 
 

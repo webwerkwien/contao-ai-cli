@@ -204,7 +204,7 @@ class ContaoBackend:
                 f"Run: contao-ai-cli connect --host HOST --user USER "
                 f"--root /path/to/contao"
             )
-        with open(session_path) as f:
+        with open(session_path, encoding="utf-8") as f:
             cfg = json.load(f)
         required = ["host", "user", "contao_root"]
         for key in required:
