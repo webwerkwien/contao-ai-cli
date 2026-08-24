@@ -1,7 +1,9 @@
 """Contao FAQ management (tl_faq, tl_faq_category)."""
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import (
+    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+)
 
 
 def faq_category_list(backend: ContaoBackend) -> list:
@@ -34,3 +36,17 @@ def faq_create(backend: ContaoBackend, question: str, pid: int,
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)
+
+
+def faq_update(backend: ContaoBackend, faq_id: int, fields: dict) -> dict:
+    """Update FAQ entry fields via contao-ai-core-bundle."""
+    return run_update(backend, "contao:faq:update", faq_id, fields)
+
+
+def faq_delete(backend: ContaoBackend, faq_id: int) -> dict:
+    """
+    Delete a FAQ entry via contao-ai-core-bundle.
+    Cascades to the entry's content elements.
+    Recoverable from the back end's "Restore" module.
+    """
+    return run_delete(backend, "contao:faq:delete", faq_id)

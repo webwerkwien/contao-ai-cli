@@ -102,6 +102,34 @@ def run_json_or_raw(backend: ContaoBackend, cmd: str) -> dict:
         return {"raw": result["stdout"]}
 
 
+def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
+    """
+    Run an <entity>:update command for one record.
+
+    The core bundle takes the ID as an argument and every changed field as a
+    repeated --set, which is what build_set_args produces.
+    """
+    cmd = f"{command} {int(record_id)} {build_set_args(fields)} --no-interaction"
+    return run_json_or_raw(backend, " ".join(cmd.split()))
+
+
+def run_delete(backend, command: str, record_id: int) -> dict:
+    """
+    Run an <entity>:delete command for one record.
+
+    Since core-bundle v0.2.8 this cascades to child records and writes a single
+    tl_undo entry covering all of them, so a deletion stays recoverable from the
+    back end's "Restore" module.
+    """
+    return run_json_or_raw(backend, f"{command} {int(record_id)} --no-interaction")
+
+
+def run_publish(backend, command: str, record_id: int, published: bool) -> dict:
+    """Run a :publish command, whose second argument is publish|unpublish."""
+    action = "publish" if published else "unpublish"
+    return run_json_or_raw(backend, f"{command} {int(record_id)} {action} --no-interaction")
+
+
 def build_set_args(fields: dict[str, str]) -> str:
     """Build --set key=value argument string for Contao console commands."""
     if not fields:

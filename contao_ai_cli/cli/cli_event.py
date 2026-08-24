@@ -4,7 +4,9 @@ event group — Manage Contao calendar events (tl_calendar_events).
 import click
 
 from contao_ai_cli.core import session as session_mod, event as event_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+)
 
 
 @click.group()
@@ -39,7 +41,7 @@ def event_list_cmd(ctx, calendar_id):
 @click.pass_context
 def event_read_cmd(ctx, event_id, as_json):
     """Read all fields of a calendar event record."""
-    _require_bridge(ctx, "event read")
+    _require_core_bundle(ctx, "event read")
     b = _get_backend(ctx.obj.get("session"))
     _output(event_mod.event_read(b, event_id), as_json or ctx.obj.get("as_json"))
 
@@ -54,8 +56,36 @@ def event_read_cmd(ctx, event_id, as_json):
 @click.pass_context
 def event_create_cmd(ctx, title, pid, start_date, end_date, fields, as_json):
     """Create a calendar event via contao-ai-core-bundle."""
-    _require_bridge(ctx, "event create")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    _require_core_bundle(ctx, "event create")
+    parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(event_mod.event_create(b, title, pid, start_date, end_date, parsed),
             as_json or ctx.obj.get("as_json"))
+
+
+@event.command("update")
+@click.argument("event_id", type=int)
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def event_update_cmd(ctx, event_id, fields, as_json):
+    """Update fields of an event."""
+    _require_core_bundle(ctx, "event update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.event_update(b, event_id, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@event.command("delete")
+@click.argument("event_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def event_delete_cmd(ctx, event_id, yes, as_json):
+    """Delete an event and its content elements."""
+    _require_core_bundle(ctx, "event delete")
+    if not confirm_delete(f"event {event_id} and its content elements", yes):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.event_delete(b, event_id), as_json or ctx.obj.get("as_json"))

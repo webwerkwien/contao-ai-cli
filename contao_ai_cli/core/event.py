@@ -1,7 +1,9 @@
 """Contao calendar event management (tl_calendar_events, tl_calendar)."""
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import (
+    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+)
 
 
 def calendar_list(backend: ContaoBackend) -> list:
@@ -37,3 +39,17 @@ def event_create(backend: ContaoBackend, title: str, pid: int,
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)
+
+
+def event_update(backend: ContaoBackend, event_id: int, fields: dict) -> dict:
+    """Update event fields via contao-ai-core-bundle."""
+    return run_update(backend, "contao:event:update", event_id, fields)
+
+
+def event_delete(backend: ContaoBackend, event_id: int) -> dict:
+    """
+    Delete an event via contao-ai-core-bundle.
+    Cascades to the event's content elements.
+    Recoverable from the back end's "Restore" module.
+    """
+    return run_delete(backend, "contao:event:delete", event_id)

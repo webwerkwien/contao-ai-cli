@@ -4,7 +4,9 @@ article group — Manage Contao articles (tl_article).
 import click
 
 from contao_ai_cli.core import session as session_mod, article as article_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+)
 
 
 @click.group()
@@ -30,7 +32,7 @@ def article_list_cmd(ctx, page_id):
 @click.pass_context
 def article_read_cmd(ctx, article_id, as_json):
     """Read all fields of an article record."""
-    _require_bridge(ctx, "article read")
+    _require_core_bundle(ctx, "article read")
     b = _get_backend(ctx.obj.get("session"))
     _output(article_mod.article_read(b, article_id), as_json or ctx.obj.get("as_json"))
 
@@ -44,8 +46,36 @@ def article_read_cmd(ctx, article_id, as_json):
 @click.pass_context
 def article_create_cmd(ctx, title, pid, in_column, fields, as_json):
     """Create an article via contao-ai-core-bundle."""
-    _require_bridge(ctx, "article create")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    _require_core_bundle(ctx, "article create")
+    parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(article_mod.article_create(b, title, pid, in_column, parsed),
             as_json or ctx.obj.get("as_json"))
+
+
+@article.command("update")
+@click.argument("article_id", type=int)
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_update_cmd(ctx, article_id, fields, as_json):
+    """Update fields of an article."""
+    _require_core_bundle(ctx, "article update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(article_mod.article_update(b, article_id, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@article.command("delete")
+@click.argument("article_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_delete_cmd(ctx, article_id, yes, as_json):
+    """Delete an article and its content elements."""
+    _require_core_bundle(ctx, "article delete")
+    if not confirm_delete(f"article {article_id} and its content elements", yes):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(article_mod.article_delete(b, article_id), as_json or ctx.obj.get("as_json"))

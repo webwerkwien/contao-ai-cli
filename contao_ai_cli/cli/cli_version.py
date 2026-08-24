@@ -4,7 +4,7 @@ version group — Contao version history management (tl_version).
 import click
 
 from contao_ai_cli.core import version as version_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import _get_backend, _output, _require_core_bundle
 
 
 @click.group()
@@ -20,7 +20,7 @@ def version():
 @click.pass_context
 def version_list_cmd(ctx, table, record_id, as_json):
     """List all version snapshots for a record."""
-    _require_bridge(ctx, "version list")
+    _require_core_bundle(ctx, "version list")
     b = _get_backend(ctx.obj.get("session"))
     _output(version_mod.version_list(b, table, record_id), as_json or ctx.obj.get("as_json"))
 
@@ -33,7 +33,7 @@ def version_list_cmd(ctx, table, record_id, as_json):
 @click.pass_context
 def version_read_cmd(ctx, table, record_id, ver, as_json):
     """Read a specific version snapshot (data field deserialized)."""
-    _require_bridge(ctx, "version read")
+    _require_core_bundle(ctx, "version read")
     b = _get_backend(ctx.obj.get("session"))
     _output(version_mod.version_read(b, table, record_id, ver), as_json or ctx.obj.get("as_json"))
 
@@ -46,7 +46,7 @@ def version_read_cmd(ctx, table, record_id, ver, as_json):
 @click.pass_context
 def version_restore_cmd(ctx, table, record_id, ver, as_json):
     """Restore a record to a specific version."""
-    _require_bridge(ctx, "version restore")
+    _require_core_bundle(ctx, "version restore")
     b = _get_backend(ctx.obj.get("session"))
     _output(version_mod.version_restore(b, table, record_id, ver), as_json or ctx.obj.get("as_json"))
 
@@ -58,6 +58,6 @@ def version_restore_cmd(ctx, table, record_id, ver, as_json):
 @click.pass_context
 def version_create_cmd(ctx, table, record_id, as_json):
     """Manually create a version snapshot for a record."""
-    _require_bridge(ctx, "version create")
+    _require_core_bundle(ctx, "version create")
     b = _get_backend(ctx.obj.get("session"))
     _output(version_mod.version_create(b, table, record_id), as_json or ctx.obj.get("as_json"))

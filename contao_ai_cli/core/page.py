@@ -1,7 +1,9 @@
 """Contao page management (tl_page)."""
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import (
+    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete, run_publish,
+)
 
 
 def page_list(backend: ContaoBackend, pid: int | None = None) -> list:
@@ -55,3 +57,22 @@ def page_create(backend: ContaoBackend, title: str, pid: int = 0,
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)
+
+
+def page_update(backend: ContaoBackend, page_id: int, fields: dict) -> dict:
+    """Update page fields via contao-ai-core-bundle."""
+    return run_update(backend, "contao:page:update", page_id, fields)
+
+
+def page_delete(backend: ContaoBackend, page_id: int) -> dict:
+    """
+    Delete a page via contao-ai-core-bundle.
+    Cascades to the subpage tree, its articles and their content elements.
+    Recoverable from the back end's "Restore" module.
+    """
+    return run_delete(backend, "contao:page:delete", page_id)
+
+
+def page_publish(backend: ContaoBackend, page_id: int, published: bool = True) -> dict:
+    """Publish or unpublish a page via contao-ai-core-bundle."""
+    return run_publish(backend, "contao:page:publish", page_id, published)

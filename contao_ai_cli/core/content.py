@@ -3,7 +3,9 @@ import re
 import shlex
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import (
+    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+)
 
 
 def _parse_headline(value: str) -> str:
@@ -41,3 +43,17 @@ def content_create(backend: ContaoBackend, type: str, pid: int,
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)
+
+
+def content_update(backend: ContaoBackend, content_id: int, fields: dict) -> dict:
+    """Update content element fields via contao-ai-core-bundle."""
+    return run_update(backend, "contao:content:update", content_id, fields)
+
+
+def content_delete(backend: ContaoBackend, content_id: int) -> dict:
+    """
+    Delete a content element via contao-ai-core-bundle.
+    Cascades to nested content elements.
+    Recoverable from the back end's "Restore" module.
+    """
+    return run_delete(backend, "contao:content:delete", content_id)

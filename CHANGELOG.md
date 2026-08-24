@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.5.0 — 2026-08-24
+
+### Added
+
+- **15 commands that the core bundle always had and the CLI never wrapped.** `update` and `delete` for `page`, `article`, `content`, `news`, `event` and `faq`; `page publish`; `comment delete` and `comment publish`; plus `news repair-headlines`. Until now the CLI could create and read content but not change it — while `README.md` promised `page … update, delete, publish` and `CLAUDE.md` gave two literal examples for commands that did not exist. That is the agent guide: exactly what a caller reads to decide what to invoke.
+
+  It was never a deliberate split. `_require_bridge()` looked like evidence for one, but it only ever checked whether the core bundle was installed (see below), and the HTTP bridge allows exactly two tools, `record_clone` and `record_rewrite` — no deterministic field write exists there at all.
+
+- `--yes` on every `delete`, and a confirmation prompt when there is a terminal to answer it. The Contao back end asks too: `DefaultOperationsListener` puts `onclick="if(!confirm(…))return false"` on the generic delete operation of every DCA. A prompt is therefore consistent with Contao rather than stricter — but an agent or a cron job has nobody to answer, so it only appears on a TTY. `member delete` and `user delete`, which had no guard at all, are covered now too.
+
+- Two tests that pin the documentation to the command tree: the README table is generated from it, and every `contao-ai-cli …` example in README and CLAUDE.md must resolve to a real command with real options. They immediately found three more stale examples — `page read --id 1`, `article list --pid`, and a whole `schema dca` / `schema module` pair that has never existed.
+
+### Fixed
+
+- `get_core_bundle_latest_version()` read `packagist.org/packages/<name>.json`, which is cached and lags: it still reported v0.2.7 after v0.2.9 was released. It now uses `repo.packagist.org/p2/<name>.json`, the metadata Composer itself resolves against, so `connect` and `health` no longer report "up to date" while an update is waiting.
+- A malformed `--set` is an error instead of being dropped. `--set "title Neu"` used to vanish silently and report a successful update that changed nothing.
+
+### Changed
+
+- `_require_bridge()` → `_require_core_bundle()`, `_detect_bridge()` → `_detect_core_bundle()`, and the session key `bridge_available` → `core_bundle_available`. "Bridge" meant two unrelated things: the core bundle, after its original name `contao-cli-bridge`, and the HTTP endpoint into contao-ai-backend-bundle. The collision was read as evidence of a design decision that had never been made. Sessions written before this release are still understood — the old key is read as a fallback.
+- README's command table is generated from the command tree and pinned by a test, so it cannot drift again.
+
+### Notes
+
+Requires **contao-ai-core-bundle v0.2.10** for `page publish` / `comment publish`; `unpublish` threw on strict-SQL servers before that. Deleting cascades to child records since core-bundle v0.2.8 and stays recoverable from the back end's *Restore* module.
+
+Verified live on Contao 5.7.11: create, update, publish, unpublish, a rejected malformed `--set`, a declined delete that left the record in place, and a piped delete that cascaded to 3 rows with no orphans left behind.
+
 ## v0.4.4 — 2026-08-24
 
 ### Fixed

@@ -8,7 +8,7 @@ import click
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.core import session as session_mod, backup as backup_mod
 from .helpers import (
-    _output, _detect_bridge, CLI_INSTALL_URL,
+    _output, _detect_core_bundle, CLI_INSTALL_URL,
     check_cli_update, install_cli_update,
     get_core_bundle_installed_version, get_core_bundle_latest_version,
     detect_contao_manager, get_missing_allow_plugins, set_allow_plugins,
@@ -151,13 +151,13 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     # ── 2. core-bundle check ──────────────────────────────────────────────────
     installed_version = get_core_bundle_installed_version(b)
     manager = detect_contao_manager(b)
-    bridge = False
+    core_bundle = False
 
     if installed_version is None:
         click.echo("\ncontao-ai-core-bundle: not installed — enables full CRUD support.")
         # default=False: this writes to the project's composer.json.
         if click.confirm("Install contao-ai-core-bundle now?", default=False):
-            bridge = _install_core_bundle(b, manager, "require")
+            core_bundle = _install_core_bundle(b, manager, "require")
     else:
         if installed_version.startswith("dev-"):
             click.echo(f"contao-ai-core-bundle {installed_version}: development version, skipping update check.")
@@ -174,12 +174,13 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
                     _install_core_bundle(b, manager, "update")
             else:
                 click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")
-        bridge = True
+        core_bundle = True
 
-    # ── Save bridge flag to session ───────────────────────────────────────────
+    # ── Save the core-bundle flag to the session ──────────────────────────────
     with open(session_path, encoding="utf-8") as f:
         cfg = json.load(f)
-    cfg["bridge_available"] = bridge
+    cfg["core_bundle_available"] = core_bundle
+    cfg.pop("bridge_available", None)  # pre-0.5.0 name
     with open(session_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
 

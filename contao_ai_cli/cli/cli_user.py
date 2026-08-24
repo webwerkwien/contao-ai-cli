@@ -4,7 +4,7 @@ user group — Backend user management.
 import click
 
 from contao_ai_cli.core import session as session_mod, user as user_mod, dca_schema
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import _get_backend, _output, _require_core_bundle
 
 
 @click.group()
@@ -81,7 +81,7 @@ def user_password(ctx, username, password, as_json):
 @click.pass_context
 def user_update(ctx, username, fields, set_fields, as_json):
     """Update a backend user field via contao-ai-core-bundle."""
-    _require_bridge(ctx, "user update")
+    _require_core_bundle(ctx, "user update")
     combined = list(fields) + list(set_fields)
     parsed = dict(f.split("=", 1) for f in combined if "=" in f)
     b = _get_backend(ctx.obj.get("session"))
@@ -94,6 +94,6 @@ def user_update(ctx, username, fields, set_fields, as_json):
 @click.pass_context
 def user_delete(ctx, username, as_json):
     """Delete a backend user via contao-ai-core-bundle."""
-    _require_bridge(ctx, "user delete")
+    _require_core_bundle(ctx, "user delete")
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_delete(b, username), as_json or ctx.obj.get("as_json"))

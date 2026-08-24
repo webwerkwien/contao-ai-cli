@@ -4,7 +4,7 @@ template group — Manage Contao Twig templates (templates/ directory).
 import click
 
 from contao_ai_cli.core import template as template_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import _get_backend, _output, _require_core_bundle
 
 
 @click.group()
@@ -19,7 +19,7 @@ def template():
 @click.pass_context
 def template_list_cmd(ctx, prefix, as_json):
     """List custom templates under templates/."""
-    _require_bridge(ctx, "template list")
+    _require_core_bundle(ctx, "template list")
     b = _get_backend(ctx.obj.get("session"))
     _output(template_mod.template_list(b, prefix), as_json or ctx.obj.get("as_json"))
 
@@ -30,7 +30,7 @@ def template_list_cmd(ctx, prefix, as_json):
 @click.pass_context
 def template_read_cmd(ctx, path, as_json):
     """Read a template file content."""
-    _require_bridge(ctx, "template read")
+    _require_core_bundle(ctx, "template read")
     b = _get_backend(ctx.obj.get("session"))
     _output(template_mod.template_read(b, path), as_json or ctx.obj.get("as_json"))
 
@@ -47,7 +47,7 @@ def template_read_cmd(ctx, path, as_json):
 @click.pass_context
 def template_write_cmd(ctx, mode, base, name, content, as_json):
     """Write a Twig template. Path is calculated automatically from --mode and --base."""
-    _require_bridge(ctx, "template write")
+    _require_core_bundle(ctx, "template write")
     if content.startswith("@"):
         local = content[1:]
         try:

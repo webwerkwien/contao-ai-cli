@@ -207,7 +207,7 @@ class TestConnectDefaults:
             )
         assert result.exit_code == 0, result.output
         composer.assert_not_called()
-        assert json.loads(session_path.read_text(encoding="utf-8"))["bridge_available"] is False
+        assert json.loads(session_path.read_text(encoding="utf-8"))["core_bundle_available"] is False
 
 
 class TestInstallCliUpdate:

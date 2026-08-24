@@ -4,7 +4,9 @@ member group — Manage Contao frontend members (tl_member).
 import click
 
 from contao_ai_cli.core import session as session_mod, member as member_mod, dca_schema
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, parse_set_fields,
+)
 
 
 @click.group()
@@ -59,8 +61,8 @@ def member_create_cmd(ctx, username, password, firstname, lastname, email, as_js
 @click.pass_context
 def member_update(ctx, username, fields, as_json):
     """Update a frontend member field via contao-ai-core-bundle."""
-    _require_bridge(ctx, "member update")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    _require_core_bundle(ctx, "member update")
+    parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(member_mod.member_update(b, username, parsed), as_json or ctx.obj.get("as_json"))
 
@@ -71,6 +73,6 @@ def member_update(ctx, username, fields, as_json):
 @click.pass_context
 def member_delete(ctx, username, as_json):
     """Delete a frontend member via contao-ai-core-bundle."""
-    _require_bridge(ctx, "member delete")
+    _require_core_bundle(ctx, "member delete")
     b = _get_backend(ctx.obj.get("session"))
     _output(member_mod.member_delete(b, username), as_json or ctx.obj.get("as_json"))

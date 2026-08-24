@@ -59,16 +59,32 @@ contao-ai-cli --json backup list
 ### Content management
 
 ```bash
-# Read
+# Read — record IDs are positional arguments, not --id
 contao-ai-cli --json page list
-contao-ai-cli --json page read --id 1
-contao-ai-cli --json article list --pid 1
-contao-ai-cli --json content list --pid 1
+contao-ai-cli --json page read 1
+contao-ai-cli --json article list --page 1
+contao-ai-cli --json content list --article 1
 
-# Create / Update / Delete
+# Create
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
-contao-ai-cli --json content update --id 5 --set headline="New Title"
-contao-ai-cli --json news delete --id 3
+
+# Update — repeat --set for each field
+contao-ai-cli --json content update 5 --set headline="New Title"
+contao-ai-cli --json page update 1 --set title="Home" --set robots=noindex
+
+# Publish / unpublish
+contao-ai-cli --json page publish 1
+contao-ai-cli --json comment publish 7 --unpublish
+```
+
+> Deleting cascades to child records — a page takes its subpages, articles and content
+> elements with it. The whole set lands in one `tl_undo` entry, so it stays recoverable
+> from the back end's *Restore* module. On a terminal the CLI asks first, the same as the
+> Contao back end does; `--yes` skips the prompt for non-interactive use.
+
+```bash
+contao-ai-cli --json news delete 3 --yes
+contao-ai-cli --json page delete 12 --yes
 ```
 
 ### Cache and maintenance
@@ -88,19 +104,24 @@ contao-ai-cli --json backup list
 ### Schema inspection (requires contao-ai-core-bundle)
 
 ```bash
-contao-ai-cli --json schema dca --table tl_content
-contao-ai-cli --json schema module --type news_list
+contao-ai-cli --json schema show tl_content
+contao-ai-cli --json schema mandatory tl_news
+contao-ai-cli --json schema resolve tl_content type
 ```
 
 ## Available command groups
 
-`page`, `article`, `content`, `news`, `event`, `faq`, `member`, `user`,
-`file`, `folder`, `template`, `comment`, `version`, `search`, `schema`,
-`backup`, `cache`, `layout`, `listing`, `form`, `mailer`, `messenger`,
-`newsletter`, `security`, `debug`
+`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `messenger`, `news`, `newsletter`, `page`, `schema`, `search`, `security`, `template`, `user`, `version`
+
+Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-list`
+
+Run `contao-ai-cli <group> --help` for the subcommands of a group; the full table is in
+[README.md](README.md) and is generated from the command tree, so it cannot go stale.
 
 Full CRUD support requires [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle)
-to be installed on the target Contao site.
+to be installed on the target Contao site. The `bridge` group additionally needs
+[contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) — it is the
+only group that does; everything else runs over SSH against the core bundle.
 
 ## Multiple installations
 

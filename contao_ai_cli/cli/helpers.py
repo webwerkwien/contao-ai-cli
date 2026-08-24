@@ -13,10 +13,13 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.4.4"
+__version__ = "0.5.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
-PACKAGIST_API = f"https://packagist.org/packages/{CORE_BUNDLE}.json"
+# The /packages/<name>.json API is cached and lags visibly behind a release —
+# it still reported v0.2.7 after v0.2.9 was out. /p2/ is the metadata Composer
+# itself resolves against, so it is the one that answers "is an update available".
+PACKAGIST_API = f"https://repo.packagist.org/p2/{CORE_BUNDLE}.json"
 CLI_RELEASES_API = "https://api.github.com/repos/webwerkwien/contao-ai-cli/releases/latest"
 CLI_INSTALL_URL = "https://github.com/webwerkwien/contao-ai-cli.git"
 
@@ -105,8 +108,13 @@ def get_core_bundle_latest_version() -> str | None:
         req = urllib.request.Request(PACKAGIST_API, headers={"User-Agent": "contao-ai-cli"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
-        versions = data["package"]["versions"]
-        stable = [v for v in versions if not v.startswith("dev-") and "dev" not in v]
+        # /p2/ returns {"packages": {"<name>": [{"version": "v0.2.9", ...}, ...]}},
+        # newest first.
+        releases = data["packages"][CORE_BUNDLE]
+        stable = [
+            r["version"] for r in releases
+            if "version" in r and not r["version"].startswith("dev-") and "dev" not in r["version"]
+        ]
         return stable[0].lstrip("v") if stable else None
     except Exception:
         return None
@@ -222,7 +230,7 @@ def _output(data, as_json=False):
             click.echo(str(data))
 
 
-def _detect_bridge(backend) -> bool:
+def _detect_core_bundle(backend) -> bool:
     """Check if contao-ai-core-bundle commands are available on the server."""
     try:
         result = backend.run("list")
@@ -231,16 +239,63 @@ def _detect_bridge(backend) -> bool:
         return False
 
 
-def _require_bridge(ctx, command_name: str):
-    """Raise UsageError with install hint if bridge is not available."""
+def parse_set_fields(fields) -> dict:
+    """
+    Turn repeated `--set FIELD=VALUE` into a dict.
+
+    A malformed entry is an error rather than something to drop: silently
+    ignoring `--set titel Neu` would report a successful update that changed
+    nothing.
+    """
+    parsed = {}
+    for raw in fields:
+        key, sep, value = raw.partition("=")
+        if not sep or not key:
+            raise click.UsageError(f"--set expects FIELD=VALUE, got: {raw!r}")
+        parsed[key] = value
+    return parsed
+
+
+def confirm_delete(what: str, assume_yes: bool = False) -> bool:
+    """
+    Ask before deleting, unless told not to or nobody is there to answer.
+
+    The Contao back end asks: DefaultOperationsListener puts
+    `onclick="if(!confirm(...))return false"` on the generic delete operation of
+    every DCA. A prompt here is therefore consistent with Contao rather than
+    stricter than it. But this CLI is driven by agents and scripts as much as by
+    people, and a prompt that nothing can answer is worse than no prompt — so it
+    only appears on a terminal, and --yes skips it.
+    """
+    if assume_yes:
+        return True
+    try:
+        interactive = sys.stdin.isatty()
+    except Exception:
+        interactive = False
+    if not interactive:
+        return True
+    return click.confirm(f"Delete {what}?", default=False)
+
+
+def _require_core_bundle(ctx, command_name: str):
+    """
+    Raise UsageError with an install hint if the core bundle is missing.
+
+    Named `_require_core_bundle` until v0.5.0, after the core bundle's original name
+    `contao-cli-bridge`. That collided with the unrelated `bridge` command group,
+    which talks to contao-ai-backend-bundle over HTTP — and the collision was read
+    as evidence that editing was meant to go through the backend, which it was not.
+    """
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     try:
         with open(session_path, encoding="utf-8") as f:
             cfg = json.load(f)
-        bridge_available = cfg.get("bridge_available", False)
+        # Sessions written before v0.5.0 carry the old key.
+        available = cfg.get("core_bundle_available", cfg.get("bridge_available", False))
     except Exception:
-        bridge_available = False
-    if not bridge_available:
+        available = False
+    if not available:
         raise click.UsageError(
             f"'{command_name}' requires contao-ai-core-bundle which is not installed on this server.\n"
             f"Install with: composer require webwerkwien/contao-ai-core-bundle"

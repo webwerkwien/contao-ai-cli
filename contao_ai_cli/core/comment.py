@@ -1,6 +1,6 @@
 """Contao comment management (tl_comments)."""
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table
+from contao_ai_cli.core.contao_ops import run_sql_table, run_delete, run_publish
 
 
 def comment_list(backend: ContaoBackend, source: str | None = None, parent_id: int | None = None) -> list:
@@ -21,3 +21,13 @@ def comment_list(backend: ContaoBackend, source: str | None = None, parent_id: i
         f"FROM tl_comments {where} ORDER BY date DESC"
     )
     return run_sql_table(backend, sql)
+
+
+def comment_delete(backend: ContaoBackend, comment_id: int) -> dict:
+    """Delete a comment via contao-ai-core-bundle."""
+    return run_delete(backend, "contao:comment:delete", comment_id)
+
+
+def comment_publish(backend: ContaoBackend, comment_id: int, published: bool = True) -> dict:
+    """Publish or unpublish a comment — the moderation path for visitor-authored text."""
+    return run_publish(backend, "contao:comment:publish", comment_id, published)

@@ -4,7 +4,9 @@ news group — Manage Contao news entries (tl_news).
 import click
 
 from contao_ai_cli.core import session as session_mod, news as news_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+)
 
 
 @click.group()
@@ -39,7 +41,7 @@ def news_list_cmd(ctx, archive_id):
 @click.pass_context
 def news_read_cmd(ctx, news_id, as_json):
     """Read all fields of a news entry (headline deserialized)."""
-    _require_bridge(ctx, "news read")
+    _require_core_bundle(ctx, "news read")
     b = _get_backend(ctx.obj.get("session"))
     _output(news_mod.news_read(b, news_id), as_json or ctx.obj.get("as_json"))
 
@@ -53,8 +55,47 @@ def news_read_cmd(ctx, news_id, as_json):
 @click.pass_context
 def news_create_cmd(ctx, headline, pid, date, fields, as_json):
     """Create a news entry via contao-ai-core-bundle."""
-    _require_bridge(ctx, "news create")
-    parsed = dict(f.split("=", 1) for f in fields if "=" in f)
+    _require_core_bundle(ctx, "news create")
+    parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(news_mod.news_create(b, headline, pid, date, parsed),
             as_json or ctx.obj.get("as_json"))
+
+
+@news.command("update")
+@click.argument("news_id", type=int)
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_update_cmd(ctx, news_id, fields, as_json):
+    """Update fields of a news entry."""
+    _require_core_bundle(ctx, "news update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_update(b, news_id, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@news.command("delete")
+@click.argument("news_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_delete_cmd(ctx, news_id, yes, as_json):
+    """Delete a news entry and its content elements."""
+    _require_core_bundle(ctx, "news delete")
+    if not confirm_delete(f"news entry {news_id} and its content elements", yes):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_delete(b, news_id), as_json or ctx.obj.get("as_json"))
+
+
+@news.command("repair-headlines")
+@click.option("--dry-run", is_flag=True, help="Report what would change, write nothing")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_repair_headlines_cmd(ctx, dry_run, as_json):
+    """Unpack legacy serialized headlines in tl_news (one-off migration)."""
+    _require_core_bundle(ctx, "news repair-headlines")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_repair_headlines(b, dry_run), as_json or ctx.obj.get("as_json"))

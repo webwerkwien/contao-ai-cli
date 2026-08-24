@@ -51,35 +51,48 @@ contao-ai-cli --session my-site repl
 
 ## Available command groups
 
-| Group | Description |
-|---|---|
-| `page` | Read, create, update, delete, publish pages |
-| `article` | Manage articles |
-| `content` | Manage content elements |
-| `news` | Manage news entries |
-| `event` | Manage calendar events |
-| `faq` | Manage FAQ entries |
-| `member` | Manage frontend members |
-| `user` | Manage backend users |
-| `file` | Read, write, and manage files |
-| `folder` | Create folders |
-| `template` | List, read, and write templates |
-| `comment` | Manage comments |
-| `version` | List, read, create, and restore versions |
-| `search` | Search the fulltext index |
-| `schema` | Inspect DCA field definitions and module config |
-| `backup` | Create and restore database backups |
-| `cache` | Clear and warm up the Symfony cache |
-| `layout` | Read layout configurations |
-| `listing` | Read listing module configurations |
-| `form` | Read form definitions |
-| `mailer` | Inspect mailer configuration |
-| `messenger` | Inspect messenger configuration |
-| `newsletter` | Manage newsletters |
-| `security` | Inspect security configuration |
-| `debug` | Debug utilities |
-| `bridge` | Call backend macro tools (record_clone, record_rewrite) over HTTPS — see below |
-| `health` | Show CLI / core-bundle / bridge update status (read-only) |
+Full CRUD needs [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle)
+on the target site. This table is generated from the command tree and pinned by a test,
+so it cannot drift from what the CLI actually offers.
+
+| Group | Commands | What for |
+|---|---|---|
+| `article` | `create` `delete` `list` `read` `update` | Articles inside pages |
+| `backup` | `create` `list` `restore` | Database backups |
+| `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
+| `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
+| `comment` | `delete` `list` `publish` | Comment moderation |
+| `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
+| `content` | `create` `delete` `list` `read` `update` | Content elements |
+| `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
+| `event` | `calendars` `create` `delete` `list` `read` `update` | Calendar events |
+| `faq` | `categories` `create` `delete` `list` `read` `update` | FAQ entries and categories |
+| `file` | `folder-create` `list` `meta` `process` `read` `sync` `write` | Files in the file system |
+| `form` | `fields` `list` | Form definitions |
+| `layout` | `read` | Layout configuration |
+| `listing` | `data` `modules` | Listing module configuration |
+| `mailer` | `test` | Mailer configuration |
+| `member` | `create` `delete` `list` `update` | Front end members |
+| `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
+| `news` | `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and archives |
+| `newsletter` | `channels` `list` `subscribers` | Newsletters and subscribers |
+| `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
+| `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |
+| `search` | `index-create` `index-drop` `reindex` | Fulltext index |
+| `security` | `hash-password` | Security helpers |
+| `template` | `list` `read` `write` | Twig and PHP templates |
+| `user` | `create` `delete` `list` `password` `update` | Back end users |
+| `version` | `create` `list` `read` `restore` | Contao's version history |
+
+Record IDs are positional arguments, changed fields are repeated `--set FIELD=VALUE`:
+
+```bash
+contao-ai-cli --json page update 12 --set title="Home" --set robots=noindex
+```
+
+`delete` cascades to child records and stays recoverable from the back end's *Restore*
+module. It asks before deleting when run on a terminal — the same thing the Contao back
+end does — and `--yes` skips the prompt for scripts and agents.
 
 ## Backend bridge — bulk LLM operations without browser
 

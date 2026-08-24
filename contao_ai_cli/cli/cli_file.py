@@ -4,7 +4,7 @@ file group — Manage Contao files (DBAFS / tl_files).
 import click
 
 from contao_ai_cli.core import session as session_mod, file as file_mod
-from .helpers import _get_backend, _output, _require_bridge
+from .helpers import _get_backend, _output, _require_core_bundle
 
 
 @click.group()
@@ -40,7 +40,7 @@ def file_sync_cmd(ctx):
 @click.pass_context
 def file_folder_create_cmd(ctx, path, as_json):
     """Create a folder in the Contao file system via contao-ai-core-bundle."""
-    _require_bridge(ctx, "file folder-create")
+    _require_core_bundle(ctx, "file folder-create")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.folder_create(b, path), as_json or ctx.obj.get("as_json"))
 
@@ -55,7 +55,7 @@ def file_folder_create_cmd(ctx, path, as_json):
 @click.pass_context
 def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_size, as_json):
     """Validate and optionally resize a file already on the server via contao-ai-core-bundle."""
-    _require_bridge(ctx, "file process")
+    _require_core_bundle(ctx, "file process")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_process(b, path, allowed_types, max_width, max_height, max_file_size),
             as_json or ctx.obj.get("as_json"))
@@ -68,7 +68,7 @@ def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_s
 @click.pass_context
 def file_write_cmd(ctx, path, content, as_json):
     """Write a text file to files/ on the server and create a version snapshot."""
-    _require_bridge(ctx, "file write")
+    _require_core_bundle(ctx, "file write")
     if content.startswith("@"):
         local = content[1:]
         try:
@@ -86,7 +86,7 @@ def file_write_cmd(ctx, path, content, as_json):
 @click.pass_context
 def file_read_cmd(ctx, path, as_json):
     """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
-    _require_bridge(ctx, "file read")
+    _require_core_bundle(ctx, "file read")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_read(b, path), as_json or ctx.obj.get("as_json"))
 
@@ -100,7 +100,7 @@ def file_read_cmd(ctx, path, as_json):
 @click.pass_context
 def file_meta_cmd(ctx, path, lang, fields, as_json):
     """Update metadata fields on a tl_files record via contao-ai-core-bundle."""
-    _require_bridge(ctx, "file meta")
+    _require_core_bundle(ctx, "file meta")
     invalid = [f for f in fields if "=" not in f]
     if invalid:
         raise click.UsageError(f"Invalid --set value(s): {invalid!r}. Expected format: FIELD=VALUE")
