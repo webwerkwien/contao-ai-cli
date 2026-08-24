@@ -29,6 +29,13 @@ The connect command is interactive — it will prompt for confirmation at severa
 2. Offer to create a database backup → recommended: confirm
 3. Check for CLI updates → confirm to install if available
 4. Check whether contao-ai-core-bundle is installed → confirm to install/update if needed
+   (defaults to **no**, because installing writes to the project's `composer.json`)
+
+On a **Managed Edition** the install/update runs through the Contao Manager's Composer
+passthrough (`php public/contao-manager.phar.php composer …`), which uses the manager's
+own `allow-plugins` config — the project `composer.json` config block is left untouched.
+Only installations without a Contao Manager fall back to plain `composer`, and that path
+asks separately before writing `allow-plugins` into `composer.json`.
 
 > ⚠️ `connect` requires a human operator. Do not attempt to run it autonomously.
 > For automated workflows, use an existing session (`session-list`) instead.

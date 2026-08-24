@@ -10,7 +10,64 @@ from contao_ai_cli.core import session as session_mod, backup as backup_mod
 from .helpers import (
     _output, _detect_bridge,
     check_cli_update, get_core_bundle_installed_version, get_core_bundle_latest_version,
+    detect_contao_manager, get_missing_allow_plugins, set_allow_plugins,
+    composer_core_bundle,
 )
+
+
+def _install_core_bundle(b, manager, action: str) -> bool:
+    """
+    Install ('require') or update the core bundle on the target server.
+
+    On a Managed Edition this goes through the Contao Manager's composer
+    passthrough: the manager supplies its own allow-plugins config, so the
+    project composer.json is left alone. Every other installation falls back to
+    plain composer — and that path has to ask first, because it can only run
+    after allow-plugins has been written into the project composer.json.
+
+    Returns True if the bundle was installed/updated.
+    """
+    verb, done, noun = (
+        ("Installing", "installed", "Installation") if action == "require"
+        else ("Updating", "updated", "Update")
+    )
+
+    if manager["available"]:
+        click.echo(f"Contao Manager detected ({manager['phar_path']}) — "
+                   f"using its Composer passthrough, composer.json config stays untouched.")
+    else:
+        missing = get_missing_allow_plugins(b)
+        if missing:
+            click.echo(click.style(
+                "\n[!] No Contao Manager found — falling back to plain composer.\n"
+                "    Composer will refuse to run the Contao plugins unless they are\n"
+                "    allowed in the project composer.json. Proceeding writes:\n"
+                + "".join(f"      config.allow-plugins.{p} = true\n" for p in missing),
+                fg="yellow",
+            ))
+            if not click.confirm("Modify composer.json on the server to allow these plugins?",
+                                 default=False):
+                click.echo(f"Skipped — contao-ai-core-bundle was not {done}.")
+                return False
+            try:
+                set_allow_plugins(b, missing)
+            except ContaoBackendError as e:
+                click.echo(click.style(f"[ERROR] Could not set allow-plugins: {e}", fg="red"))
+                return False
+            click.echo(click.style(
+                f"[i] composer.json modified: allow-plugins set for {', '.join(missing)}.",
+                fg="yellow"
+            ))
+
+    click.echo(f"{verb} via composer (this may take a moment)...")
+    try:
+        composer_core_bundle(b, action, manager["phar_path"] if manager["available"] else None)
+        b.run("cache:warmup --env=prod")
+    except ContaoBackendError as e:
+        click.echo(click.style(f"[ERROR] {noun} failed: {e}", fg="red"))
+        return False
+    click.echo(click.style(f"[OK] contao-ai-core-bundle {done}.", fg="green"))
+    return True
 
 
 @click.command()
@@ -67,7 +124,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     cli_update = check_cli_update()
     if cli_update["update_available"]:
         click.echo(click.style(
-            f"[!] contao-ai-cli update available: v{cli_update['current']} → v{cli_update['latest']}",
+            f"[!] contao-ai-cli update available: v{cli_update['current']} -> v{cli_update['latest']}",
             fg="yellow"
         ))
         if click.confirm("Install CLI update now?", default=True):
@@ -85,24 +142,14 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
 
     # ── 2. core-bundle check ──────────────────────────────────────────────────
     installed_version = get_core_bundle_installed_version(b)
+    manager = detect_contao_manager(b)
     bridge = False
 
     if installed_version is None:
         click.echo("\ncontao-ai-core-bundle: not installed — enables full CRUD support.")
-        if click.confirm("Install contao-ai-core-bundle now?", default=True):
-            click.echo("Installing via composer (this may take a moment)...")
-            try:
-                b.run_raw("composer config allow-plugins.contao-components/installer true")
-                b.run_raw("composer config allow-plugins.contao/manager-plugin true")
-                b.run_raw(
-                    "composer require webwerkwien/contao-ai-core-bundle --no-interaction",
-                    timeout=180,
-                )
-                b.run("cache:warmup --env=prod")
-                click.echo(click.style("[OK] contao-ai-core-bundle installed.", fg="green"))
-                bridge = True
-            except ContaoBackendError as e:
-                click.echo(click.style(f"[ERROR] Installation failed: {e}", fg="red"))
+        # default=False: this writes to the project's composer.json.
+        if click.confirm("Install contao-ai-core-bundle now?", default=False):
+            bridge = _install_core_bundle(b, manager, "require")
     else:
         if installed_version.startswith("dev-"):
             click.echo(f"contao-ai-core-bundle {installed_version}: development version, skipping update check.")
@@ -111,22 +158,12 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             if latest_version and installed_version.lstrip("v") != latest_version.lstrip("v"):
                 click.echo(click.style(
                     f"\n[!] contao-ai-core-bundle update available: "
-                    f"{installed_version} → v{latest_version}",
+                    f"{installed_version} -> v{latest_version}",
                     fg="yellow"
                 ))
-                if click.confirm("Update contao-ai-core-bundle now?", default=True):
-                    click.echo("Updating via composer...")
-                    try:
-                        b.run_raw("composer config allow-plugins.contao-components/installer true")
-                        b.run_raw("composer config allow-plugins.contao/manager-plugin true")
-                        b.run_raw(
-                            "composer update webwerkwien/contao-ai-core-bundle --no-interaction",
-                            timeout=180,
-                        )
-                        b.run("cache:warmup --env=prod")
-                        click.echo(click.style("[OK] contao-ai-core-bundle updated.", fg="green"))
-                    except ContaoBackendError as e:
-                        click.echo(click.style(f"[ERROR] Update failed: {e}", fg="red"))
+                # default=False: this writes to the project's composer.json.
+                if click.confirm("Update contao-ai-core-bundle now?", default=False):
+                    _install_core_bundle(b, manager, "update")
             else:
                 click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")
         bridge = True
