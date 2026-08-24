@@ -3,6 +3,7 @@ Shared helpers for the contao-ai-cli CLI modules.
 """
 import json
 import shlex
+import subprocess
 import sys
 import urllib.request
 import urllib.error
@@ -12,7 +13,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 PACKAGIST_API = f"https://packagist.org/packages/{CORE_BUNDLE}.json"
@@ -32,6 +33,7 @@ MANAGER_PHAR_CANDIDATES = (
     "web/contao-manager.phar.php",
 )
 COMPOSER_TIMEOUT = 300
+CLI_UPDATE_TIMEOUT = 300
 
 
 def check_cli_update() -> dict:
@@ -45,6 +47,42 @@ def check_cli_update() -> dict:
         return {"current": __version__, "latest": latest, "update_available": update_available}
     except Exception:
         return {"current": __version__, "latest": None, "update_available": False}
+
+
+def get_pipx_installed_version() -> str | None:
+    """Return the contao-ai-cli version pipx currently reports, or None."""
+    try:
+        result = subprocess.run(
+            ["pipx", "list", "--json"], capture_output=True,
+            encoding="utf-8", errors="replace", timeout=60,
+        )
+        data = json.loads(result.stdout)
+        return data["venvs"]["contao-ai-cli"]["metadata"]["main_package"]["package_version"]
+    except Exception:
+        return None
+
+
+def install_cli_update(latest_version: str) -> dict:
+    """
+    Reinstall contao-ai-cli at latest_version via pipx.
+
+    'pipx upgrade' cannot move an installation whose spec is pinned to a tag —
+    'git+…@v0.4.1' resolves to v0.4.1 forever and pipx reports "already at latest
+    version". So the update is a forced reinstall at the requested tag, and the
+    result is read back from pipx instead of assumed.
+
+    Returns {"installed": <version or None>, "updated": bool}.
+    """
+    wanted = latest_version.lstrip("v")
+    try:
+        subprocess.run(
+            ["pipx", "install", "--force", f"git+{CLI_INSTALL_URL}@v{wanted}"],
+            check=False, encoding="utf-8", errors="replace", timeout=CLI_UPDATE_TIMEOUT,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return {"installed": get_pipx_installed_version(), "updated": False}
+    installed = get_pipx_installed_version()
+    return {"installed": installed, "updated": installed == wanted}
 
 
 def get_core_bundle_installed_version(backend) -> str | None:

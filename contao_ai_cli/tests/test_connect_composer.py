@@ -17,7 +17,7 @@ from contao_ai_cli.cli import cli_connect
 from contao_ai_cli.cli.cli_connect import _install_core_bundle, connect
 from contao_ai_cli.cli.helpers import (
     composer_core_bundle, detect_contao_manager, get_missing_allow_plugins,
-    set_allow_plugins,
+    install_cli_update, set_allow_plugins,
 )
 from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
@@ -211,6 +211,41 @@ class TestConnectDefaults:
         assert result.exit_code == 0, result.output
         composer.assert_not_called()
         assert json.loads(session_path.read_text(encoding="utf-8"))["bridge_available"] is False
+
+
+class TestInstallCliUpdate:
+    """
+    'pipx upgrade' is a no-op on a tag-pinned spec: 'git+…@v0.4.1' resolves to
+    v0.4.1 forever and pipx reports "already at latest version". The old flow ran
+    it and printed success regardless.
+    """
+
+    def test_forces_a_reinstall_at_the_requested_tag(self):
+        with patch("contao_ai_cli.cli.helpers.subprocess.run") as run,              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   return_value="0.4.3"):
+            result = install_cli_update("0.4.3")
+        argv = run.call_args[0][0]
+        assert argv[:3] == ["pipx", "install", "--force"]
+        assert argv[3].endswith("@v0.4.3")
+        assert result == {"installed": "0.4.3", "updated": True}
+
+    def test_never_calls_pipx_upgrade(self):
+        with patch("contao_ai_cli.cli.helpers.subprocess.run") as run,              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   return_value="0.4.3"):
+            install_cli_update("v0.4.3")
+        assert "upgrade" not in run.call_args[0][0]
+
+    def test_reports_failure_when_the_version_did_not_move(self):
+        """The bug that hid for a whole release: pipx ran, nothing changed, success printed."""
+        with patch("contao_ai_cli.cli.helpers.subprocess.run"),              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   return_value="0.4.2"):
+            assert install_cli_update("0.4.3") == {"installed": "0.4.2", "updated": False}
+
+    def test_missing_pipx_is_not_a_crash(self):
+        with patch("contao_ai_cli.cli.helpers.subprocess.run",
+                   side_effect=FileNotFoundError),              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   return_value="0.4.2"):
+            assert install_cli_update("0.4.3")["updated"] is False
 
 
 def test_connect_messages_survive_a_cp1252_console():

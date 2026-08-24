@@ -8,8 +8,9 @@ import click
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.core import session as session_mod, backup as backup_mod
 from .helpers import (
-    _output, _detect_bridge,
-    check_cli_update, get_core_bundle_installed_version, get_core_bundle_latest_version,
+    _output, _detect_bridge, CLI_INSTALL_URL,
+    check_cli_update, install_cli_update,
+    get_core_bundle_installed_version, get_core_bundle_latest_version,
     detect_contao_manager, get_missing_allow_plugins, set_allow_plugins,
     composer_core_bundle,
 )
@@ -128,15 +129,22 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             fg="yellow"
         ))
         if click.confirm("Install CLI update now?", default=True):
-            import subprocess as _sp
             click.echo("Updating contao-ai-cli...")
-            _sp.run(
-                ["pipx", "upgrade", "contao-ai-cli"],
-                check=False,
-            )
-            click.echo(click.style(
-                "[OK] Update installed. Please restart contao-ai-cli.", fg="green"
-            ))
+            outcome = install_cli_update(cli_update["latest"])
+            if outcome["updated"]:
+                click.echo(click.style(
+                    f"[OK] contao-ai-cli v{outcome['installed']} installed. "
+                    "Please restart contao-ai-cli.", fg="green"
+                ))
+            else:
+                # Never report success we have not seen: an older release claimed
+                # the update had landed while pipx had in fact changed nothing.
+                click.echo(click.style(
+                    f"[ERROR] Update did not take effect — still on "
+                    f"v{outcome['installed'] or 'unknown'}. Install it manually:\n"
+                    f"    pipx install --force git+{CLI_INSTALL_URL}@v{cli_update['latest']}",
+                    fg="red"
+                ))
     else:
         click.echo(f"contao-ai-cli v{cli_update['current']}: up to date.")
 
