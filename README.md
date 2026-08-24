@@ -111,6 +111,10 @@ contao-ai-cli --session my-site --json bridge rewrite \
 
 `contao-ai-cli health` shows CLI / core-bundle / bridge update status without requiring a re-connect.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
