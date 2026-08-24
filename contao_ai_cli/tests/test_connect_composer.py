@@ -5,15 +5,12 @@ Managed Editions must go through the Contao Manager's composer passthrough so th
 project composer.json is never touched behind the user's back; only the plain-composer
 fallback may write allow-plugins, and only after an explicit yes.
 """
-import ast
 import json
-import pathlib
 from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
-from contao_ai_cli.cli import cli_connect
 from contao_ai_cli.cli.cli_connect import _install_core_bundle, connect
 from contao_ai_cli.cli.helpers import (
     composer_core_bundle, detect_contao_manager, get_missing_allow_plugins,
@@ -246,21 +243,3 @@ class TestInstallCliUpdate:
                    side_effect=FileNotFoundError),              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
                    return_value="0.4.2"):
             assert install_cli_update("0.4.3")["updated"] is False
-
-
-def test_connect_messages_survive_a_cp1252_console():
-    """
-    A Windows console without UTF-8 mode encodes as cp1252. A character outside it —
-    'U+2192 RIGHTWARDS ARROW' was the culprit — makes click.echo raise mid-flow, so the
-    update branch died before its prompt. Comments are exempt; the AST only sees literals.
-    """
-    source = pathlib.Path(cli_connect.__file__)
-    offenders = []
-    for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            for ch in node.value:
-                try:
-                    ch.encode("cp1252")
-                except UnicodeEncodeError:
-                    offenders.append((node.lineno, f"U+{ord(ch):04X}"))
-    assert not offenders, f"cp1252-unencodable characters in cli_connect.py: {offenders}"

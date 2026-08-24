@@ -13,7 +13,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 PACKAGIST_API = f"https://packagist.org/packages/{CORE_BUNDLE}.json"

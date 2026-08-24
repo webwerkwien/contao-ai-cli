@@ -57,25 +57,57 @@ _RED = "\033[38;5;196m"
 _BLUE = "\033[38;5;75m"
 _MAGENTA = "\033[38;5;176m"
 
-# ── Brand icon ────────────────────────────────────────────────────────
+# ── Glyphs ───────────────────────────────────────────────────────────
+#
+# Every character this class prints comes from one of these two tables, and the
+# choice is made once per instance. Printing a glyph the output encoding cannot
+# represent raises UnicodeEncodeError inside print() and takes the whole banner
+# with it, so the guard has to be structural rather than one symbol at a time.
 
-# The cli-anything icon: a small colored diamond/chevron mark
-_ICON = f"{_CYAN}{_BOLD}◆{_RESET}"
-_ICON_SMALL = f"{_CYAN}▸{_RESET}"
+_UNICODE_GLYPHS = {
+    # brand
+    "icon": "◆", "icon_small": "▸", "skill": "◇",
+    "arrow": "❯", "mid_dot": "·",
+    # status
+    "ok": "✓", "err": "✗", "warn": "⚠", "dot": "●",
+    # box drawing
+    "h": "─", "v": "│", "tl": "╭", "tr": "╮",
+    "bl": "╰", "br": "╯",
+    "t_down": "┬", "t_up": "┴", "t_right": "├",
+    "t_left": "┤", "cross": "┼",
+    # progress bar
+    "bar_full": "█", "bar_empty": "░",
+}
 
-# ── Box drawing characters ────────────────────────────────────────────
+# Status markers follow the [OK] / [ERROR] / [!] convention the rest of the CLI
+# already uses. The structural glyphs stay single-width so nothing reflows.
+_ASCII_GLYPHS = {
+    "icon": "*", "icon_small": ">", "skill": "*", "arrow": ">", "mid_dot": "-",
+    "ok": "[OK]", "err": "[X]", "warn": "[!]", "dot": "[i]",
+    "h": "-", "v": "|", "tl": "+", "tr": "+", "bl": "+", "br": "+",
+    "t_down": "+", "t_up": "+", "t_right": "+", "t_left": "+", "cross": "+",
+    "bar_full": "#", "bar_empty": ".",
+}
 
-_H_LINE = "─"
-_V_LINE = "│"
-_TL = "╭"
-_TR = "╮"
-_BL = "╰"
-_BR = "╯"
-_T_DOWN = "┬"
-_T_UP = "┴"
-_T_RIGHT = "├"
-_T_LEFT = "┤"
-_CROSS = "┼"
+
+def _supports_unicode(stream=None) -> bool:
+    """Whether the stream's encoding can represent the full Unicode glyph set.
+
+    On Windows this is not a question of "console or not". Python resolves
+    sys.stdout.encoding to UTF-8 when a console at code page 65001 is attached
+    and to the locale encoding (typically cp1252) otherwise, so redirected
+    output, CI, cron and any agent harness capturing stdout land on cp1252 and
+    cannot print box drawing.
+    """
+    stream = sys.stdout if stream is None else stream
+    encoding = getattr(stream, "encoding", None)
+    if not encoding:
+        return False
+    try:
+        "".join(_UNICODE_GLYPHS.values()).encode(encoding)
+    except (LookupError, UnicodeEncodeError):
+        return False
+    return True
 
 
 def _strip_ansi(text: str) -> str:
@@ -97,7 +129,8 @@ class ReplSkin:
     """
 
     def __init__(self, software: str, version: str = "1.0.0",
-                 history_file: str | None = None, skill_path: str | None = None):
+                 history_file: str | None = None, skill_path: str | None = None,
+                 ascii_only: bool | None = None):
         """Initialize the REPL skin.
 
         Args:
@@ -108,6 +141,9 @@ class ReplSkin:
             skill_path: Path to the SKILL.md file for agent discovery.
                         Auto-detected from the package's skills/ directory if not provided.
                         Displayed in banner for AI agents to know where to read skill info.
+            ascii_only: Force the ASCII glyph set. Defaults to auto-detection
+                        from the stdout encoding, overridable by setting the
+                        CONTAO_AI_CLI_ASCII environment variable.
         """
         self.software = software.lower().replace("-", "_")
         self.display_name = software.replace("_", " ").title()
@@ -135,6 +171,10 @@ class ReplSkin:
 
         # Detect terminal capabilities
         self._color = self._detect_color_support()
+        if ascii_only is None:
+            ascii_only = (bool(os.environ.get("CONTAO_AI_CLI_ASCII"))
+                          or not _supports_unicode())
+        self._g = _ASCII_GLYPHS if ascii_only else _UNICODE_GLYPHS
 
     def _detect_color_support(self) -> bool:
         """Check if terminal supports color."""
@@ -161,16 +201,17 @@ class ReplSkin:
         def _box_line(content: str) -> str:
             """Wrap content in box drawing, padding to inner width."""
             pad = inner - _visible_len(content)
-            vl = self._c(_DARK_GRAY, _V_LINE)
+            vl = self._c(_DARK_GRAY, self._g["v"])
             return f"{vl}{content}{' ' * max(0, pad)}{vl}"
 
-        top = self._c(_DARK_GRAY, f"{_TL}{_H_LINE * inner}{_TR}")
-        bot = self._c(_DARK_GRAY, f"{_BL}{_H_LINE * inner}{_BR}")
+        g = self._g
+        top = self._c(_DARK_GRAY, f"{g['tl']}{g['h'] * inner}{g['tr']}")
+        bot = self._c(_DARK_GRAY, f"{g['bl']}{g['h'] * inner}{g['br']}")
 
         # Title:  ◆  cli-anything · Shotcut
-        icon = self._c(_CYAN + _BOLD, "◆")
+        icon = self._c(_CYAN + _BOLD, g["icon"])
         brand = self._c(_CYAN + _BOLD, "cli-anything")
-        dot = self._c(_DARK_GRAY, "·")
+        dot = self._c(_DARK_GRAY, g["mid_dot"])
         name = self._c(self.accent + _BOLD, self.display_name)
         title = f" {icon}  {brand} {dot} {name}"
 
@@ -181,7 +222,7 @@ class ReplSkin:
         # Skill path for agent discovery
         skill_line = None
         if self.skill_path:
-            skill_icon = self._c(_MAGENTA, "◇")
+            skill_icon = self._c(_MAGENTA, g["skill"])
             skill_label = self._c(_DARK_GRAY, "   Skill:")
             skill_path_display = self._c(_LIGHT_GRAY, self.skill_path)
             skill_line = f" {skill_icon} {skill_label} {skill_path_display}"
@@ -214,7 +255,7 @@ class ReplSkin:
 
         # Icon
         if self._color:
-            parts.append(f"{_CYAN}◆{_RESET} ")
+            parts.append(f"{_CYAN}{self._g['icon']}{_RESET} ")
         else:
             parts.append("> ")
 
@@ -229,7 +270,7 @@ class ReplSkin:
             parts.append(self._c(_LIGHT_GRAY, f"{ctx}{mod}"))
             parts.append(self._c(_DARK_GRAY, ']'))
 
-        parts.append(self._c(_GRAY, " ❯ "))
+        parts.append(self._c(_GRAY, f" {self._g['arrow']} "))
 
         return "".join(parts)
 
@@ -245,7 +286,7 @@ class ReplSkin:
         accent_hex = _ANSI_256_TO_HEX.get(self.accent, "#5fafff")
         tokens = []
 
-        tokens.append(("class:icon", "◆ "))
+        tokens.append(("class:icon", f"{self._g['icon']} "))
         tokens.append(("class:software", self.software))
 
         if project_name or context:
@@ -255,7 +296,7 @@ class ReplSkin:
             tokens.append(("class:context", f"{ctx}{mod}"))
             tokens.append(("class:bracket", "]"))
 
-        tokens.append(("class:arrow", " ❯ "))
+        tokens.append(("class:arrow", f" {self._g['arrow']} "))
 
         return tokens
 
@@ -294,22 +335,22 @@ class ReplSkin:
 
     def success(self, message: str):
         """Print a success message with green checkmark."""
-        icon = self._c(_GREEN + _BOLD, "✓")
+        icon = self._c(_GREEN + _BOLD, self._g["ok"])
         print(f"  {icon} {self._c(_GREEN, message)}")
 
     def error(self, message: str):
         """Print an error message with red cross."""
-        icon = self._c(_RED + _BOLD, "✗")
+        icon = self._c(_RED + _BOLD, self._g["err"])
         print(f"  {icon} {self._c(_RED, message)}", file=sys.stderr)
 
     def warning(self, message: str):
         """Print a warning message with yellow triangle."""
-        icon = self._c(_YELLOW + _BOLD, "⚠")
+        icon = self._c(_YELLOW + _BOLD, self._g["warn"])
         print(f"  {icon} {self._c(_YELLOW, message)}")
 
     def info(self, message: str):
         """Print an info message with blue dot."""
-        icon = self._c(_BLUE, "●")
+        icon = self._c(_BLUE, self._g["dot"])
         print(f"  {icon} {self._c(_LIGHT_GRAY, message)}")
 
     def hint(self, message: str):
@@ -320,7 +361,7 @@ class ReplSkin:
         """Print a section header."""
         print()
         print(f"  {self._c(self.accent + _BOLD, title)}")
-        print(f"  {self._c(_DARK_GRAY, _H_LINE * len(title))}")
+        print(f"  {self._c(_DARK_GRAY, self._g['h'] * len(title))}")
 
     # ── Status display ────────────────────────────────────────────────
 
@@ -357,7 +398,8 @@ class ReplSkin:
         pct = int(current / total * 100) if total > 0 else 0
         bar_width = 20
         filled = int(bar_width * current / total) if total > 0 else 0
-        bar = "█" * filled + "░" * (bar_width - filled)
+        bar = (self._g["bar_full"] * filled
+               + self._g["bar_empty"] * (bar_width - filled))
         text = f"  {self._c(_CYAN, bar)} {self._c(_GRAY, f'{pct:3d}%')}"
         if label:
             text += f" {self._c(_LIGHT_GRAY, label)}"
@@ -395,13 +437,14 @@ class ReplSkin:
             self._c(_CYAN + _BOLD, pad(h, col_widths[i]))
             for i, h in enumerate(headers)
         ]
-        sep = self._c(_DARK_GRAY, f" {_V_LINE} ")
+        sep = self._c(_DARK_GRAY, f" {self._g['v']} ")
         header_line = f"  {sep.join(header_cells)}"
         print(header_line)
 
         # Separator
-        sep_parts = [self._c(_DARK_GRAY, _H_LINE * w) for w in col_widths]
-        sep_line = self._c(_DARK_GRAY, f"  {'───'.join([_H_LINE * w for w in col_widths])}")
+        sep_parts = [self._c(_DARK_GRAY, self._g["h"] * w) for w in col_widths]
+        _h = self._g["h"]
+        sep_line = self._c(_DARK_GRAY, f"  {(_h * 3).join([_h * w for w in col_widths])}")
         print(sep_line)
 
         # Rows
@@ -410,7 +453,7 @@ class ReplSkin:
             for i, cell in enumerate(row):
                 if i < len(col_widths):
                     cells.append(self._c(_LIGHT_GRAY, pad(str(cell), col_widths[i])))
-            row_sep = self._c(_DARK_GRAY, f" {_V_LINE} ")
+            row_sep = self._c(_DARK_GRAY, f" {self._g['v']} ")
             print(f"  {row_sep.join(cells)}")
 
     # ── Help display ──────────────────────────────────────────────────
@@ -433,7 +476,8 @@ class ReplSkin:
 
     def print_goodbye(self):
         """Print a styled goodbye message."""
-        print(f"\n  {_ICON_SMALL} {self._c(_GRAY, 'Goodbye!')}\n")
+        icon = self._c(_CYAN, self._g["icon_small"])
+        print(f"\n  {icon} {self._c(_GRAY, 'Goodbye!')}\n")
 
     # ── Prompt toolkit session factory ────────────────────────────────
 
@@ -498,7 +542,8 @@ class ReplSkin:
             parts = []
             for i, (k, v) in enumerate(items.items()):
                 if i > 0:
-                    parts.append(("class:bottom-toolbar.text", "  │  "))
+                    parts.append(("class:bottom-toolbar.text",
+                                  f"  {self._g['v']}  "))
                 parts.append(("class:bottom-toolbar.text", f" {k}: "))
                 parts.append(("class:bottom-toolbar", v))
             return FormattedText(parts)

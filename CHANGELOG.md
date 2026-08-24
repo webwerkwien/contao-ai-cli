@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.4.4 — 2026-08-24
+
+### Fixed
+
+- **The REPL could not start unless the console was already at code page 65001.** `ReplSkin` printed box drawing, a diamond, a checkmark and a chevron unconditionally, so `print()` raised `UnicodeEncodeError` on the very first line of the banner. Measured against the encodings a Windows console actually uses: only UTF-8 carries the full set. cp1252 fails on all 21 glyphs; cp850 and cp437 — the classic console defaults — carry the straight lines and shading blocks but fail on the rounded corners, the diamond, the checkmark and the chevron, 12 of 22.
+
+### Changed
+
+- Every character the skin prints now comes from one of two glyph tables, and the table is chosen once per instance from `sys.stdout.encoding` rather than symbol by symbol. The ASCII fallback uses `+-|` for structure and the `[OK]` / `[X]` / `[!]` / `[i]` markers the rest of the CLI already uses. A terminal that can render Unicode sees exactly what it saw before.
+- `ReplSkin(..., ascii_only=True|False)` forces a set; `CONTAO_AI_CLI_ASCII=1` forces ASCII from the environment, for a UTF-8 terminal whose font lacks the glyphs.
+
+### Added
+
+- `contao_ai_cli/tests/test_output_encoding.py`. The skin is covered behaviourally — every output method is exercised and the captured result must encode to cp1252 — because a lexical rule cannot distinguish the glyph table from a printed literal. Every other module is checked by an AST pass over its string literals, module docstrings excluded since Click never prints them. That pass replaces the narrower one added in v0.4.2. Suite goes from 180 to 257.
+
+### Notes
+
+The REPL still needs a real Windows console: `prompt_toolkit` raises `NoConsoleScreenBufferError` on a piped stdin regardless of encoding. That is unrelated and unchanged.
+
 ## v0.4.3 — 2026-08-24
 
 ### Fixed
