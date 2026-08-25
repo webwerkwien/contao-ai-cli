@@ -14,6 +14,7 @@ from click.testing import CliRunner
 from contao_ai_cli.cli.cli_health import _bridge_state, health
 from contao_ai_cli.cli.helpers import (
     BACKEND_BUNDLE, CORE_BUNDLE, get_installed_package_versions,
+    is_newer_version, version_tuple,
 )
 
 
@@ -150,3 +151,47 @@ class TestHealthOutput:
         assert lines["absent"] != lines["present"]
         assert "not installed" in lines["absent"]
         assert "not configured" in lines["present"]
+
+
+class TestVersionComparison:
+    """
+    Regression: `latest != current` called every unreleased working copy behind.
+    Running v0.5.1 locally, health said "-> update available: v0.5.0".
+    """
+
+    def test_a_newer_release_is_an_update(self):
+        assert is_newer_version("0.5.2", "0.5.1") is True
+        assert is_newer_version("v0.6.0", "0.5.9") is True
+        assert is_newer_version("1.0.0", "0.99.99") is True
+
+    def test_an_older_release_is_not_an_update(self):
+        assert is_newer_version("0.5.0", "0.5.1") is False
+        assert is_newer_version("0.2.13", "0.3.0") is False
+
+    def test_the_same_release_is_not_an_update(self):
+        assert is_newer_version("0.5.1", "0.5.1") is False
+        assert is_newer_version("v0.5.1", "0.5.1") is False
+
+    def test_differing_precision_compares_by_value(self):
+        assert is_newer_version("0.5", "0.5.0") is False
+        assert is_newer_version("0.5.0", "0.5") is False
+        assert is_newer_version("0.5.1", "0.5") is True
+
+    def test_numeric_not_lexicographic(self):
+        """'0.2.9' > '0.2.13' as strings, and that is the whole point."""
+        assert is_newer_version("0.2.13", "0.2.9") is True
+        assert is_newer_version("0.2.9", "0.2.13") is False
+
+    def test_unparsable_versions_stay_silent(self):
+        """A wrong arrow is worse than no arrow."""
+        assert is_newer_version("dev-main", "0.5.1") is False
+        assert is_newer_version("0.5.2", "dev-main") is False
+        assert is_newer_version("1.0.0-beta", "0.9.0") is False
+        assert is_newer_version(None, "0.5.1") is False
+        assert is_newer_version("", "0.5.1") is False
+
+    def test_version_tuple_rejects_non_releases(self):
+        assert version_tuple("v1.2.3") == (1, 2, 3)
+        assert version_tuple("dev-main") == ()
+        assert version_tuple("") == ()
+        assert version_tuple(None) == ()

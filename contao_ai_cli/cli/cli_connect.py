@@ -11,6 +11,7 @@ from .helpers import (
     _output, _detect_core_bundle, CLI_INSTALL_URL,
     check_cli_update, install_cli_update,
     get_core_bundle_installed_version, get_core_bundle_latest_version,
+    is_newer_version,
     detect_contao_manager, get_missing_allow_plugins, set_allow_plugins,
     composer_core_bundle,
 )
@@ -163,7 +164,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             click.echo(f"contao-ai-core-bundle {installed_version}: development version, skipping update check.")
         else:
             latest_version = get_core_bundle_latest_version()
-            if latest_version and installed_version.lstrip("v") != latest_version.lstrip("v"):
+            if is_newer_version(latest_version, installed_version):
                 click.echo(click.style(
                     f"\n[!] contao-ai-core-bundle update available: "
                     f"{installed_version} -> v{latest_version}",

@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.5.2 - 2026-08-25
+
+### Fixed
+
+- **`health` called every unreleased working copy out of date.** The update check was `latest != __version__`, so running v0.5.1 with v0.5.0 as the newest release printed `CLI v0.5.1 -> update available: v0.5.0` - an arrow pointing backwards, and a "re-run connect to install available updates" tip underneath it. String comparison also gets the ordering wrong once a segment reaches two digits: `'0.2.9' > '0.2.13'` lexicographically, which is exactly the range the core bundle is in.
+
+  Comparison is now numeric and one-directional (`is_newer_version()`), applied to the CLI check in `health` and `connect` and to the core-bundle check in both. Versions that are not plain releases - `dev-main`, `1.0.0-beta` - compare as "cannot tell" and stay silent, because a wrong arrow is worse than no arrow.
+
+  No dependency added: `packaging` is not installed alongside a pipx-installed CLI.
+
+### Notes
+
+7 new tests covering the ordering, the two-digit case, differing precision (`0.5` vs `0.5.0`) and the unparsable inputs. Suite at 315.
+
 ## v0.5.1 - 2026-08-25
 
 ### Fixed

@@ -22,6 +22,7 @@ from .helpers import (
     check_cli_update,
     get_core_bundle_latest_version,
     get_installed_package_versions,
+    is_newer_version,
     _output,
 )
 
@@ -79,10 +80,13 @@ def health(ctx):
             "reachable":  True,
             "installed":  installed,
             "latest":     latest,
+            # Not `installed != latest`: a working copy ahead of Packagist is not
+            # behind it, and saying so sends the reader off to "update" downwards.
+            "update_available": is_newer_version(latest, installed),
             "up_to_date": (
                 installed is not None
                 and latest is not None
-                and installed.lstrip("v") == latest.lstrip("v")
+                and not is_newer_version(latest, installed)
             ),
         }
     except ContaoBackendError as e:
@@ -141,7 +145,7 @@ def health(ctx):
             click.echo(f"  Core      {installed}   (development version, no update check)")
         elif core_status.get("up_to_date"):
             click.echo(click.style(f"  Core      {installed}   up to date", fg="green"))
-        elif latest:
+        elif latest and core_status.get("update_available"):
             click.echo(click.style(
                 f"  Core      {installed}   -> update available: v{latest}",
                 fg="yellow",
@@ -178,8 +182,7 @@ def health(ctx):
     click.echo()
     if not cli_status["up_to_date"] or (
         core_status.get("reachable")
-        and core_status.get("installed") is not None
-        and not core_status.get("up_to_date")
+        and core_status.get("update_available")
         and not (core_status.get("installed") or "").startswith("dev-")
     ):
         # ASCII only — non-ASCII chars get mangled into ? on Windows cp1252 stdout.

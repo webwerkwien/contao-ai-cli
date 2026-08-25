@@ -13,7 +13,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -40,6 +40,41 @@ COMPOSER_TIMEOUT = 300
 CLI_UPDATE_TIMEOUT = 300
 
 
+def version_tuple(version) -> tuple:
+    """
+    A release version as a comparable tuple of ints; () for anything else.
+
+    Deliberately narrow: leading `v` is dropped, numeric parts are compared, and
+    anything with a non-numeric segment (`dev-main`, `1.2.0-beta`) yields () so
+    the caller can treat it as "do not compare". No dependency on `packaging`,
+    which is not installed alongside a pipx-installed CLI.
+    """
+    text = str(version or "").strip().lstrip("v")
+    if not text:
+        return ()
+    parts = text.split(".")
+    if not all(p.isdigit() for p in parts):
+        return ()
+    return tuple(int(p) for p in parts)
+
+
+def is_newer_version(latest, current) -> bool:
+    """
+    True only when `latest` is genuinely ahead of `current`.
+
+    A plain `!=` reported "update available: v0.5.0" while v0.5.1 was installed —
+    every unreleased working copy looked like it was behind. Anything that cannot
+    be compared as a release version (dev builds, pre-releases) returns False:
+    silence is better than a wrong arrow.
+    """
+    a, b = version_tuple(latest), version_tuple(current)
+    if not a or not b:
+        return False
+    # Pad so 0.5 and 0.5.0 compare equal rather than by length.
+    width = max(len(a), len(b))
+    return a + (0,) * (width - len(a)) > b + (0,) * (width - len(b))
+
+
 def check_cli_update() -> dict:
     """Check if a newer version of contao-ai-cli is available on GitHub."""
     try:
@@ -47,8 +82,11 @@ def check_cli_update() -> dict:
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
         latest = data.get("tag_name", "").lstrip("v")
-        update_available = bool(latest) and latest != __version__
-        return {"current": __version__, "latest": latest, "update_available": update_available}
+        return {
+            "current": __version__,
+            "latest": latest,
+            "update_available": is_newer_version(latest, __version__),
+        }
     except Exception:
         return {"current": __version__, "latest": None, "update_available": False}
 
