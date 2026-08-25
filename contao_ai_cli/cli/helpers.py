@@ -13,9 +13,10 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
+BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
 # The /packages/<name>.json API is cached and lags visibly behind a release —
 # it still reported v0.2.7 after v0.2.9 was out. /p2/ is the metadata Composer
 # itself resolves against, so it is the one that answers "is an update available".
@@ -88,18 +89,44 @@ def install_cli_update(latest_version: str) -> dict:
     return {"installed": installed, "updated": installed == wanted}
 
 
+def get_installed_package_versions(backend, packages) -> dict:
+    """
+    Installed versions of several composer packages, in one SSH round-trip.
+
+    Returns {package: version-or-None}. None means "not in installed.json",
+    which is also what you get when the file cannot be read at all — the caller
+    has no way to tell those apart, so treat None as "assume not installed"
+    only where that is the safe reading.
+    """
+    packages = list(packages)
+    result = {p: None for p in packages}
+    for package in packages:
+        # Interpolated into a PHP string literal inside a single-quoted shell
+        # argument. These are module constants, not user input, but a stray
+        # quote would break out of both, so refuse rather than guess.
+        if "'" in package or '"' in package or "\\" in package:
+            raise ValueError(f"Refusing to query a package name with quotes: {package!r}")
+    wanted = ",".join(f'"{p}"' for p in packages)
+    php_code = (
+        f'$w=[{wanted}];'
+        'if($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true)){'
+        'foreach($d["packages"] as $p)'
+        'if(in_array($p["name"],$w,true))echo $p["name"]," ",$p["version"],"\\n";}'
+    )
+    try:
+        out = backend.run_raw(f"{shlex.quote(backend.php_path)} -r '{php_code}'")["stdout"]
+    except Exception:
+        return result
+    for line in out.splitlines():
+        name, _, version = line.strip().partition(" ")
+        if name in result and version:
+            result[name] = version
+    return result
+
+
 def get_core_bundle_installed_version(backend) -> str | None:
     """Return the installed version of contao-ai-core-bundle on the remote server, or None."""
-    try:
-        php_code = (
-            'if($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true)){'
-            'foreach($d["packages"] as $p)'
-            'if($p["name"]==="webwerkwien/contao-ai-core-bundle")echo $p["version"];}'
-        )
-        result = backend.run_raw(f"{shlex.quote(backend.php_path)} -r '{php_code}'")
-        return result["stdout"].strip() or None
-    except Exception:
-        return None
+    return get_installed_package_versions(backend, [CORE_BUNDLE])[CORE_BUNDLE]
 
 
 def get_core_bundle_latest_version() -> str | None:

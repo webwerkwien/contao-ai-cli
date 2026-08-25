@@ -1,9 +1,13 @@
 """
 health command — show update status for the CLI itself, the core-bundle on
-the connected server, and the bridge configuration. Read-only; reports only.
+the connected server, and the bridge. Read-only; reports only.
 
 Use `contao-ai-cli connect` (re-connect) when you actually want to install
 updates — `health` is a passive view to decide whether you need to.
+
+The bridge line reports three states rather than two, because "not configured"
+used to cover both a missing contao-ai-backend-bundle and a present one without
+a token, and the two need opposite next steps.
 """
 import click
 
@@ -13,11 +17,33 @@ from contao_ai_cli.core import (
 )
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from .helpers import (
+    BACKEND_BUNDLE,
+    CORE_BUNDLE,
     check_cli_update,
-    get_core_bundle_installed_version,
     get_core_bundle_latest_version,
+    get_installed_package_versions,
     _output,
 )
+
+
+def _bridge_state(installed: bool | None, configured: bool) -> str:
+    """
+    Boil "is the bundle there" and "does the session have a token" down to one word.
+
+    Two separate conditions used to collapse into one message: `health` reported
+    "not configured" whether the bundle was missing or merely keyless. That reads
+    like "installed, needs a key" and sends you off to set a key that has nothing
+    to install it into. So a missing bundle outranks everything, including a
+    session that does carry a token - that combination is a real misconfiguration
+    and worth saying out loud rather than hiding behind "ready".
+    """
+    if installed is False:
+        return "not_installed"
+    if configured:
+        return "ready"
+    if installed is True:
+        return "not_configured"
+    return "unknown"
 
 
 @click.command()
@@ -37,12 +63,17 @@ def health(ctx):
     # ── Core-bundle check (needs an active session) ──────────────────────────
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     core_status: dict = {"reachable": False}
+    # None = could not look, which is not the same as "not installed".
+    backend_bundle_installed: bool | None = None
     # Use ContaoBackend.from_session directly instead of _get_backend so a
     # missing/incomplete session doesn't sys.exit() — health should report
     # CLI + bridge status even without an active SSH session.
     try:
         backend = ContaoBackend.from_session(session_path)
-        installed = get_core_bundle_installed_version(backend)
+        # Both bundles in one round-trip; they live in the same installed.json.
+        versions  = get_installed_package_versions(backend, [CORE_BUNDLE, BACKEND_BUNDLE])
+        installed = versions[CORE_BUNDLE]
+        backend_bundle_installed = versions[BACKEND_BUNDLE] is not None
         latest    = get_core_bundle_latest_version()
         core_status = {
             "reachable":  True,
@@ -59,17 +90,17 @@ def health(ctx):
     except Exception as e:
         core_status = {"reachable": False, "reason": str(e)}
 
-    # ── Bridge configuration ─────────────────────────────────────────────────
+    # ── Bridge: installed on the server, and configured in the session ───────
     cfg = session_mod.load_session(session_path)
-    bridge_status: dict
-    if cfg.get("bridge_url") and cfg.get("bridge_token"):
-        bridge_status = {
-            "configured": True,
-            "url":        cfg["bridge_url"],
-            "token":      bridge_mod.mask_token(cfg["bridge_token"]),
-        }
-    else:
-        bridge_status = {"configured": False}
+    configured = bool(cfg.get("bridge_url") and cfg.get("bridge_token"))
+    bridge_status = {
+        "state":      _bridge_state(backend_bundle_installed, configured),
+        "installed":  backend_bundle_installed,
+        "configured": configured,
+    }
+    if configured:
+        bridge_status["url"]   = cfg["bridge_url"]
+        bridge_status["token"] = bridge_mod.mask_token(cfg["bridge_token"])
 
     result = {
         "cli":    cli_status,
@@ -118,13 +149,31 @@ def health(ctx):
         else:
             click.echo(f"  Core      {installed}   (could not reach Packagist)")
 
-    if bridge_status["configured"]:
+    state = bridge_status["state"]
+    if state == "ready":
+        line = f"  Bridge    ready: {bridge_status['url']}   token: {bridge_status['token']}"
+        if bridge_status["installed"] is None:
+            line += "   (server not reached, install state unverified)"
+        click.echo(click.style(line, fg="green"))
+    elif state == "not_installed":
         click.echo(click.style(
-            f"  Bridge    configured: {bridge_status['url']}   token: {bridge_status['token']}",
-            fg="green",
+            f"  Bridge    not installed ({BACKEND_BUNDLE})", fg="yellow",
+        ))
+        if bridge_status["configured"]:
+            click.echo(click.style(
+                "            this session has a bridge token, but there is nothing on the "
+                "server to answer it", fg="red",
+            ))
+    elif state == "not_configured":
+        click.echo(click.style(
+            "  Bridge    installed, not configured"
+            "   -> contao-ai-cli bridge configure --url ... --token ...", fg="yellow",
         ))
     else:
-        click.echo(click.style("  Bridge    not configured", fg="yellow"))
+        click.echo(click.style(
+            "  Bridge    not configured   (server not reached, install state unknown)",
+            fg="yellow",
+        ))
 
     click.echo()
     if not cli_status["up_to_date"] or (

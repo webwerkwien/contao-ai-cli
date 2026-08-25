@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.5.1 - 2026-08-25
+
+### Fixed
+
+- **`health` reported "Bridge not configured" for a server that had no bridge at all.** The line was derived solely from whether the session file carried a `bridge_url` and `bridge_token`; whether contao-ai-backend-bundle was actually installed on the target was never checked. Both cases printed the same words, and they call for opposite next steps - "not configured" reads as *installed, needs a token*, so you go and set a token into nothing.
+
+  Found during the live rollout on web.werk.wien: `health` said exactly the same thing before and after the bundle was installed.
+
+  The bridge line now has three states - `not installed`, `installed, not configured`, `ready` - plus `unknown` when the server could not be reached, which is not the same as "not installed" and no longer pretends to be. A session that carries a token for a server without the bundle is called out explicitly rather than reported as ready.
+
+  In `--json`, `bridge` gains `state` and `installed` alongside the existing `configured`.
+
+### Changed
+
+- `get_installed_package_versions()` replaces the single-package lookup, so `health` reads both bundles out of `vendor/composer/installed.json` in one SSH round-trip instead of two. `get_core_bundle_installed_version()` stays as a thin wrapper for the connect flow.
+
+### Notes
+
+Verified live against c5 (both bundles present -> `ready`) and web.werk.wien (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
+
 ## v0.5.0 — 2026-08-24
 
 ### Added
