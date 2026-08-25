@@ -134,6 +134,34 @@ contao-ai-cli connect --host site-b.example.com --user deploy --root /var/www/b 
 # The CLI loads the default session automatically (first available)
 ```
 
+## Audit trail
+
+Every write leaves a trace on the server. Nothing here is optional or configurable —
+it is worth knowing because it means a change can be found and undone later.
+
+**Contao's system log (`tl_log`)**, visible in the back end under *System → System log*,
+one row per successful write:
+
+| Column | Value |
+| --- | --- |
+| `source` | `CLI` — Contao writes only `BE` and `FE` itself, so CLI writes are filterable on their own |
+| `action` | `GENERAL` for records, `FILES` for file, folder and template commands |
+| `username` | the SSH user of the session |
+| `func` | the command name, e.g. `contao:page:update` |
+| `text` | the command name plus the JSON payload the command returned |
+
+Two caveats. `tl_log` is purged by Contao's cron after **7 days** — it answers "what
+happened this week", not "who changed this in May". And failed commands are not
+logged, because a rejected `--set` changed nothing.
+
+**Version snapshots (`tl_version`)** are the durable trace, for the ten tables the
+core bundle covers (`tl_page`, `tl_article`, `tl_content`, `tl_news`, `tl_calendar_events`,
+`tl_faq`, `tl_files`, `tl_layout`, `tl_member`, `tl_user`). Deletions additionally land
+in `tl_undo` and stay restorable from the back end's *Restore* module.
+
+Requires contao-ai-core-bundle **v0.2.13** or newer on the target site; older versions
+wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed version.
+
 ## Error handling
 
 - All commands exit with code `0` on success, non-zero on failure

@@ -124,6 +124,20 @@ contao-ai-cli --session my-site --json bridge rewrite \
 
 `contao-ai-cli health` shows CLI / core-bundle / bridge update status without requiring a re-connect.
 
+## Audit trail
+
+Every successful write is recorded on the target site, and the record says the change
+came from the CLI rather than from a person in the back end.
+
+- **`tl_log`** — one row per write, visible under *System → System log*, with
+  `source = CLI`, the SSH user as `username`, the command name in `func` and the
+  returned payload in the text. Purged by Contao's cron after 7 days.
+- **`tl_version`** — a restorable snapshot for the ten tables the core bundle covers.
+- **`tl_undo`** — deletions, including everything that cascaded with them.
+
+Needs contao-ai-core-bundle v0.2.13 or newer on the target site; `contao-ai-cli health`
+reports the installed version.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
