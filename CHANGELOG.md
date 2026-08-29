@@ -4,6 +4,46 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.6.0 - 2026-08-29
+
+### Added
+
+- **`--ids` and `--ids-from-file` on every entity update command.** `page update --ids=39,40,41 --set max_teiln=4`, or `--ids-from-file ids.txt` with one ID per line (`#` starts a comment). Available on `page`, `news`, `event`, `faq`, `article` and `content`.
+
+  Setting one field on 174 pages took about four minutes: 1.4 s per record, of which **0.67 s was establishing the SSH connection and nothing else**. The gap this fills is between `contao:page:update`, which is deterministic and versioned but takes exactly one ID, and `bridge rewrite`, which handles many records but is an LLM loop — a language model is the wrong instrument for writing a constant, and it bills API tokens to do it.
+
+  One connection and one console invocation, but **still one version per record on the server**: the audit trail is the entire reason writes take this detour, and it was never the slow part. The response is a summary (`total`, `succeeded`, `failed`, `ids`, `errors`).
+
+  Requires contao-ai-core-bundle **v0.2.15** or newer on the target. The positional ID keeps working exactly as before, with an unchanged response shape.
+
+- **`health` reports the Contao version.** It named our three parts — CLI, core bundle, bridge — and said nothing about the Contao underneath, although the session can read it from composer at any time. During the advisory round of 2026-08-25 (eleven advisories, patched in 5.3.50 / 5.7.12) answering "is any of our sessions on a vulnerable Contao?" therefore meant logging in past `health` and reading the file by hand. A site an AI agent writes to is the last place an outdated Contao should sit unnoticed.
+
+  It costs no extra round-trip — the call that fetches the bundle versions takes a package list. No verdict is attached: judging "current" needs a maintained minimum per branch (5.3 LTS vs 5.7), and a guessed traffic light would be worse than none.
+
+### Fixed
+
+- **Any output carrying a character outside the console encoding killed the command.** `page read 98` ended in `UnicodeEncodeError: 'charmap' codec can't encode character '�'` from inside `click.echo`. `_output()` serialises with `ensure_ascii=False`, which does not survive the cp1252 stdout that redirected output, CI, cron and any agent harness capturing stdout get on a German Windows.
+
+  This is the fifth round of the same problem, and the first that no source-level guard could have caught: rounds one to four (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each removed a character from our own code, and `test_output_encoding.py` keeps that clean — but this character came out of a *record*. The next one arrives with the next umlaut a customer types.
+
+  `configure_output_encoding()` therefore puts stdout and stderr on UTF-8 at the entry point, covering the whole class instead of one more symbol. It is silent on a stream that cannot be reconfigured, and the ASCII fallback in `repl_skin.py` still stands behind it.
+
+  The character itself turned out to be a core-bundle bug, fixed in v0.2.15: a binary file UUID was being emitted as text and mangled server-side.
+
+- **SSH drained the caller's stdin.** `subprocess.run()` was called without an explicit `stdin`, so the child inherited ours. A `while read id; do contao-ai-cli … ; done < ids.txt` loop therefore ran **exactly once** — ssh had swallowed the rest of the list on the first iteration — and reported "1 processed, 1 succeeded, 0 failed" with exit code 0. Nothing failed, which is what made it dangerous; it was caught only by counting rows in the database afterwards.
+
+  All three subprocess call sites now pass `stdin=subprocess.DEVNULL`; none of these commands has anything to read from stdin. A test fails if a new call site omits it.
+
+### Changed
+
+- **`CLAUDE.md` and `README.md` now say what the audit trail does *not* cover.** Both described precisely what a write records — `tl_log` for 7 days, `tl_version` permanently, `tl_undo` on deletion — and neither drew the boundary. An agent reads there what the CLI logs, and nowhere that raw SQL logs nothing.
+
+  The shortcut is not exotic: every user of this CLI has SSH access, because the CLI cannot work without it, and the session file names the host, the user and the Contao root. A row changed with `mysql` has no version, no undo entry and no log line — no error either, just an empty version list nobody thinks to check. Serialised columns additionally break in silence under a `REPLACE()`. Reading with `SELECT`, `SHOW` or `mysqldump` is explicitly fine and often the shorter path.
+
+### Notes
+
+Suite: 349 tests, 16 skipped (325 before).
+
 ## v0.5.2 - 2026-08-25
 
 ### Fixed

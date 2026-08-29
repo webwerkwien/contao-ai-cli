@@ -94,6 +94,26 @@ contao-ai-cli --json page update 12 --set title="Home" --set robots=noindex
 module. It asks before deleting when run on a terminal — the same thing the Contao back
 end does — and `--yes` skips the prompt for scripts and agents.
 
+### Changing many records at once
+
+`update` also takes a list, applying the same `--set` values to every record in a single
+connection:
+
+```bash
+contao-ai-cli --json page update --ids=39,40,41 --set max_teiln=4
+contao-ai-cli --json page update --ids-from-file tour-pages.txt --set max_teiln=4
+```
+
+A file holds one ID per line; `#` starts a comment. **Every record still gets its own
+version and its own log entry** — only the connection is shared, and the connection is
+what was slow: of the 1.4 s a single record cost, 0.67 s was establishing the SSH
+session. The response is a summary (`total`, `succeeded`, `failed`, `ids`, `errors`) and
+the exit code is non-zero if any record failed. Needs core-bundle **v0.2.15** or newer.
+
+This is the deterministic path. When the change needs judgement rather than a fixed
+value, that is what the bridge below is for — but do not pay a language model to write
+a constant.
+
 ## Backend bridge — bulk LLM operations without browser
 
 For bulk LLM jobs (translate 50 news entries, clone an entire page tree with all children, rewrite a whole news archive) the SSH+console roundtrip is the wrong tool — every console call is a separate PHP process spawn, the audit trail is split across N `tl_version` rows, and the consuming agent burns time and tokens.
@@ -144,6 +164,13 @@ came from the CLI rather than from a person in the back end.
 
 Needs contao-ai-core-bundle v0.2.13 or newer on the target site; `contao-ai-cli health`
 reports the installed version.
+
+**The trail exists because writes go through this CLI — not because the server keeps
+one.** The same SSH connection this tool needs also reaches `mysql`, and a row changed
+that way has no version, no undo entry and no log line. Nothing fails; the change just
+has no history, and serialised columns (a headline is stored as a PHP-serialised
+`{value, unit}` pair) quietly break when a `REPLACE()` edits the text without the byte
+count. Reading with `SELECT`, `SHOW` or `mysqldump` is unaffected and perfectly fine.
 
 ## Changelog
 

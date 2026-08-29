@@ -54,6 +54,33 @@ contao-ai-cli --json user list
 contao-ai-cli --json backup list
 ```
 
+### One thing the output does not tell you literally
+
+**A `tinyint` column comes back as `true`/`false`, never as a number.** Doctrine
+maps every MySQL `tinyint` to boolean regardless of its declared width, and Contao
+casts accordingly when a record is read through the model layer. A page storing
+`stunden = 2` therefore answers:
+
+```json
+{ "stunden": true }
+```
+
+The database still holds the `2` — only this reading of it is lossy. For flags
+(`published`, `hide`, `protected`) that is exactly right and nothing to worry about.
+It bites where a project has declared a *number* as `tinyint`.
+
+Two rules follow:
+
+- **Never write a value back that you read from such a field.** `2` returns as
+  `true` and would be stored as `1`. Setting a field outright is safe —
+  `--set stunden=2` passes a string and never meets the cast.
+- **When you need the stored number, query it.** Reading SQL directly is fine:
+  `SELECT id, stunden FROM tl_page WHERE id = 98`.
+
+If you are adding fields to a Contao project, declare numbers as
+`smallint(5) unsigned`, which is what Contao's own DCA does; it keeps `tinyint`
+for flags only.
+
 ## Common workflows
 
 ### Content management
@@ -158,6 +185,34 @@ logged, because a rejected `--set` changed nothing.
 core bundle covers (`tl_page`, `tl_article`, `tl_content`, `tl_news`, `tl_calendar_events`,
 `tl_faq`, `tl_files`, `tl_layout`, `tl_member`, `tl_user`). Deletions additionally land
 in `tl_undo` and stay restorable from the back end's *Restore* module.
+
+### None of it happens if you go around this CLI
+
+Read the table above as a description of **what this CLI writes**, not of what the
+server records on its own. The server records nothing. Change a row with `mysql`
+over the same SSH connection and there is no version, no undo entry and no log
+line — only an empty version list that nobody thinks to check. There is no error
+and no warning; the change simply has no history.
+
+This is worth stating because the shortcut is always available and always faster
+to type. **Every user of this CLI has SSH access — the CLI cannot work without
+it**, and the session file names the host, the user and the Contao root. So the
+way around the audit trail is not an exotic mistake: it is one line, and it looks
+like it worked.
+
+A second reason, independent of the audit trail: **serialised columns break
+silently under raw SQL.** A headline is stored as
+`a:2:{s:5:"value";s:28:"…";s:4:"unit";s:2:"h1";}`. A `REPLACE()` changes the text
+but not the byte count in front of it, and the record is unreadable afterwards.
+The DCA layer these commands go through gets that right.
+
+**Reading is fine.** `SELECT`, `SHOW` and `mysqldump` change nothing and are often
+the shorter path — use them freely. The rule is about writes:
+
+| | |
+| --- | --- |
+| `UPDATE` / `INSERT` / `DELETE` / `ALTER` / `TRUNCATE` | through this CLI |
+| `SELECT` / `SHOW` / `mysqldump` | raw SQL is fine |
 
 Requires contao-ai-core-bundle **v0.2.13** or newer on the target site; older versions
 wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed version.
