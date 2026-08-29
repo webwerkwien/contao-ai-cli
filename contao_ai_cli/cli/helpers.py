@@ -2,6 +2,7 @@
 Shared helpers for the contao-ai-cli CLI modules.
 """
 import json
+import pathlib
 import shlex
 import subprocess
 import sys
@@ -13,10 +14,15 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
+# The Contao under our three parts. `health` reports it because a site an AI
+# agent writes to is the last place an outdated Contao should sit unnoticed —
+# and because answering "is this session on a patched version?" otherwise meant
+# logging in past the command and reading composer.lock by hand (2026-08-25).
+CONTAO_CORE_BUNDLE = "contao/core-bundle"
 # The /packages/<name>.json API is cached and lags visibly behind a release —
 # it still reported v0.2.7 after v0.2.9 was out. /p2/ is the metadata Composer
 # itself resolves against, so it is the one that answers "is an update available".
@@ -281,6 +287,121 @@ def _get_backend(session_path=None):
     except ContaoBackendError as e:
         click.echo(click.style(f"[ERROR] {e}", fg="red"), err=True)
         sys.exit(1)
+
+
+def resolve_bulk_ids(record_id, ids: str | None, ids_from_file: str | None) -> list[int]:
+    """Work out which records an update command should touch.
+
+    Exactly one source: the positional ID, ``--ids=39,40,41`` or
+    ``--ids-from-file``. A file holds one ID per line; blank lines and anything
+    after a ``#`` are ignored, so a list can carry a note about what it is.
+
+    Strict about malformed entries on purpose. The bulk run of 2026-08-29 went
+    wrong because a silent skip is indistinguishable from success: 174 IDs went
+    in, one record came out changed, and the summary read "1 succeeded, 0
+    failed". Anything unparseable is named and refused instead.
+
+    :raises ValueError: on no source, more than one source, or a bad entry
+    """
+    given = [s for s in (record_id, ids, ids_from_file) if s is not None]
+    if not given:
+        raise ValueError("No record given. Pass an ID, --ids=1,2,3 or --ids-from-file FILE.")
+    if len(given) > 1:
+        raise ValueError("Pass exactly one of: an ID, --ids or --ids-from-file.")
+
+    if record_id is not None:
+        return [int(record_id)]
+
+    if ids_from_file is not None:
+        try:
+            raw = pathlib.Path(ids_from_file).read_text(encoding="utf-8")
+        except OSError as e:
+            raise ValueError(f"Cannot read {ids_from_file}: {e}") from e
+        tokens = []
+        for line in raw.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                tokens.extend(line.replace(",", " ").split())
+        source = ids_from_file
+    else:
+        tokens = [t for t in ids.replace(",", " ").split() if t]
+        source = "--ids"
+
+    resolved: list[int] = []
+    for token in tokens:
+        if not token.isdigit() or int(token) < 1:
+            raise ValueError(f'"{token}" in {source} is not a valid record ID.')
+        value = int(token)
+        if value not in resolved:
+            resolved.append(value)
+
+    if not resolved:
+        raise ValueError(f"{source} did not contain a single record ID.")
+
+    return resolved
+
+
+def bulk_id_options(f):
+    """The `--ids` / `--ids-from-file` pair shared by every entity update command."""
+    f = click.option(
+        "--ids-from-file", "ids_from_file", default=None, metavar="FILE",
+        help="Read record IDs from a file, one per line (# starts a comment)",
+    )(f)
+    f = click.option(
+        "--ids", default=None, metavar="1,2,3",
+        help="Apply the same --set values to several records in one connection",
+    )(f)
+    return f
+
+
+def dispatch_update(backend, command: str, record_id, ids, ids_from_file, fields: dict) -> dict:
+    """Route an update to the single-record or the bulk path.
+
+    The *source* decides, not the count: a positional ID keeps the exact response
+    shape every existing caller already parses, while `--ids`/`--ids-from-file`
+    always returns the bulk summary — even for one record, so a script does not
+    have to branch on how many IDs it happened to pass.
+
+    :raises click.UsageError: when the ID sources are missing, mixed or malformed
+    """
+    from contao_ai_cli.core.contao_ops import run_bulk_update, run_update
+
+    try:
+        targets = resolve_bulk_ids(record_id, ids, ids_from_file)
+    except ValueError as e:
+        raise click.UsageError(str(e)) from e
+
+    if record_id is not None:
+        return run_update(backend, command, targets[0], fields)
+
+    return run_bulk_update(backend, command, targets, fields)
+
+
+def configure_output_encoding(*streams) -> None:
+    """Put stdout and stderr on UTF-8 so record data cannot kill a command.
+
+    Python resolves ``sys.stdout.encoding`` to UTF-8 only when a console at code
+    page 65001 is attached. Redirected output, CI, cron and any agent harness
+    capturing stdout get the locale encoding instead — cp1252 on a German
+    Windows — and a single character outside it raises UnicodeEncodeError
+    halfway through a line.
+
+    Four earlier rounds (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each fixed this by
+    removing a character from our own source, and test_output_encoding.py keeps
+    that clean. It cannot help here: on 2026-08-29 ``page read 98`` crashed on a
+    U+FFFD that came out of the *record*. `_output()` serialises with
+    ``ensure_ascii=False``, so anything a customer types is one umlaut away from
+    the same crash. Fixing the stream covers the whole class at once.
+
+    Silent on a stream that cannot be reconfigured — the ASCII fallback in
+    repl_skin.py still stands behind it.
+    """
+    for stream in streams or (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            # StringIO, an already-detached stream, a test double — all fine.
+            pass
 
 
 def _output(data, as_json=False):

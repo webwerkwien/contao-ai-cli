@@ -9,7 +9,7 @@ import os
 
 import click
 
-from contao_ai_cli.cli.helpers import __version__
+from contao_ai_cli.cli.helpers import __version__, configure_output_encoding
 from contao_ai_cli.core import session as session_mod
 from contao_ai_cli.cli.cli_connect import connect, session_list, session_delete
 from contao_ai_cli.cli.cli_cache import cache
@@ -54,6 +54,11 @@ def cli(ctx, session, as_json):
     Connect to a Contao installation and run console commands remotely.
     Run without arguments to enter REPL mode.
     """
+    # Before any command can print a record: a cp1252 stdout turns the first
+    # umlaut coming back from the server into a UnicodeEncodeError. See
+    # configure_output_encoding() for why this sits here and not at each call site.
+    configure_output_encoding()
+
     ctx.ensure_object(dict)
     # Accept --session as either a bare session name (resolved against the
     # default session dir) OR a full path to a *.json file. Without this,

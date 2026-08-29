@@ -5,7 +5,8 @@ import click
 
 from contao_ai_cli.core import session as session_mod, page as page_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    dispatch_update, parse_set_fields,
 )
 
 
@@ -64,16 +65,22 @@ def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json
 
 
 @page.command("update")
-@click.argument("page_id", type=int)
+@click.argument("page_id", type=int, required=False)
+@bulk_id_options
 @click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def page_update_cmd(ctx, page_id, fields, as_json):
-    """Update fields of a page."""
+def page_update_cmd(ctx, page_id, ids, ids_from_file, fields, as_json):
+    """Update fields of a page, or of many pages at once.
+
+    Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
+    in a single connection. Every record is versioned individually either way.
+    """
     _require_core_bundle(ctx, "page update")
     b = _get_backend(ctx.obj.get("session"))
-    _output(page_mod.page_update(b, page_id, parse_set_fields(fields)),
+    _output(dispatch_update(b, "contao:page:update", page_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
             as_json or ctx.obj.get("as_json"))
 
 

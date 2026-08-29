@@ -93,7 +93,7 @@ class ContaoBackend:
         env["MSYS2_ARG_CONV_EXCL"] = "*"
         try:
             result = subprocess.run(ssh_cmd, capture_output=True, encoding="utf-8", errors="replace",
-                                    env=env, timeout=timeout)
+                                    env=env, timeout=timeout, stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired:
             raise ContaoBackendError(f"SSH command timed out after {timeout}s")
         output = {
@@ -109,10 +109,15 @@ class ContaoBackend:
             )
         return output
 
-    def run(self, command: str, json_output: bool = False) -> dict:
+    def run(self, command: str, json_output: bool = False, check: bool = True) -> dict:
         """
         Run a Contao console command via SSH.
         Returns dict with keys: returncode, stdout, stderr
+
+        `check=False` returns the result instead of raising on a non-zero exit.
+        Needed by the bulk update path: the server exits non-zero when any record
+        failed, so a shell loop can notice — but its JSON summary is exactly what
+        names the failures, and raising threw that away.
         """
         full_cmd = f"cd {shlex.quote(self.contao_root)} && {shlex.quote(self.php_path)} bin/console {command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
@@ -130,6 +135,10 @@ class ContaoBackend:
                 errors="replace",
                 env=env,
                 timeout=60,
+                # ssh would otherwise drain the caller's stdin. A `while read id;
+                # do contao-ai-cli … ; done < ids.txt` loop then silently runs
+                # exactly once and still reports success — 2026-08-29.
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired:
             raise ContaoBackendError("SSH command timed out after 60s")
@@ -140,7 +149,7 @@ class ContaoBackend:
             "stderr": result.stderr.strip(),
         }
 
-        if result.returncode != 0:
+        if check and result.returncode != 0:
             truncated = command[:100] + ("..." if len(command) > 100 else "")
             raise ContaoBackendError(
                 f"Command failed (exit {result.returncode}): {truncated}\n"
@@ -186,7 +195,7 @@ class ContaoBackend:
 
         try:
             result = subprocess.run(args, capture_output=True, encoding="utf-8", errors="replace",
-                                    env=env, timeout=120)
+                                    env=env, timeout=120, stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired:
             raise ContaoBackendError("SSH command timed out after 120s")
         return {

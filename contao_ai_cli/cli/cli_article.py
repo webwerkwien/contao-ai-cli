@@ -5,7 +5,8 @@ import click
 
 from contao_ai_cli.core import session as session_mod, article as article_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    dispatch_update, parse_set_fields,
 )
 
 
@@ -54,16 +55,22 @@ def article_create_cmd(ctx, title, pid, in_column, fields, as_json):
 
 
 @article.command("update")
-@click.argument("article_id", type=int)
+@click.argument("article_id", type=int, required=False)
+@bulk_id_options
 @click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def article_update_cmd(ctx, article_id, fields, as_json):
-    """Update fields of an article."""
+def article_update_cmd(ctx, article_id, ids, ids_from_file, fields, as_json):
+    """Update fields of an article, or of many at once.
+
+    Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
+    in a single connection. Every record is versioned individually either way.
+    """
     _require_core_bundle(ctx, "article update")
     b = _get_backend(ctx.obj.get("session"))
-    _output(article_mod.article_update(b, article_id, parse_set_fields(fields)),
+    _output(dispatch_update(b, "contao:article:update", article_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
             as_json or ctx.obj.get("as_json"))
 
 

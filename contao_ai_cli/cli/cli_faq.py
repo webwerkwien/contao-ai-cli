@@ -5,7 +5,8 @@ import click
 
 from contao_ai_cli.core import session as session_mod, faq as faq_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    dispatch_update, parse_set_fields,
 )
 
 
@@ -63,16 +64,22 @@ def faq_create_cmd(ctx, question, pid, answer, fields, as_json):
 
 
 @faq.command("update")
-@click.argument("faq_id", type=int)
+@click.argument("faq_id", type=int, required=False)
+@bulk_id_options
 @click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def faq_update_cmd(ctx, faq_id, fields, as_json):
-    """Update fields of a FAQ entry."""
+def faq_update_cmd(ctx, faq_id, ids, ids_from_file, fields, as_json):
+    """Update fields of a FAQ entry, or of many at once.
+
+    Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
+    in a single connection. Every record is versioned individually either way.
+    """
     _require_core_bundle(ctx, "faq update")
     b = _get_backend(ctx.obj.get("session"))
-    _output(faq_mod.faq_update(b, faq_id, parse_set_fields(fields)),
+    _output(dispatch_update(b, "contao:faq:update", faq_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
             as_json or ctx.obj.get("as_json"))
 
 

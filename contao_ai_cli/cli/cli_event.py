@@ -5,7 +5,8 @@ import click
 
 from contao_ai_cli.core import session as session_mod, event as event_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    dispatch_update, parse_set_fields,
 )
 
 
@@ -64,16 +65,22 @@ def event_create_cmd(ctx, title, pid, start_date, end_date, fields, as_json):
 
 
 @event.command("update")
-@click.argument("event_id", type=int)
+@click.argument("event_id", type=int, required=False)
+@bulk_id_options
 @click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def event_update_cmd(ctx, event_id, fields, as_json):
-    """Update fields of an event."""
+def event_update_cmd(ctx, event_id, ids, ids_from_file, fields, as_json):
+    """Update fields of an event, or of many at once.
+
+    Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
+    in a single connection. Every record is versioned individually either way.
+    """
     _require_core_bundle(ctx, "event update")
     b = _get_backend(ctx.obj.get("session"))
-    _output(event_mod.event_update(b, event_id, parse_set_fields(fields)),
+    _output(dispatch_update(b, "contao:event:update", event_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
             as_json or ctx.obj.get("as_json"))
 
 

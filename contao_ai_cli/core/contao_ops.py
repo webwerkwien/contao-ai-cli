@@ -1,7 +1,7 @@
 """Core Contao operations: migrate, crawl, cron, filesync, maintenance."""
 import json
 import shlex
-from contao_ai_cli.utils.contao_backend import ContaoBackend
+from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.table_parser import parse_table
 
 
@@ -111,6 +111,37 @@ def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
     """
     cmd = f"{command} {int(record_id)} {build_set_args(fields)} --no-interaction"
     return run_json_or_raw(backend, " ".join(cmd.split()))
+
+
+def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict:
+    """
+    Run an <entity>:update command for many records over one connection.
+
+    Needs core-bundle >= v0.2.15 for `--ids`. The server loops; each record still
+    gets its own version and its own system-log entry, so the audit trail is
+    identical to running the command once per ID. Only the connection is shared —
+    and that is where the time went: of the 1.4 s a single record cost on
+    2026-08-29, 0.67 s was establishing the SSH connection.
+
+    Returns the summary payload: total, succeeded, failed, ids, errors.
+    """
+    id_list = ",".join(str(int(i)) for i in ids)
+    cmd = " ".join(f"{command} --ids={id_list} {build_set_args(fields)} --no-interaction".split())
+
+    # check=False: a partial run exits non-zero on purpose, so a shell loop
+    # notices — but the JSON summary is what names the failed records, and
+    # letting run() raise discarded it.
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        # No JSON at all means the command never ran; that is a real failure.
+        if result["returncode"] != 0:
+            raise ContaoBackendError(
+                f"Bulk update failed (exit {result['returncode']}): "
+                f"{result['stderr'][:500] or result['stdout'][:500]}"
+            ) from None
+        return {"raw": result["stdout"]}
 
 
 def run_delete(backend, command: str, record_id: int) -> dict:

@@ -18,6 +18,7 @@ from contao_ai_cli.core import (
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from .helpers import (
     BACKEND_BUNDLE,
+    CONTAO_CORE_BUNDLE,
     CORE_BUNDLE,
     check_cli_update,
     get_core_bundle_latest_version,
@@ -64,6 +65,9 @@ def health(ctx):
     # ── Core-bundle check (needs an active session) ──────────────────────────
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     core_status: dict = {"reachable": False}
+    # Always present, never omitted: a missing key would read as "no Contao here",
+    # which is never the case — only "could not look".
+    contao_status: dict = {"installed": None}
     # None = could not look, which is not the same as "not installed".
     backend_bundle_installed: bool | None = None
     # Use ContaoBackend.from_session directly instead of _get_backend so a
@@ -72,9 +76,15 @@ def health(ctx):
     try:
         backend = ContaoBackend.from_session(session_path)
         # Both bundles in one round-trip; they live in the same installed.json.
-        versions  = get_installed_package_versions(backend, [CORE_BUNDLE, BACKEND_BUNDLE])
+        versions  = get_installed_package_versions(
+            backend, [CORE_BUNDLE, BACKEND_BUNDLE, CONTAO_CORE_BUNDLE]
+        )
         installed = versions[CORE_BUNDLE]
         backend_bundle_installed = versions[BACKEND_BUNDLE] is not None
+        # No comparison against "latest": that needs a maintained minimum per
+        # branch (5.3.x LTS vs 5.7.x), and a guessed traffic light is worse than
+        # none. The version is what the question actually needs.
+        contao_status = {"installed": versions[CONTAO_CORE_BUNDLE]}
         latest    = get_core_bundle_latest_version()
         core_status = {
             "reachable":  True,
@@ -108,6 +118,7 @@ def health(ctx):
 
     result = {
         "cli":    cli_status,
+        "contao": contao_status,
         "core":   core_status,
         "bridge": bridge_status,
     }
@@ -132,6 +143,13 @@ def health(ctx):
     else:
         cli_msg += "   up to date"
     click.echo(click.style(cli_msg, fg=cli_color))
+
+    # The Contao our three parts sit on. Stated plainly, without a verdict —
+    # see the CONTAO_CORE_BUNDLE note in helpers.py.
+    if contao_status["installed"] is None:
+        click.echo(click.style("  Contao    unknown (could not read composer)", fg="yellow"))
+    else:
+        click.echo(f"  Contao    {contao_status['installed']}")
 
     if not core_status["reachable"]:
         reason = core_status.get("reason", "unreachable")
