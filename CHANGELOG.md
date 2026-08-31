@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.1 - 2026-08-31
+
+### Fixed
+
+- **The self-update check had been dead since v0.6.0, and said "up to date" the whole time.** It asked GitHub's `releases/latest`; `install_cli_update()` installs `git+…@v<x>`, a **tag**. Those two sources drifted: releases stopped being created after v0.5.2 while tags carried on to v0.8.0, so the check answered v0.5.2 for three versions running.
+
+  Nothing looked wrong. `is_newer_version("0.5.2", "0.8.0")` is False, so `health` and `connect` printed "up to date" — the right words for a mechanism that had stopped working. A genuine update would have gone unmentioned in exactly the same way. Same shape as the v0.4.3 bug where `pipx upgrade` reported success for a no-op: a check that cannot fail visibly is a check nobody notices has failed.
+
+  `check_cli_update()` now reads the tags endpoint — the same source the installer installs from, so the two cannot drift again. The list is reduced by version rather than taken from the top, because the endpoint promises no ordering; anything that is not a plain release version (`dev-main`, `1.0.0-beta`) drops out through `version_tuple()` on its own.
+
+  The missing GitHub releases for v0.6.0 – v0.8.0 and core-bundle v0.2.15 – v0.2.18 have been created as well, so the release notes exist where people look for them.
+
 ## v0.8.0 - 2026-08-31
 
 > **Update the core bundle to v0.2.18 as well.** It carries a fix that is not about the theme layer at all: a multi-value field (`--set groups=1`, `--set faq_categories=2`, any `eval.multiple` column) was written as a bare string where Contao stores a serialized array, and read back as nothing. Nothing failed and nothing was logged — the record simply had no value where it looked like it had one. Every entity was affected, not just the ones added here.

@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -27,7 +27,17 @@ CONTAO_CORE_BUNDLE = "contao/core-bundle"
 # it still reported v0.2.7 after v0.2.9 was out. /p2/ is the metadata Composer
 # itself resolves against, so it is the one that answers "is an update available".
 PACKAGIST_API = f"https://repo.packagist.org/p2/{CORE_BUNDLE}.json"
-CLI_RELEASES_API = "https://api.github.com/repos/webwerkwien/contao-ai-cli/releases/latest"
+# Tags, not releases. install_cli_update() installs `git+…@v<x>`, so a tag is
+# what "available" actually means here — and asking a different source than the
+# one you install from is how the two drift apart. They did: releases stopped
+# being created after v0.5.2 while tags carried on to v0.8.0, so
+# `releases/latest` answered v0.5.2 for three versions. is_newer_version()
+# dutifully said "up to date" — the right words for the wrong reason, and a
+# genuine update would have gone unmentioned in exactly the same way.
+# per_page=100 because the newest tag has to be on the first page; the list is
+# then reduced by version rather than by position, so the API's ordering does
+# not matter either.
+CLI_TAGS_API = "https://api.github.com/repos/webwerkwien/contao-ai-cli/tags?per_page=100"
 CLI_INSTALL_URL = "https://github.com/webwerkwien/contao-ai-cli.git"
 
 # Composer plugins the Contao stack needs. On a Managed Edition these are allowed
@@ -81,20 +91,44 @@ def is_newer_version(latest, current) -> bool:
     return a + (0,) * (width - len(a)) > b + (0,) * (width - len(b))
 
 
-def check_cli_update() -> dict:
-    """Check if a newer version of contao-ai-cli is available on GitHub."""
+def latest_released_tag() -> str | None:
+    """The highest release tag in the repository, or None.
+
+    Reduced by version rather than taken from the top of the list: the tags
+    endpoint makes no ordering promise, and picking the first entry would make
+    the answer depend on something nobody controls. Anything that is not a
+    plain release version — `dev-*`, `1.0.0-beta` — yields () from
+    version_tuple() and drops out on its own.
+    """
     try:
-        req = urllib.request.Request(CLI_RELEASES_API, headers={"User-Agent": "contao-ai-cli"})
+        req = urllib.request.Request(CLI_TAGS_API, headers={"User-Agent": "contao-ai-cli"})
         with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read())
-        latest = data.get("tag_name", "").lstrip("v")
-        return {
-            "current": __version__,
-            "latest": latest,
-            "update_available": is_newer_version(latest, __version__),
-        }
+            tags = json.loads(resp.read())
     except Exception:
-        return {"current": __version__, "latest": None, "update_available": False}
+        return None
+
+    if not isinstance(tags, list):
+        return None
+
+    best, best_key = None, ()
+    for tag in tags:
+        name = (tag or {}).get("name", "") if isinstance(tag, dict) else ""
+        key = version_tuple(name)
+        if key and key > best_key:
+            best, best_key = name.lstrip("v"), key
+
+    return best
+
+
+def check_cli_update() -> dict:
+    """Check whether a newer contao-ai-cli has been tagged."""
+    latest = latest_released_tag()
+
+    return {
+        "current": __version__,
+        "latest": latest,
+        "update_available": is_newer_version(latest, __version__) if latest else False,
+    }
 
 
 def get_pipx_installed_version() -> str | None:
