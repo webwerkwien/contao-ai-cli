@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.6 - 2026-08-31
+
+> **Needs core bundle v0.2.24.**
+
+### Added
+
+- **The newsletter can be written.** `newsletter channel-create/update/delete`, `create/update/delete` and `subscriber-create/update/delete` — the last entry in the back end menu that could be read and not written. Channels, newsletters and recipients, all through the core bundle, all versioned and logged per record.
+
+- **`newsletter send` exists and always refuses.**
+
+  🎯 **Registering a command that only fails is the point.** "No such command" reads like a gap, and a gap invites a way around it — here the nearest one is `sent=1`, which sends nothing and publishes the newsletter in the front end archive. So the command exists, exits non-zero, names that route and rules it out. The core bundle refuses `sent` and `date` on the write path as well, so the refusal is not just a message.
+
+  Contao's send routine is browser-driven — each cycle ends with a JavaScript timer that loads the next batch, and the manual says outright not to close the window — so there is nothing to hand through. Sending stays with a person in the back end.
+
+- **`subscriber-create` asks before creating an active recipient**, and creates an inactive one wherever nobody answers. Double opt-in guards Contao's front end subscribe module, not the table: the back end and the CSV import both add active recipients without it. What that means is that the consent is the operator's, so the activation is made explicit instead of assumed. `--active` and `--inactive` say it outright.
+
+  The create rules are Contao's own CSV import: valid address, no duplicate in the channel, not on the channel's deny list. `addedOn` stays empty, so the back end shows the row as "added manually" rather than as an opt-in it never was.
+
+### Fixed
+
+- **Every `delete` without `--yes` aborted where `isatty()` wrongly reported a terminal** ([#16](https://github.com/webwerkwien/contao-ai-cli/issues/16)). Measured under Git Bash: two calls in one session disagreed, and `< /dev/null` reported **True** — the emulated device passes for a terminal. `click.confirm` then found nothing to read and raised `Abort`, killing the command. Nothing was deleted, so the failure was safe, but the command was unusable without `--yes` in exactly the setting this CLI is built for.
+
+  🎯 **The obvious fix would have been dangerous.** Catching `Abort` and returning True restores the headless contract — and turns a deliberate Ctrl-C into "yes, delete it", because `click.confirm` re-raises `KeyboardInterrupt` and `EOFError` as the same exception with `from None`. So the read now happens in `ask_yes_no()`, which returns `None` for "nobody answered" and lets Ctrl-C through as a cancel. The callers decide what silence means, and they differ: `confirm_action` reads it as yes, `confirm_escalation` as no.
+
 ## v0.8.5 - 2026-08-31
 
 > **Needs core bundle v0.2.23.**

@@ -78,7 +78,7 @@ so it cannot drift from what the CLI actually offers.
 | `module` | `create` `delete` `list` `read` `types` `update` | Front end modules (theme level) |
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
 | `news` | `archive-create` `archive-delete` `archive-read` `archive-update` `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and their archives |
-| `newsletter` | `channels` `list` `subscribers` | Newsletters and subscribers |
+| `newsletter` | `channel-create` `channel-delete` `channel-update` `channels` `create` `delete` `list` `send` `subscriber-create` `subscriber-delete` `subscriber-update` `subscribers` `update` | Newsletters, channels and recipients. **`send` always refuses** — sending stays with a person in the Contao back end |
 | `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
 | `record` | `list` `schema` | **Any** table with a DCA, incl. extension tables |
 | `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |

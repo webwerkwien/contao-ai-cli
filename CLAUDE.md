@@ -354,6 +354,30 @@ Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-lis
 Run `contao-ai-cli <group> --help` for the subcommands of a group; the full table is in
 [README.md](README.md) and is generated from the command tree, so it cannot go stale.
 
+### The newsletter does not send
+
+`newsletter send` exists as a command and **always refuses**. This is a decision, not a
+gap — so do not look for another route.
+
+Contao's send routine is browser-driven: each cycle ends with a JavaScript timer that
+loads the next batch, so it cannot run outside a back-end session at all. And a mail that
+has gone out cannot be taken back, which is the only thing in this CLI that is true.
+
+**The route to avoid is `sent=1`.** Setting `tl_newsletter.sent` sends nothing. It marks
+the newsletter as sent *and publishes it in the front end archive*, because the reader
+lists exactly the records with `sent=1` — a state no back-end action can produce. The core
+bundle refuses writes to `sent` and `date` on both create and update for that reason.
+
+Everything else in the module is available: `channel-create/update/delete`,
+`create/update/delete`, `subscriber-create/update/delete`. Sending is what a person does
+in the back end: *Newsletters -> channel -> send icon*.
+
+`subscriber-create` defaults to creating an **inactive** recipient. Without a terminal to
+answer, `--active` has to be passed explicitly — double opt-in guards Contao's front end
+subscribe module, not this table, so the consent is the operator's and the activation is
+made explicit rather than assumed. The command also applies the rules of Contao's own CSV
+import: valid address, no duplicate in the channel, and not on the channel's deny list.
+
 Full CRUD support requires [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle)
 to be installed on the target Contao site. The `bridge` group additionally needs
 [contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) — it is the

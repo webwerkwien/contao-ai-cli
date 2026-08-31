@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.8.5"
+__version__ = "0.8.6"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -476,6 +476,48 @@ def parse_set_fields(fields) -> dict:
     return parsed
 
 
+def ask_yes_no(question: str, default: bool = False) -> bool | None:
+    """
+    Ask a yes/no question and tell "no answer" apart from "no".
+
+    Written by hand rather than via `click.confirm`, and the reason is a safety
+    one. `click.confirm` catches KeyboardInterrupt and EOFError together and
+    re-raises both as `Abort` with `from None`, so the cause is gone and the two
+    cannot be told apart afterwards:
+
+        except (KeyboardInterrupt, EOFError):
+            raise Abort() from None          # click/termui.py
+
+    That collapse is fine for click and fatal for us. `confirm_action` treats
+    "nobody answered" as *proceed* — so catching `Abort` there and returning
+    True would turn a deliberate Ctrl-C into "yes, delete it". The distinction
+    has to survive, so the read happens here.
+
+    Returns True or False for an actual answer, and **None when nobody was
+    there to give one** (EOF). Ctrl-C is not an answer and not a silence — it is
+    a deliberate cancel, and it propagates as `click.Abort`.
+    """
+    suffix = " [Y/n]: " if default else " [y/N]: "
+
+    while True:
+        try:
+            click.echo(question + suffix, nl=False)
+            value = input().strip().lower()
+        except EOFError:
+            click.echo("")
+            return None
+        except KeyboardInterrupt:
+            raise click.Abort() from None
+
+        if value in ("y", "yes"):
+            return True
+        if value in ("n", "no"):
+            return False
+        if value == "":
+            return default
+        click.echo("Error: invalid input")
+
+
 def confirm_delete(what: str, assume_yes: bool = False) -> bool:
     """
     Ask before deleting, unless told not to or nobody is there to answer.
@@ -499,6 +541,14 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
     would be the wrong question. Same rules either way: only on a terminal,
     because a prompt nothing can answer is worse than no prompt, and --yes
     skips it.
+
+    Careful: `isatty()` is not proof that anyone is there. Under Git Bash it
+    reported True for `< /dev/null`, and two calls in one session disagreed
+    (found 2026-08-31). Where it wrongly says True, the prompt used to raise
+    `Abort` and kill the command — safe, since nothing was deleted, but every
+    `delete` without --yes died in an agent harness. So "nobody answered" is
+    now decided by the read itself, and it lands on the same outcome as having
+    no terminal at all. A Ctrl-C still cancels: it is an answer, not a silence.
     """
     if assume_yes:
         return True
@@ -508,7 +558,53 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
         interactive = False
     if not interactive:
         return True
-    return click.confirm(question, default=False)
+    answered = ask_yes_no(question, default=False)
+    return True if answered is None else answered
+
+
+def confirm_escalation(question: str) -> bool:
+    """
+    Ask whether to do the *more* consequential of two things — and say no when
+    nobody is there to answer.
+
+    The mirror image of confirm_action, and the difference is the headless
+    default, not the wording. There, the caller already typed `delete`: the
+    prompt is a net for a human, so with no terminal the command proceeds.
+    Here the question decides between two outcomes the caller did not choose
+    between — `newsletter subscriber-create` without --active or --inactive —
+    and the consequential one must not be what silence selects.
+
+    Getting that backwards would be worse than having no prompt at all: it
+    would look like a safeguard in the source and wave everything through in
+    exactly the setting this CLI usually runs in. Per the note on
+    confirm_action, agent harnesses, CI and cron are the normal case here, not
+    the exception — so `return True` on a missing tty would mean the guard
+    never once fires where it matters.
+
+    Callers that want the escalation without a terminal pass the explicit flag;
+    that is the point of the flag.
+
+    Careful: `isatty()` is not trustworthy on its own, and the live run of 2026-08-31
+    is why this catches as well as asks. Two invocations in the same Git Bash
+    session reported different answers, and `python -c … < /dev/null` reported
+    **True** — the emulated device passes for a terminal. Where it wrongly says
+    True, `click.confirm` finds nothing to read and raises `Abort`, killing the
+    command outright.
+
+    So the guarantee is not "isatty said there is a terminal" but the stronger
+    one: **the escalation happens only when a human actively answers yes.**
+    Anything else — no terminal, a terminal nobody is at, EOF — is a no, and the
+    caller carries on with the harmless outcome instead of dying.
+    """
+    try:
+        interactive = sys.stdin.isatty()
+    except Exception:
+        interactive = False
+    if not interactive:
+        return False
+    # None means nobody answered — a no here, where confirm_action reads the
+    # same silence as a yes. That is the whole difference between the two.
+    return ask_yes_no(question, default=False) is True
 
 
 def _require_core_bundle(ctx, command_name: str):

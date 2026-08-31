@@ -12,7 +12,7 @@ import pytest
 from click.testing import CliRunner
 
 from contao_ai_cli.cli import cli_page
-from contao_ai_cli.cli.helpers import confirm_delete, parse_set_fields
+from contao_ai_cli.cli.helpers import ask_yes_no, confirm_delete, parse_set_fields
 from contao_ai_cli.core import article, comment, content, event, faq, news, page
 from contao_ai_cli.core.contao_ops import run_delete, run_publish, run_update
 
@@ -115,24 +115,77 @@ class TestParseSetFields:
 
 class TestConfirmDelete:
     def test_yes_flag_skips_the_prompt(self):
-        with patch("contao_ai_cli.cli.helpers.click.confirm") as confirm:
+        with patch("contao_ai_cli.cli.helpers.ask_yes_no") as ask:
             assert confirm_delete("page 1", assume_yes=True) is True
-        confirm.assert_not_called()
+        ask.assert_not_called()
 
     def test_without_a_terminal_it_proceeds(self):
         """Agents, cron and CI have no one to answer; a prompt would just hang."""
         with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
-             patch("contao_ai_cli.cli.helpers.click.confirm") as confirm:
+             patch("contao_ai_cli.cli.helpers.ask_yes_no") as ask:
             stdin.isatty.return_value = False
             assert confirm_delete("page 1") is True
-        confirm.assert_not_called()
+        ask.assert_not_called()
 
     def test_on_a_terminal_it_asks_and_defaults_to_no(self):
         with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
-             patch("contao_ai_cli.cli.helpers.click.confirm", return_value=False) as confirm:
+             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=False) as ask:
             stdin.isatty.return_value = True
             assert confirm_delete("page 1") is False
-        assert confirm.call_args.kwargs["default"] is False
+        assert ask.call_args.kwargs["default"] is False
+
+    def test_a_terminal_nobody_is_at_proceeds_like_no_terminal(self):
+        """Found live on 2026-08-31.
+
+        `isatty()` can say True where nothing can answer — under Git Bash it
+        does so for `< /dev/null`. The prompt then raised Abort and killed the
+        command, so every `delete` without --yes failed in an agent harness.
+        Silence has to land on the same answer as having no terminal at all.
+        """
+        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
+             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=None):
+            stdin.isatty.return_value = True
+            assert confirm_delete("page 1") is True
+
+    def test_ctrl_c_is_not_silence_and_must_never_become_yes(self):
+        """The reason ask_yes_no exists at all.
+
+        `click.confirm` re-raises KeyboardInterrupt and EOFError both as Abort
+        with `from None`, so the two are indistinguishable afterwards. Reading
+        "no answer" as "proceed" — which is right for EOF — would then turn a
+        deliberate Ctrl-C into "yes, delete it". So the cancel propagates.
+        """
+        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
+             patch("contao_ai_cli.cli.helpers.ask_yes_no", side_effect=click.Abort):
+            stdin.isatty.return_value = True
+            with pytest.raises(click.Abort):
+                confirm_delete("page 1")
+
+
+class TestAskYesNo:
+    def _answer(self, text):
+        return patch("builtins.input", return_value=text)
+
+    def test_yes_and_no(self):
+        for text, expected in (("y", True), ("yes", True), ("n", False), ("no", False)):
+            with self._answer(text):
+                assert ask_yes_no("q?") is expected
+
+    def test_empty_takes_the_default(self):
+        with self._answer(""):
+            assert ask_yes_no("q?", default=False) is False
+        with self._answer(""):
+            assert ask_yes_no("q?", default=True) is True
+
+    def test_eof_is_no_answer_not_a_no(self):
+        """None, not False — the callers read that silence differently."""
+        with patch("builtins.input", side_effect=EOFError):
+            assert ask_yes_no("q?") is None
+
+    def test_ctrl_c_aborts(self):
+        with patch("builtins.input", side_effect=KeyboardInterrupt):
+            with pytest.raises(click.Abort):
+                ask_yes_no("q?")
 
 
 class TestDeleteCommandWiring:
