@@ -77,6 +77,7 @@ so it cannot drift from what the CLI actually offers.
 | `news` | `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and archives |
 | `newsletter` | `channels` `list` `subscribers` | Newsletters and subscribers |
 | `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
+| `record` | `list` `schema` | **Any** table with a DCA, incl. extension tables |
 | `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |
 | `search` | `index-create` `index-drop` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
@@ -113,6 +114,29 @@ the exit code is non-zero if any record failed. Needs core-bundle **v0.2.15** or
 This is the deterministic path. When the change needs judgement rather than a fixed
 value, that is what the bridge below is for — but do not pay a language model to write
 a constant.
+
+### Tables without a command of their own
+
+Every other group here covers one entity. `record` covers whatever is left — the server
+loads the table's DCA and derives the readable columns, the sortable ones and the
+filterable ones from it, so a table belonging to a third-party extension behaves exactly
+like a core one:
+
+```bash
+contao-ai-cli --json record list tl_image_size
+contao-ai-cli --json record list tl_page --filter published=1 --limit 50
+contao-ai-cli --json record list tl_content --fields id,type,headline
+contao-ai-cli --json record schema tl_image_size
+```
+
+A table with no DCA, an unknown column in `--fields`, `--order` or `--filter`: the server
+refuses each with a structured error. Nothing is filtered on this side — over SSH the
+caller already has full database access, so a client-side allow-list would only be a
+second copy of the rules to keep in sync.
+
+Default page size is 20 rows and the server will not go above 100. `record` reads only;
+writing stays with the per-entity commands, which carry the DCA's `save_callback`s,
+validation and versioning that a generic field-setter would skip.
 
 ## Backend bridge — bulk LLM operations without browser
 

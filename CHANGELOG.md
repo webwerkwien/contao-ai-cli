@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.7.0 - 2026-08-31
+
+### Added
+
+- **`record list` and `record schema` — any table that has a DCA.** Every other read group here is tied to one entity, so a table without a dedicated command was simply unreachable: the theme-level ones (`tl_image_size`, `tl_theme`, `tl_module`) and everything a third-party extension registers. The server loads the table's DCA and derives the readable, sortable and filterable columns from it, so an extension's table behaves exactly like a core one.
+
+  ```bash
+  contao-ai-cli --json record list tl_image_size --fields id,name,width,sizes,densities
+  contao-ai-cli --json record list tl_page --filter published=1 --limit 50
+  contao-ai-cli --json record schema tl_image_size
+  ```
+
+  The commands behind this — `contao:record:list` and `contao:dca:schema` — have been in the core bundle since its early releases. Their only caller was `RecordListTool` / `MetaTool` in contao-ai-backend-bundle: they were built for the browser chat, and this CLI never reached for them. So this is not a new capability on the server, it is a wire that was never run. Worth saying plainly, because it is the second time — the fifteen missing write commands of v0.5.0 were the same shape, and were also found by asking what the server could do rather than what the CLI offered.
+
+  In the backend those commands are gated to ten hard-coded tables, because a backend user's reach has to follow their module permissions. Over SSH that gate buys nothing — whoever can run this already has full database access — so nothing is filtered on this side, and no allow-list is duplicated here to drift out of step with the server's.
+
+  **Reading only.** There is deliberately no generic write: Contao has no path that puts an arbitrary field into an arbitrary table. Its generic writer is `DC_Table`, and that runs the whole DCA machinery — `save_callback`, `load_callback`, `mandatory`, `rgxp`, `unique`, versioning. A `record update --set field=value` over raw fields would skip all of it.
+
+  Works against core-bundle v0.2.16, but **v0.2.17 is strongly recommended**: wiring this up is what exposed four bugs in `contao:record:list`, and without that release a `fileTree` column comes back destroyed, an unknown `--fields` column answers with a stack trace, and five tables of a stock 5.7 install exit 255 rather than listing.
+
+### Fixed
+
+- **A failing command threw away the server's explanation of why.** Every core-bundle command answers a failure with `{"status":"error","message":"..."}` on stdout and *then* exits 1. `run()` saw the exit code, raised, and reported stderr — so `page read 99999` explained a missing record with whatever PHP had printed at startup. On one live install that is a warning about ionCube and a missing `imagick.so`, i.e. a shared-library path where the sentence "Page not found: 99999" belonged.
+
+  This is the same shape as the swallowed bulk-update summary of 2026-08-29: the server exits non-zero *and* explains itself, and the exit code was allowed to discard the explanation. That one was fixed at its single call site with `check=False`; this belongs in the raise itself, because every command that can fail was affected — `page`, `layout`, `news`, all of them.
+
+- **A failure the caller could act on unwound a Python traceback.** `ContaoBackendError` is now a `click.ClickException`, so a record that does not exist, a table without a DCA or a refused SSH connection prints as one `Error: …` line. Only `connect` and `health` caught it before; every other command let it through raw, and an agent reading that had to work out that the last line was the message and the twelve above it were noise. Exit code and stderr are unchanged, so scripts behave exactly as before.
+
 ## v0.6.0 - 2026-08-29
 
 ### Added

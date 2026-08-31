@@ -136,9 +136,31 @@ contao-ai-cli --json schema mandatory tl_news
 contao-ai-cli --json schema resolve tl_content type
 ```
 
+### A table with no command of its own
+
+Before concluding that a table is out of reach, try `record`. The per-entity groups cover
+the content tables; `record` covers every table that has a DCA, which includes the
+theme-level ones and anything a third-party extension registers:
+
+```bash
+contao-ai-cli --json record list tl_image_size
+contao-ai-cli --json record schema tl_image_size
+contao-ai-cli --json record list tl_page --filter published=1 --limit 50
+contao-ai-cli --json record list tl_content --fields id,type,headline
+```
+
+The server validates the table, `--fields`, `--order` and `--filter` against the live DCA
+and refuses anything else with a structured error, so guessing a column name is safe —
+it fails loudly rather than silently returning the wrong thing. 20 rows by default,
+100 maximum; page with `--offset`.
+
+**Reading only.** There is no generic write. Setting a field on a table without its own
+`update` command means the back end or a new command — not raw SQL, for the reasons under
+*Audit trail* below.
+
 ## Available command groups
 
-`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `messenger`, `news`, `newsletter`, `page`, `schema`, `search`, `security`, `template`, `user`, `version`
+`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `template`, `user`, `version`
 
 Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-list`
 

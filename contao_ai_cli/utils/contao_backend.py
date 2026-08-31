@@ -10,9 +10,27 @@ import shutil
 import shlex
 from typing import Any
 
+import click
 
-class ContaoBackendError(Exception):
-    """Raised when a Contao backend command fails."""
+
+class ContaoBackendError(click.ClickException):
+    """Raised when a Contao backend command fails.
+
+    A ClickException rather than a plain Exception, so that a failure the user
+    can do something about — record not found, table has no DCA, SSH refused —
+    prints as one `Error: ...` line and exits 1, instead of unwinding a Python
+    traceback into the caller's terminal.
+
+    Until 2026-08-31 only `connect` and `health` caught this; every other
+    command let it through raw. An agent reading that output has to work out
+    that the last line is the message and the twelve above it are noise, and
+    `page read 99999` — an ordinary miss, not a defect — looked like a crash.
+
+    Deliberately not swallowed: the exit code stays 1 and the message still
+    goes to stderr, so scripts and pipelines behave exactly as before. Existing
+    `except ContaoBackendError` handlers keep working, and `str(e)` still
+    yields the message.
+    """
     pass
 
 
@@ -153,7 +171,7 @@ class ContaoBackend:
             truncated = command[:100] + ("..." if len(command) > 100 else "")
             raise ContaoBackendError(
                 f"Command failed (exit {result.returncode}): {truncated}\n"
-                f"Stderr: {result.stderr.strip()[:500]}"
+                f"{self._explain_failure(result.stdout, result.stderr)}"
             )
 
         if json_output:
@@ -163,6 +181,35 @@ class ContaoBackend:
                 output["data"] = result.stdout.strip()
 
         return output
+
+    @staticmethod
+    def _explain_failure(stdout: str, stderr: str) -> str:
+        """Say why the command failed, preferring the server's own words.
+
+        Every read and write command in the core bundle answers a failure with
+        `{"status": "error", "message": "..."}` on stdout and then exits 1 —
+        outputError() returns Command::FAILURE. Reporting only stderr therefore
+        threw away the one part that says what happened and replaced it with
+        whatever PHP had printed at startup. On c5 that is a warning about
+        ionCube and a missing imagick.so, so `page read 99999` explained a
+        missing record with an unrelated shared-library path.
+
+        This is the same shape as the swallowed bulk-update summary of
+        2026-08-29: the server exits non-zero *and* explains itself, and the
+        exit code was allowed to discard the explanation. There it was fixed at
+        one call site with check=False; here it belongs in the raise itself,
+        because every command that can fail is affected.
+        """
+        try:
+            payload = json.loads(stdout)
+        except (json.JSONDecodeError, TypeError):
+            payload = None
+
+        if isinstance(payload, dict) and payload.get("message"):
+            return str(payload["message"])
+
+        cleaned = (stderr or "").strip()
+        return f"Stderr: {cleaned[:500]}" if cleaned else "No output from the server."
 
     def run_json(self, command: str) -> Any:
         """Run command and parse JSON output. Appends --format=json if needed."""

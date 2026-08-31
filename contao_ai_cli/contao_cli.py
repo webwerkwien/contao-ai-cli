@@ -17,6 +17,7 @@ from contao_ai_cli.cli.cli_contao import contao_group
 from contao_ai_cli.cli.cli_user import user
 from contao_ai_cli.cli.cli_member import member
 from contao_ai_cli.cli.cli_page import page
+from contao_ai_cli.cli.cli_record import record
 from contao_ai_cli.cli.cli_layout import layout
 from contao_ai_cli.cli.cli_article import article
 from contao_ai_cli.cli.cli_content import content
@@ -83,6 +84,7 @@ cli.add_command(contao_group)
 cli.add_command(user)
 cli.add_command(member)
 cli.add_command(page)
+cli.add_command(record)
 cli.add_command(layout)
 cli.add_command(article)
 cli.add_command(content)
