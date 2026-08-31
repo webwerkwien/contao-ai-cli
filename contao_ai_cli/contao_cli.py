@@ -15,7 +15,9 @@ from contao_ai_cli.cli.cli_connect import connect, session_list, session_delete
 from contao_ai_cli.cli.cli_cache import cache
 from contao_ai_cli.cli.cli_contao import contao_group
 from contao_ai_cli.cli.cli_user import user
+from contao_ai_cli.cli.cli_user_group import user_group
 from contao_ai_cli.cli.cli_member import member
+from contao_ai_cli.cli.cli_member_group import member_group
 from contao_ai_cli.cli.cli_page import page
 from contao_ai_cli.cli.cli_record import record
 from contao_ai_cli.cli.cli_image_size import image_size
@@ -85,7 +87,9 @@ cli.add_command(repl)
 cli.add_command(cache)
 cli.add_command(contao_group)
 cli.add_command(user)
+cli.add_command(user_group)
 cli.add_command(member)
+cli.add_command(member_group)
 cli.add_command(page)
 cli.add_command(record)
 cli.add_command(image_size)

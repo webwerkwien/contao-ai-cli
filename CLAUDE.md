@@ -197,6 +197,35 @@ for.
 
 `--theme` is required on create. Deleting a size deletes its variants with it.
 
+### Permissions — the one place where a wrong value is silent
+
+`user-group` writes `tl_user_group`, the record that decides what a back end editor can
+reach. `member-group` writes `tl_member_group`, what protected front end content points
+at.
+
+```bash
+contao-ai-cli --json user-group options
+contao-ai-cli --json user-group options --table tl_news
+contao-ai-cli --json user-group create --name "Editors" \
+  --set modules=page,article,files --set fop=f1,f2,f3 --set pagemounts=1
+contao-ai-cli --json user-group update 2 --set cud=tl_news::create,tl_news::update
+contao-ai-cli --json member-group create --name "Members" --set redirect=1 --set jumpTo=7
+```
+
+**Run `options` before writing.** Everywhere else in this CLI a wrong value fails loudly
+against the DCA. Here it does not: a permission field accepts any string, stores it, and
+grants nothing. `--set modules=pages` (plural, wrong) reports success and leaves the group
+without page access, with no error anywhere to explain why.
+
+**A permission field is replaced, not extended.** `--set modules=page` on a group that had
+five modules leaves it with one. Read the group first and write the full list you want.
+
+`jumpTo` is required only alongside `--set redirect=1` — it sits in a subpalette, and the
+command applies that rule from the DCA the same way the back end does.
+
+Deleting a group cascades to nothing, but Contao leaves the dead ID in `tl_user.groups`
+and in the `groups` field of protected content. Members lose access; nothing is cleaned up.
+
 ### A table with no command of its own
 
 Before concluding that a table is out of reach, try `record`. The per-entity groups cover
@@ -221,7 +250,7 @@ it fails loudly rather than silently returning the wrong thing. 20 rows by defau
 
 ## Available command groups
 
-`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `template`, `user`, `version`
+`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `template`, `user`, `user-group`, `version`
 
 Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-list`
 

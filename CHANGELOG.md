@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.2 - 2026-08-31
+
+> **Update the core bundle to v0.2.19 as well.** It carries a fix that has nothing to do with permissions: the **create** commands were not converting the fields they stored. Of eleven that accept `--set`, four converted fileTree values and one converted multi-value fields — so `news create --set singleSRC=<uuid>` wrote a UUID as a string into a binary column, and `page create --set groups=1,2` wrote a bare string where Contao stores a list. Both reported success.
+
+### Added
+
+- **`user-group` — the permission table.** `list`, `read`, `create`, `update`, `delete`, `options`. `tl_user_group` decides what a back end editor can reach: modules, page and file mounts, editable fields, which tables they may create and delete in. Until now it was readable through `record list` and writable nowhere, so `user create` only ever produced an account that could do almost nothing.
+
+  ```bash
+  contao-ai-cli --json user-group options
+  contao-ai-cli --json user-group options --table tl_news
+  contao-ai-cli --json user-group create --name "Editors" \
+      --set modules=page,article,files --set fop=f1,f2,f3 --set pagemounts=1
+  contao-ai-cli --json user-group update 2 --set cud=tl_news::create,tl_news::update
+  ```
+
+  **`options` is not a convenience.** Everywhere else in this CLI a wrong value fails loudly against the DCA. Here it does not: a permission field accepts any string, stores it, and grants nothing. `--set modules=pages` (plural, wrong) reports success and leaves the group without page access, with no error anywhere to explain why. It is the one place in the tool where guessing does not self-correct, which is why the command exists and why `CLAUDE.md` says to run it first.
+
+  **A permission field is replaced, not extended.** `--set modules=page` on a group that had five modules leaves it with one. That is how every multi-value field here behaves, but it costs more in this table than elsewhere.
+
+- **`member-group` — the front end counterpart.** `list`, `read`, `create`, `update`, `delete` for `tl_member_group`, what a protected page, article or content element points at.
+
+  ```bash
+  contao-ai-cli --json member-group create --name "Members" --set redirect=1 --set jumpTo=7
+  ```
+
+  `jumpTo` is required only alongside `redirect=1` — it sits in a subpalette, and the bundle applies that rule from the DCA the same way the back end does. Without `jumpTo` the create is refused, with it accepted.
+
+  Deleting either kind of group cascades to nothing, but Contao leaves the dead ID in `tl_user.groups` and in the `groups` field of protected content. Both confirmation prompts say so, because "nothing is deleted with it" and "nobody loses anything" are not the same sentence.
+
 ## v0.8.1 - 2026-08-31
 
 ### Fixed

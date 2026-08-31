@@ -74,6 +74,7 @@ so it cannot drift from what the CLI actually offers.
 | `listing` | `data` `modules` | Listing module configuration |
 | `mailer` | `test` | Mailer configuration |
 | `member` | `create` `delete` `list` `update` | Front end members |
+| `member-group` | `create` `delete` `list` `read` `update` | Front end member groups — what protected content points at |
 | `module` | `create` `delete` `list` `read` `types` `update` | Front end modules (theme level) |
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
 | `news` | `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and archives |
@@ -86,6 +87,7 @@ so it cannot drift from what the CLI actually offers.
 | `template` | `list` `read` `write` | Twig and PHP templates |
 | `theme` | `create` `delete` `list` `read` `update` | Themes — the root of the theme layer |
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
+| `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |
 | `version` | `create` `list` `read` `restore` | Contao's version history |
 
 Record IDs are positional arguments, changed fields are repeated `--set FIELD=VALUE`:
