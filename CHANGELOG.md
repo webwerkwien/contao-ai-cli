@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.7 - 2026-08-31
+
+> **Needs core bundle v0.2.25.**
+
+### Fixed
+
+- **`--set field=` crashed on boolean and integer columns.** Fixed in the core bundle ([#24](https://github.com/webwerkwien/contao-ai-core-bundle/issues/24)); this release only raises the requirement. `--set teaser=` cleared a text column and always worked, `--set addFile=` exited 255 with a PHP stack trace.
+
+- **`contao_ai_cli.__version__` said `1.0.0`.** The CLI reported `0.8.6`; the package constant had been stale since some early rename. Nothing reads it, which is exactly why it survived — a constant nobody consumes cannot be caught by using the program. It is still a trap: `from contao_ai_cli import __version__` is the obvious import to reach for, and it answered a version that never existed.
+
+  The version is stated in three places (`__init__.py`, `cli/helpers.py`, `setup.py`) because setup.py cannot import the package it is installing without a bootstrapping dance. So `test_version_consistency.py` keeps them equal instead, and drift fails there rather than being discovered by someone who trusted the wrong one.
+
 ## v0.8.6 - 2026-08-31
 
 > **Needs core bundle v0.2.24.**
