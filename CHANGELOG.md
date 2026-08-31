@@ -4,6 +4,39 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.3 - 2026-08-31
+
+> **Needs core bundle v0.2.20.**
+
+### Added
+
+- **`undo` — the counterpart to `version restore`.** `list`, `read`, `restore`. `version restore` answers "this record changed and I want it back"; this one is for records that were **deleted**. Every delete this CLI triggers has written a `tl_undo` entry since core-bundle v0.2.8 — for a cascade, one entry covering the parent and everything under it — and nothing could read one back.
+
+  ```bash
+  contao-ai-cli --json undo list
+  contao-ai-cli --json undo read 28
+  contao-ai-cli --json undo restore 28 --yes
+  ```
+
+  **Read before restoring.** Records come back with their original IDs, which is what makes references from other tables valid again — and is also the one way it fails: if something has taken the ID since, the insert is refused and the entry stays. `read` reports that as `idsTaken`, and `droppedColumns` for columns the table has lost since, which come back missing rather than failing the restore.
+
+  `list` leaves the `data` column out on purpose: it holds every restored row serialized, which is unreadable in a listing. That is what `read` decodes.
+
+- **`settings` — global settings, which are not a table.** `read` and `update` for `tl_settings`, a `DC_File` whose values live in `system/config/localconfig.php`. This is why `record list tl_settings` answers "No readable columns" — correctly, since there is no schema to read.
+
+  ```bash
+  contao-ai-cli --json settings read
+  contao-ai-cli --json settings update --set resultsPerPage=50 --yes
+  ```
+
+  `read` reports `value` and `persisted` separately: a setting can read `30` and be persisted `false`, meaning that is Contao's default and nobody chose it — it moves when the default moves.
+
+  **The only write in this CLI that does not end in the database.** An unknown key is refused rather than written, because nothing would ever read it back or complain about it; a mandatory setting cannot be emptied; and the bundle reads the file back after saving to confirm the change actually landed.
+
+### Changed
+
+- `confirm_delete()` now sits on a general `confirm_action()`. `undo restore` and `settings update` are worth asking about but are not deletions, and "Delete …?" would have been the wrong question. Same rules either way — only on a terminal, `--yes` skips it.
+
 ## v0.8.2 - 2026-08-31
 
 > **Update the core bundle to v0.2.19 as well.** It carries a fix that has nothing to do with permissions: the **create** commands were not converting the fields they stored. Of eleven that accept `--set`, four converted fileTree values and one converted multi-value fields — so `news create --set singleSRC=<uuid>` wrote a UUID as a string into a binary column, and `page create --set groups=1,2` wrote a bare string where Contao stores a list. Both reported success.

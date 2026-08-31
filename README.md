@@ -84,8 +84,10 @@ so it cannot drift from what the CLI actually offers.
 | `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |
 | `search` | `index-create` `index-drop` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
+| `settings` | `read` `update` | Global settings — `localconfig.php`, not a table |
 | `template` | `list` `read` `write` | Twig and PHP templates |
 | `theme` | `create` `delete` `list` `read` `update` | Themes — the root of the theme layer |
+| `undo` | `list` `read` `restore` | Deleted records — the counterpart to `version restore` |
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
 | `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |
 | `version` | `create` `list` `read` `restore` | Contao's version history |

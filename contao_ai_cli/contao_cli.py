@@ -22,6 +22,8 @@ from contao_ai_cli.cli.cli_page import page
 from contao_ai_cli.cli.cli_record import record
 from contao_ai_cli.cli.cli_image_size import image_size
 from contao_ai_cli.cli.cli_theme import theme
+from contao_ai_cli.cli.cli_undo import undo
+from contao_ai_cli.cli.cli_settings import settings
 from contao_ai_cli.cli.cli_module import module
 from contao_ai_cli.cli.cli_layout import layout
 from contao_ai_cli.cli.cli_article import article
@@ -105,6 +107,8 @@ cli.add_command(event)
 cli.add_command(comment)
 cli.add_command(listing)
 cli.add_command(version)
+cli.add_command(undo)
+cli.add_command(settings)
 cli.add_command(file)
 cli.add_command(template)
 cli.add_command(form)

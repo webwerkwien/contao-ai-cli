@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -487,6 +487,19 @@ def confirm_delete(what: str, assume_yes: bool = False) -> bool:
     people, and a prompt that nothing can answer is worse than no prompt — so it
     only appears on a terminal, and --yes skips it.
     """
+    return confirm_action(f"Delete {what}?", assume_yes)
+
+
+def confirm_action(question: str, assume_yes: bool = False) -> bool:
+    """
+    The prompt behind confirm_delete, for operations that are not deletions.
+
+    `undo restore` writes rows back into live tables and can collide with a
+    record that has taken the ID since — worth asking about, but "Delete …?"
+    would be the wrong question. Same rules either way: only on a terminal,
+    because a prompt nothing can answer is worse than no prompt, and --yes
+    skips it.
+    """
     if assume_yes:
         return True
     try:
@@ -495,7 +508,7 @@ def confirm_delete(what: str, assume_yes: bool = False) -> bool:
         interactive = False
     if not interactive:
         return True
-    return click.confirm(f"Delete {what}?", default=False)
+    return click.confirm(question, default=False)
 
 
 def _require_core_bundle(ctx, command_name: str):

@@ -226,6 +226,45 @@ command applies that rule from the DCA the same way the back end does.
 Deleting a group cascades to nothing, but Contao leaves the dead ID in `tl_user.groups`
 and in the `groups` field of protected content. Members lose access; nothing is cleaned up.
 
+### Deleted by mistake — `undo`
+
+`version restore` answers "this record changed and I want it back". `undo` is the other
+half: the record was **deleted**. Every delete this CLI triggers writes a `tl_undo` entry —
+for a cascade, one entry covering the parent and everything under it.
+
+```bash
+contao-ai-cli --json undo list
+contao-ai-cli --json undo read 28
+contao-ai-cli --json undo restore 28 --yes
+```
+
+**Run `read` before `restore`.** Records come back with their original IDs, which is what
+makes references from other tables valid again — and is also the one way it fails: if
+something has taken the ID since, the insert is refused and the entry stays. `read` reports
+`idsTaken` and `droppedColumns` (columns the table has lost since; Contao omits them
+silently, so the record comes back with less than it had).
+
+The entry is deleted only if **every** insert succeeded. A partial restore keeps its entry
+so the rest is not lost with it.
+
+### Global settings — not a table
+
+`tl_settings` is a `DC_File`. Its values live in `system/config/localconfig.php`, which is
+why `record list tl_settings` answers "No readable columns" — correctly.
+
+```bash
+contao-ai-cli --json settings read
+contao-ai-cli --json settings update --set resultsPerPage=50 --yes
+```
+
+`read` reports `value` and `persisted` separately: a setting can read `30` and be persisted
+`false`, meaning that is Contao's default and nobody chose it — it moves when the default
+moves.
+
+**This is the only write that does not end in the database.** An unknown key is refused
+(it would otherwise sit in the file unread forever), a mandatory setting cannot be emptied,
+and the file is read back after saving to confirm the change landed.
+
 ### A table with no command of its own
 
 Before concluding that a table is out of reach, try `record`. The per-entity groups cover
@@ -250,7 +289,7 @@ it fails loudly rather than silently returning the wrong thing. 20 rows by defau
 
 ## Available command groups
 
-`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `template`, `user`, `user-group`, `version`
+`article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `settings`, `template`, `undo`, `user`, `user-group`, `version`
 
 Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-list`
 
