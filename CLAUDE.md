@@ -114,6 +114,36 @@ contao-ai-cli --json news delete 3 --yes
 contao-ai-cli --json page delete 12 --yes
 ```
 
+### Forms
+
+`tl_form_field` is `tl_module` in miniature: 21 types, a palette each, and mandatory fields
+that apply only to some of them. **Run `field-types` before creating a field** — a `submit`
+needs `slabel`, a `select` needs `name` and `options`, a `captcha` needs nothing at all.
+
+```bash
+contao-ai-cli --json form field-types
+contao-ai-cli --json form create --title "Contact" \
+  --set sendViaEmail=1 --set recipient=info@example.com --set subject="New enquiry"
+contao-ai-cli --json form field-create --form 6 --type select \
+  --set name=salutation --set label=Salutation --set "options=mrs=Mrs.|mr=Mr."
+contao-ai-cli --json form field-create --form 6 --type submit --set slabel=Send
+```
+
+- `recipient` and `subject` are required only once `--set sendViaEmail=1` opens that
+  subpalette. A form that just stores its values needs neither.
+- **`options` takes a short form** — `"mrs=Mrs.|mr=Mr."` for value and label, or
+  `"red|green|blue"` when the label doubles as the value. This is the one invented
+  shorthand in the CLI, and it exists because `select`, `radio` and `checkbox` are
+  mandatory-options types: without it they could not be created at all.
+- Fields are **appended 128 apart**, the gap Contao leaves so a later drag lands between
+  neighbours without renumbering.
+- **`form delete` removes every field with it.** A form is one row; a form definition is
+  usually a dozen. One `tl_undo` entry for the set.
+
+⚠️ `form list` and `form fields` predate this and still parse Symfony's ASCII table out of
+`doctrine:query:sql`; everything above answers with JSON. Use `form read` / `form field-read`
+when you want structured output.
+
 ### The container a record lives in
 
 News entries, events and FAQ questions all need a `--pid`, and until core-bundle v0.2.22

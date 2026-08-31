@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.5 - 2026-08-31
+
+> **Needs core bundle v0.2.23.**
+
+### Added
+
+- **The form generator, write half.** The `form` group grows from two commands to eleven: `read`, `create`, `update`, `delete` for the form, and `field-types`, `field-read`, `field-create`, `field-update`, `field-delete` for its fields.
+
+  ```bash
+  contao-ai-cli --json form field-types
+  contao-ai-cli --json form create --title "Contact" \
+      --set sendViaEmail=1 --set recipient=info@example.com --set subject="New enquiry"
+  contao-ai-cli --json form field-create --form 6 --type select \
+      --set name=salutation --set label=Salutation --set "options=mrs=Mrs.|mr=Mr."
+  contao-ai-cli --json form field-create --form 6 --type submit --set slabel=Send
+  ```
+
+  **Run `field-types` before creating a field.** 21 types, and each one requires something different — a `submit` needs `slabel`, a `select` needs `name` and `options`, a `captcha` needs nothing. Guessing means provoking an error.
+
+  `recipient` and `subject` are required only once `--set sendViaEmail=1` opens that subpalette; a form that just stores its values needs neither.
+
+  **`options` takes a short form** — `"mrs=Mrs.|mr=Mr."`, or `"red|green|blue"` when the label doubles as the value. It is the only invented shorthand in this CLI, and it exists because `select`, `radio` and `checkbox` are mandatory-options types: without it they could not be created at all.
+
+  Fields are appended 128 apart. `form delete` removes every field with it — a form is one row, a form definition is usually a dozen — in one `tl_undo` entry.
+
+### Note
+
+- `form list` and `form fields` predate this and still parse Symfony's ASCII table out of `doctrine:query:sql`, while everything added here answers with JSON from the bundle. Migrating them onto `record:list` changes their output shape and is tracked separately; `form read` and `form field-read` give structured output in the meantime.
+
 ## v0.8.4 - 2026-08-31
 
 > **Needs core bundle v0.2.22.**

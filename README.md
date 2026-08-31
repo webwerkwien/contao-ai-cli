@@ -68,7 +68,7 @@ so it cannot drift from what the CLI actually offers.
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
 | `faq` | `categories` `category-create` `category-delete` `category-read` `category-update` `create` `delete` `list` `read` `update` | FAQ entries and their categories |
 | `file` | `folder-create` `list` `meta` `process` `read` `sync` `write` | Files in the file system |
-| `form` | `fields` `list` | Form definitions |
+| `form` | `create` `delete` `field-create` `field-delete` `field-read` `field-types` `field-update` `fields` `list` `read` `update` | Forms and their fields |
 | `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
 | `layout` | `create` `delete` `list` `read` `update` | Page layouts (theme level) |
 | `listing` | `data` `modules` | Listing module configuration |
