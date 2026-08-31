@@ -4,6 +4,53 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.0 - 2026-08-31
+
+> **Update the core bundle to v0.2.18 as well.** It carries a fix that is not about the theme layer at all: a multi-value field (`--set groups=1`, `--set faq_categories=2`, any `eval.multiple` column) was written as a bare string where Contao stores a serialized array, and read back as nothing. Nothing failed and nothing was logged — the record simply had no value where it looked like it had one. Every entity was affected, not just the ones added here.
+
+### Added
+
+- **`image-size` — the theme layer's first group.** `list`, `read`, `create`, `update`, `delete`, plus `items`, `item-read`, `item-create`, `item-update`, `item-delete` for the media-query variants.
+
+  ```bash
+  contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+      --set width=1600 --set sizes="(max-width: 1100px) 100vw, 1000px"
+  contao-ai-cli --json image-size item-create --size 6 --media "(max-width: 767px)" --set width=400
+  ```
+
+  `list` and `items` are **presets over `contao:record:list`**, not new server commands. The generic command already reads any table correctly; what it cannot know is which six of the seventeen columns someone looking at an image size wants. That is the only thing the wrapper adds — and it puts `sizes` and `densities` next to `width` on purpose, because those are what the browser evaluates to pick a variant. A listing showing width alone invites choosing a size by its number and being served a different one.
+
+  Requires core-bundle **v0.2.18** for the write commands; the `list`/`items` presets work against v0.2.17.
+
+- **`theme` group, and `layout` grown from one command to five.** `theme list|read|create|update|delete` and `layout list|create|update|delete` alongside the `read` it already had — until today the only command the theme layer had at all.
+
+  ```bash
+  contao-ai-cli --json layout create --theme 1 --name "1 column" --template fe_page --set width=1200
+  contao-ai-cli --json layout update 25 --set width=90 --set width_unit=vw
+  ```
+
+  `layout create` requires `--template` and offers no default: the option list depends on whether the layout is legacy or Twig and needs a live DataContainer to resolve, so no create command can know it. The layout also arrives without sections and modules, both of which are wizard columns holding serialized structures — and a layout without modules renders nothing.
+
+  The five unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`, `widthRight`) take a plain number and keep the record's existing unit; `--set <field>_unit=vw` changes the unit itself.
+
+  `theme delete` is the widest cascade this CLI can trigger — modules, layouts, image sizes and the sizes' variants underneath. The confirmation prompt names them rather than saying "and its children", because the difference between deleting a layout and deleting a theme is four orders of magnitude on a real site.
+
+  `theme create --author` is a free-text credit line, not a user reference.
+
+- **`module` group — the theme layer is complete.** `types`, `list`, `read`, `create`, `update`, `delete`.
+
+  ```bash
+  contao-ai-cli --json module types
+  contao-ai-cli --json module create --theme 1 --name "News - Latest" --type newslist \
+      --set news_archives=1 --set numberOfItems=5
+  ```
+
+  **`module types` exists because the alternative is discovery by failure.** 45 types, and what each needs beyond a name depends on its DCA palette — 21 need nothing more, 24 do. Without a way to ask, a caller finds out by guessing a type and reading the error, which is a poor contract for a tool driven by an agent.
+
+  Nothing about that mapping lives on this side: the server computes it from the DCA, so types registered by extensions appear too. `list` raises the page size to 100 because the demo theme alone holds 41 modules and the server's default of 20 would quietly show half a theme.
+
+  Multi-value fields take a comma list — `--set news_archives=1,3`, `--set pages=2,3`.
+
 ## v0.7.0 - 2026-08-31
 
 ### Added

@@ -136,6 +136,67 @@ contao-ai-cli --json schema mandatory tl_news
 contao-ai-cli --json schema resolve tl_content type
 ```
 
+### Theme layer
+
+```bash
+contao-ai-cli --json theme list
+contao-ai-cli --json layout list --theme 1
+contao-ai-cli --json layout create --theme 1 --name "1 column" --template fe_page --set width=1200
+contao-ai-cli --json layout update 25 --set width=90 --set width_unit=vw
+```
+
+`layout create` requires `--template` — there is no default, because the option
+list depends on whether the layout is legacy (`fe_page`) or Twig, and only a
+live DataContainer can resolve it. The layout arrives with no sections and no
+modules; a layout without modules renders nothing.
+
+Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
+`widthRight`): a plain number keeps the record's existing unit, `--set
+<field>_unit=vw` changes it.
+
+**`theme delete` cascades to modules, layouts, image sizes and their variants.**
+Restorable as one entry, but check what you are deleting first.
+
+### Modules
+
+**Start with `module types`.** `tl_module` has 113 columns and 45 module types,
+and what a type requires beyond a name depends on the type — a navigation needs
+`pages`, a news list needs `news_archives` and `numberOfItems`, a login module
+needs nothing further. `types` answers both questions at once:
+
+```bash
+contao-ai-cli --json module types
+contao-ai-cli --json module list --theme 1 --type newslist
+contao-ai-cli --json module create --theme 1 --name "News - Latest" --type newslist \
+    --set news_archives=1 --set numberOfItems=5
+```
+
+The server refuses an unknown type and lists the valid ones; it refuses a type
+whose palette wants fields you did not supply and names them. Neither guesses.
+
+**Multi-value fields take a comma list** — `--set news_archives=1,3`, `--set
+pages=2,3`. They are stored as serialized arrays, and passing a bare value used
+to write a string that Contao then read as nothing at all.
+
+### Image sizes
+
+```bash
+contao-ai-cli --json image-size list
+contao-ai-cli --json image-size read 5
+contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+    --set width=1600 --set sizes="(max-width: 1100px) 100vw, 1000px"
+contao-ai-cli --json image-size items 6
+contao-ai-cli --json image-size item-create --size 6 --media "(max-width: 767px)" --set width=400
+```
+
+**Set `sizes`, not just `width`.** `width` is the fallback dimension; `sizes` is
+the media-condition list the browser evaluates to choose a variant, and
+`densities` is the set it chooses from. A size with a width and nothing else
+serves one variant to every viewport — valid, and almost never what was asked
+for.
+
+`--theme` is required on create. Deleting a size deletes its variants with it.
+
 ### A table with no command of its own
 
 Before concluding that a table is out of reach, try `record`. The per-entity groups cover

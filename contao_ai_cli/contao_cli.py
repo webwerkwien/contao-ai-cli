@@ -18,6 +18,9 @@ from contao_ai_cli.cli.cli_user import user
 from contao_ai_cli.cli.cli_member import member
 from contao_ai_cli.cli.cli_page import page
 from contao_ai_cli.cli.cli_record import record
+from contao_ai_cli.cli.cli_image_size import image_size
+from contao_ai_cli.cli.cli_theme import theme
+from contao_ai_cli.cli.cli_module import module
 from contao_ai_cli.cli.cli_layout import layout
 from contao_ai_cli.cli.cli_article import article
 from contao_ai_cli.cli.cli_content import content
@@ -85,6 +88,9 @@ cli.add_command(user)
 cli.add_command(member)
 cli.add_command(page)
 cli.add_command(record)
+cli.add_command(image_size)
+cli.add_command(theme)
+cli.add_command(module)
 cli.add_command(layout)
 cli.add_command(article)
 cli.add_command(content)

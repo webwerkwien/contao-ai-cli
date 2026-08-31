@@ -69,10 +69,12 @@ so it cannot drift from what the CLI actually offers.
 | `faq` | `categories` `create` `delete` `list` `read` `update` | FAQ entries and categories |
 | `file` | `folder-create` `list` `meta` `process` `read` `sync` `write` | Files in the file system |
 | `form` | `fields` `list` | Form definitions |
-| `layout` | `read` | Layout configuration |
+| `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
+| `layout` | `create` `delete` `list` `read` `update` | Page layouts (theme level) |
 | `listing` | `data` `modules` | Listing module configuration |
 | `mailer` | `test` | Mailer configuration |
 | `member` | `create` `delete` `list` `update` | Front end members |
+| `module` | `create` `delete` `list` `read` `types` `update` | Front end modules (theme level) |
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
 | `news` | `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and archives |
 | `newsletter` | `channels` `list` `subscribers` | Newsletters and subscribers |
@@ -82,6 +84,7 @@ so it cannot drift from what the CLI actually offers.
 | `search` | `index-create` `index-drop` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
 | `template` | `list` `read` `write` | Twig and PHP templates |
+| `theme` | `create` `delete` `list` `read` `update` | Themes — the root of the theme layer |
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
 | `version` | `create` `list` `read` `restore` | Contao's version history |
 
@@ -114,6 +117,95 @@ the exit code is non-zero if any record failed. Needs core-bundle **v0.2.15** or
 This is the deterministic path. When the change needs judgement rather than a fixed
 value, that is what the bridge below is for — but do not pay a language model to write
 a constant.
+
+### The theme layer
+
+Everything a site's presentation is built from hangs off a theme:
+
+```
+theme                         `theme` group
+├── module                    `module` group
+├── layout                    `layout` group
+└── image-size ── item        `image-size` group
+```
+
+```bash
+contao-ai-cli --json theme list
+contao-ai-cli --json layout list --theme 1
+contao-ai-cli --json layout create --theme 1 --name "1 column" --template fe_page \
+    --set width=1200
+```
+
+**`layout create` needs `--template` and has no default for it.** The options come
+from a callback that needs a live DataContainer — a legacy layout is offered the
+`fe_*` PHP template group, a modern one the `page/layout` Twig templates found on
+disk — so no create command can resolve that list. `fe_page` is the classic legacy
+value. A created layout also has no sections and no modules: both are wizard
+columns holding serialized structures, and a layout without modules renders
+nothing, so fill them in afterwards.
+
+`width`, `headerHeight`, `footerHeight`, `widthLeft` and `widthRight` are unit
+fields. Pass a plain number and the record keeps its existing unit (`px` if it
+had none); add `--set width_unit=vw` to change the unit itself.
+
+> **`theme delete` is the widest cascade this CLI can trigger.** It takes the
+> theme's modules, layouts and image sizes — and the sizes' media-query variants
+> underneath those. Everything lands in one restorable `tl_undo` entry, but on a
+> real site that is a lot of rows.
+
+`theme create --author` is a free-text credit line, not a user reference —
+Contao's own demo theme carries a list of names in that column.
+
+#### Modules
+
+`tl_module` has 113 columns and 45 types, and what a type needs beyond a name
+depends on the type. **`module types` answers that before you ask for it:**
+
+```bash
+contao-ai-cli --json module types
+contao-ai-cli --json module create --theme 1 --name "News - Latest" --type newslist \
+    --set news_archives=1 --set numberOfItems=5
+```
+
+Twelve fields carry `mandatory` in the DCA, but each applies only to the types
+whose palette contains it — which is how Contao's own `DC_Table` validates. On a
+stock 5.7 that means 21 types need nothing but a name and 24 need something
+more. The requirement is computed from the DCA rather than tabulated, so module
+types added by extensions are covered without anyone maintaining a list.
+
+An unknown type is refused with the valid ones named; a type missing a required
+field is refused with that field named. Neither is guessed at.
+
+**Multi-value fields take a comma-separated list** — `--set news_archives=1,3`,
+`--set pages=2,3` — and are stored the way Contao stores them, as serialized
+arrays.
+
+### Image sizes
+
+An image size is a named recipe under a theme; its media-query variants live
+beneath it.
+
+```bash
+contao-ai-cli --json image-size list
+contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+    --set width=1600 \
+    --set sizes="(max-width: 1100px) 100vw, 1000px" \
+    --set densities="600w, 1000w, 1300w, 1600w"
+contao-ai-cli --json image-size item-create --size 6 \
+    --media "(max-width: 767px)" --set width=400
+contao-ai-cli --json image-size items 6
+```
+
+**`sizes` decides which variant the browser loads — not `width`.** A size
+created with a width alone is valid and will quietly serve one variant to every
+viewport, which is the mistake this group exists to make avoidable; `list` shows
+`sizes` and `densities` next to `width` for the same reason.
+
+`--theme` is required on create: `tl_image_size.ptable` is `tl_theme`, so a size
+belonging to no theme is not something Contao has.
+
+Deleting a size takes its variants with it, in one `tl_undo` entry.
+`item-delete` removes a single variant and leaves the size alone.
 
 ### Tables without a command of their own
 
