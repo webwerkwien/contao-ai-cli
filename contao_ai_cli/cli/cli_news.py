@@ -106,3 +106,72 @@ def news_repair_headlines_cmd(ctx, dry_run, as_json):
     _require_core_bundle(ctx, "news repair-headlines")
     b = _get_backend(ctx.obj.get("session"))
     _output(news_mod.news_repair_headlines(b, dry_run), as_json or ctx.obj.get("as_json"))
+
+
+# --- the parent record ----------------------------------------------------
+
+
+@news.command("archive-read")
+@click.argument("archive_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_archive_read_cmd(ctx, archive_id, as_json):
+    """Read all fields of a news archive."""
+    _require_core_bundle(ctx, "news archive-read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_archive_read(b, archive_id), as_json or ctx.obj.get("as_json"))
+
+
+@news.command("archive-create")
+@click.option("--title", required=True, help="news archive title")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_archive_create_cmd(ctx, title, fields, as_json):
+    """Create a news archive.
+
+    Only --title is an option here; what else is required comes from the DCA,
+    so the command reports it rather than this help text going stale.
+    (jumpTo is the page that renders a single item; groups only for a protected archive.)
+    """
+    _require_core_bundle(ctx, "news archive-create")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_archive_create(b, title, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@news.command("archive-update")
+@click.argument("archive_id", type=int, required=False)
+@bulk_id_options
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_archive_update_cmd(ctx, archive_id, ids, ids_from_file, fields, as_json):
+    """Update a news archive, or many at once."""
+    _require_core_bundle(ctx, "news archive-update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(dispatch_update(b, "contao:news-archive:update", archive_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@news.command("archive-delete")
+@click.argument("archive_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def news_archive_delete_cmd(ctx, archive_id, yes, as_json):
+    """Delete a news archive with everything in it.
+
+    Restorable as one entry with `undo restore`, but the cascade is named in
+    the prompt because it is not visible from the command name.
+    """
+    _require_core_bundle(ctx, "news archive-delete")
+    if not confirm_delete(
+        f"news archive {archive_id} AND every news entry in it and their content elements",
+        yes,
+    ):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(news_mod.news_archive_delete(b, archive_id), as_json or ctx.obj.get("as_json"))

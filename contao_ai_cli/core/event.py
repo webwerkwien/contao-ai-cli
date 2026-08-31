@@ -53,3 +53,38 @@ def event_delete(backend: ContaoBackend, event_id: int) -> dict:
     Recoverable from the back end's "Restore" module.
     """
     return run_delete(backend, "contao:event:delete", event_id)
+
+
+# --- the calendar: the container an event lives in ------------------------
+
+
+def calendar_read(backend: ContaoBackend, calendar_id: int) -> dict:
+    """Read all fields of a tl_calendar record."""
+    return run_json_or_raw(backend, f"contao:calendar:read {int(calendar_id)}")
+
+
+def calendar_create(backend: ContaoBackend, title: str,
+                    fields: dict | None = None) -> dict:
+    """Create a calendar.
+
+    Same shape as a news archive: `jumpTo` is mandatory in the palette (the
+    page rendering a single event), `groups` only once `protected=1` opens its
+    subpalette.
+    """
+    cmd = f"contao:calendar:create --title={shlex.quote(title)} --no-interaction"
+    if fields:
+        cmd += " " + build_set_args(fields)
+    return run_json_or_raw(backend, cmd)
+
+
+def calendar_update(backend: ContaoBackend, calendar_id: int, fields: dict) -> dict:
+    """Update a calendar."""
+    return run_update(backend, "contao:calendar:update", calendar_id, fields)
+
+
+def calendar_delete(backend: ContaoBackend, calendar_id: int) -> dict:
+    """Delete a calendar with every event in it.
+
+    Chain: tl_calendar_events -> tl_content. One `tl_undo` entry for the set.
+    """
+    return run_delete(backend, "contao:calendar:delete", calendar_id)

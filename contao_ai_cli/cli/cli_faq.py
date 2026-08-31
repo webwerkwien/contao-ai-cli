@@ -95,3 +95,72 @@ def faq_delete_cmd(ctx, faq_id, yes, as_json):
         raise click.Abort()
     b = _get_backend(ctx.obj.get("session"))
     _output(faq_mod.faq_delete(b, faq_id), as_json or ctx.obj.get("as_json"))
+
+
+# --- the parent record ----------------------------------------------------
+
+
+@faq.command("category-read")
+@click.argument("category_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_category_read_cmd(ctx, category_id, as_json):
+    """Read all fields of a FAQ category."""
+    _require_core_bundle(ctx, "faq category-read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(faq_mod.faq_category_read(b, category_id), as_json or ctx.obj.get("as_json"))
+
+
+@faq.command("category-create")
+@click.option("--title", required=True, help="FAQ category title")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_category_create_cmd(ctx, title, fields, as_json):
+    """Create a FAQ category.
+
+    Only --title is an option here; what else is required comes from the DCA,
+    so the command reports it rather than this help text going stale.
+    (headline is the heading shown on the page, as opposed to the back end label in --title.)
+    """
+    _require_core_bundle(ctx, "faq category-create")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(faq_mod.faq_category_create(b, title, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@faq.command("category-update")
+@click.argument("category_id", type=int, required=False)
+@bulk_id_options
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_category_update_cmd(ctx, category_id, ids, ids_from_file, fields, as_json):
+    """Update a FAQ category, or many at once."""
+    _require_core_bundle(ctx, "faq category-update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(dispatch_update(b, "contao:faq-category:update", category_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@faq.command("category-delete")
+@click.argument("category_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def faq_category_delete_cmd(ctx, category_id, yes, as_json):
+    """Delete a FAQ category with everything in it.
+
+    Restorable as one entry with `undo restore`, but the cascade is named in
+    the prompt because it is not visible from the command name.
+    """
+    _require_core_bundle(ctx, "faq category-delete")
+    if not confirm_delete(
+        f"FAQ category {category_id} AND every question in it",
+        yes,
+    ):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(faq_mod.faq_category_delete(b, category_id), as_json or ctx.obj.get("as_json"))

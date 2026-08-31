@@ -114,6 +114,34 @@ contao-ai-cli --json news delete 3 --yes
 contao-ai-cli --json page delete 12 --yes
 ```
 
+### The container a record lives in
+
+News entries, events and FAQ questions all need a `--pid`, and until core-bundle v0.2.22
+the record that `pid` pointed at could not be created. The parent commands sit in the same
+group as their children, next to the listings that were already there:
+
+```bash
+contao-ai-cli --json news archives                    # the listing, unchanged
+contao-ai-cli --json news archive-create --title "Blog" --set jumpTo=7
+contao-ai-cli --json event calendar-create --title "Touren" --set jumpTo=12
+contao-ai-cli --json faq category-create --title "Support" --set headline="FAQ"
+```
+
+Each takes `--title` and nothing else as a dedicated option. **What else is required comes
+from the DCA**, so the command tells you rather than this list going stale:
+
+- `news archive-create` / `event calendar-create` need **`jumpTo`** — the page that renders
+  a single item. Without it every link the module generates goes nowhere.
+- Adding `--set protected=1` makes **`groups`** required as well; it sits in that subpalette,
+  so a public archive is not asked for it.
+- `faq category-create` is the odd one: **`headline`** instead, and `jumpTo` is offered but
+  optional. `title` is the back end label, `headline` the heading on the page — they are
+  different texts as often as they are the same, and nothing derives one from the other.
+
+**Deleting a parent takes its children with it** (`archive-delete` also removes the entries
+and their content elements). One `tl_undo` entry for the whole set, so `undo restore` brings
+the parent, the children and their links back in one step.
+
 ### Cache and maintenance
 
 ```bash

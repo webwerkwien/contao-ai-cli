@@ -96,3 +96,72 @@ def event_delete_cmd(ctx, event_id, yes, as_json):
         raise click.Abort()
     b = _get_backend(ctx.obj.get("session"))
     _output(event_mod.event_delete(b, event_id), as_json or ctx.obj.get("as_json"))
+
+
+# --- the parent record ----------------------------------------------------
+
+
+@event.command("calendar-read")
+@click.argument("calendar_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def calendar_read_cmd(ctx, calendar_id, as_json):
+    """Read all fields of a calendar."""
+    _require_core_bundle(ctx, "event calendar-read")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.calendar_read(b, calendar_id), as_json or ctx.obj.get("as_json"))
+
+
+@event.command("calendar-create")
+@click.option("--title", required=True, help="calendar title")
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def calendar_create_cmd(ctx, title, fields, as_json):
+    """Create a calendar.
+
+    Only --title is an option here; what else is required comes from the DCA,
+    so the command reports it rather than this help text going stale.
+    (jumpTo is the page that renders a single event; groups only for a protected calendar.)
+    """
+    _require_core_bundle(ctx, "event calendar-create")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.calendar_create(b, title, parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@event.command("calendar-update")
+@click.argument("calendar_id", type=int, required=False)
+@bulk_id_options
+@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+              help="Field to change; repeat for several fields")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def calendar_update_cmd(ctx, calendar_id, ids, ids_from_file, fields, as_json):
+    """Update a calendar, or many at once."""
+    _require_core_bundle(ctx, "event calendar-update")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(dispatch_update(b, "contao:calendar:update", calendar_id, ids, ids_from_file,
+                            parse_set_fields(fields)),
+            as_json or ctx.obj.get("as_json"))
+
+
+@event.command("calendar-delete")
+@click.argument("calendar_id", type=int)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def calendar_delete_cmd(ctx, calendar_id, yes, as_json):
+    """Delete a calendar with everything in it.
+
+    Restorable as one entry with `undo restore`, but the cascade is named in
+    the prompt because it is not visible from the command name.
+    """
+    _require_core_bundle(ctx, "event calendar-delete")
+    if not confirm_delete(
+        f"calendar {calendar_id} AND every event in it and their content elements",
+        yes,
+    ):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    _output(event_mod.calendar_delete(b, calendar_id), as_json or ctx.obj.get("as_json"))

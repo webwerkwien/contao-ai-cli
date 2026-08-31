@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.8.4 - 2026-08-31
+
+> **Needs core bundle v0.2.22.**
+
+### Added
+
+- **The container a record lives in.** `news archive-*`, `event calendar-*` and `faq category-*` — read, create, update, delete for each.
+
+  `news create`, `event create` and `faq create` have always taken a `--pid`, and the record that `pid` pointed at could not be created. **The child worked, the parent did not**, so the first news item on a fresh install still meant opening the back end.
+
+  ```bash
+  contao-ai-cli --json news archive-create --title "Blog" --set jumpTo=7
+  contao-ai-cli --json event calendar-create --title "Touren" --set jumpTo=12
+  contao-ai-cli --json faq category-create --title "Support" --set headline="FAQ"
+  ```
+
+  They sit **inside the existing groups**, next to the listings that were already there (`news archives`, `event calendars`, `faq categories`) — the same shape as `image-size item-*`. Those listings keep their names and their behaviour.
+
+  Each takes `--title` and nothing else as a dedicated option. **What else is required comes from the DCA**, so the command reports it instead of the help text going stale: `jumpTo` for an archive or calendar, `groups` on top of that once `--set protected=1` opens its subpalette, and `headline` — not `jumpTo` — for an FAQ category.
+
+  **Deleting a parent takes its children with it.** `archive-delete` also removes the entries and their content elements; the prompt names the child tables for that reason, the way `theme delete` does. One `tl_undo` entry for the whole set, so `undo restore` brings the parent, the children and their links back in one step — verified end to end on the test install.
+
 ## v0.8.3 - 2026-08-31
 
 > **Needs core bundle v0.2.20.**

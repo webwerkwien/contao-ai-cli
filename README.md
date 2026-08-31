@@ -65,8 +65,8 @@ so it cannot drift from what the CLI actually offers.
 | `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
 | `content` | `create` `delete` `list` `read` `update` | Content elements |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
-| `event` | `calendars` `create` `delete` `list` `read` `update` | Calendar events |
-| `faq` | `categories` `create` `delete` `list` `read` `update` | FAQ entries and categories |
+| `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
+| `faq` | `categories` `category-create` `category-delete` `category-read` `category-update` `create` `delete` `list` `read` `update` | FAQ entries and their categories |
 | `file` | `folder-create` `list` `meta` `process` `read` `sync` `write` | Files in the file system |
 | `form` | `fields` `list` | Form definitions |
 | `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
@@ -77,7 +77,7 @@ so it cannot drift from what the CLI actually offers.
 | `member-group` | `create` `delete` `list` `read` `update` | Front end member groups — what protected content points at |
 | `module` | `create` `delete` `list` `read` `types` `update` | Front end modules (theme level) |
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
-| `news` | `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and archives |
+| `news` | `archive-create` `archive-delete` `archive-read` `archive-update` `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and their archives |
 | `newsletter` | `channels` `list` `subscribers` | Newsletters and subscribers |
 | `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
 | `record` | `list` `schema` | **Any** table with a DCA, incl. extension tables |
