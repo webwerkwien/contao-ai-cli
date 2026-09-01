@@ -417,8 +417,12 @@ elsewhere — is listed under `out_of_reach` and can be described, but not run.
 DCA rule, version and log entry back on the honour system. The boundary is on
 running, not on naming, so nothing is hidden from the listing.
 
-A plugin that wants to be reachable registers under `contao:` — which is what
-this bundle's own `contao:ai:*` commands do.
+**A command outside `contao:` becomes reachable by declaring an `#[AiContract]`.**
+It does not have to rename itself, and should not: a prefix of its own is the
+convention — `cookiebar:` is a published Contao extension, and Symfony's own docs
+suggest `app:` — while `contao:` is someone else's property. The prefix says who
+wrote a command; only the declaration says whether its author meant it to be
+driven from here.
 
 **`ext run` warns, and the server records the invocation before starting the
 target.** Both, deliberately: the warning reaches you before the effect, the log

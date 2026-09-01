@@ -160,8 +160,9 @@ def ext_list(backend: ContaoBackend, include_infrastructure: bool = False) -> di
         result["out_of_reach_note"] = (
             "Outside the contao: namespace, so ext run will not start them — doctrine:query:sql "
             "above all. Counted here because a command this CLI cannot reach is exactly what this "
-            "listing is for. A plugin that wants to be reachable registers under contao:, which is "
-            "what this bundle's own contao:ai:* commands do."
+            "listing is for. A command becomes reachable either by living under contao: or by "
+            "declaring an #[AiContract] — a plugin does not have to rename itself, and should not: "
+            "a prefix of its own is the convention, and contao: is someone else's property."
         )
         if include_infrastructure:
             result["out_of_reach_commands"] = out_of_reach
@@ -263,36 +264,40 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
     return envelope
 
 
-def refuse_outside_contao(command_line: str) -> str | None:
+def refuse_unreachable(described: dict | None) -> str | None:
     """
-    Refuse a command outside the `contao:` namespace, before warning about it.
+    Refuse a command the server says it will not run, before warning about it.
 
-    The server refuses these too — `AiRunGuard` is the authority and stays that
-    way. This is not a second boundary but a check of order: without it the
-    warning printed first, and the warning says *"the invocation is recorded in
-    the system log"*. For a command the server then refuses, nothing is
-    recorded, so the CLI was stating something untrue about what had just
-    happened.
+    The ordering is the point: the warning ends with *"the invocation is
+    recorded in the system log"*, and for a command the server refuses, nothing
+    is recorded. Printing it first stated something untrue about a run that was
+    not going to happen.
 
-    Duplicating a rule is normally the wrong move here, and this one is only
-    defensible because it is trivially stable ("starts with contao:") and
-    because the copy cannot grant anything the server would refuse — it can
-    only refuse earlier.
+    ## Why this reads the server's answer instead of repeating its rule
+
+    It used to be a local copy of the rule — "starts with `contao:`" — and this
+    docstring justified the duplication on two grounds: that the rule was
+    *trivially stable*, and that a copy could only ever refuse earlier, never
+    grant more.
+
+    Both failed the same afternoon. The rule stopped being "starts with
+    contao:" the moment a declared #[AiContract] also opened the door, and the
+    copy then refused a command the server was willing to run — granting less,
+    which is the same drift wearing the other face. The lesson is not that the
+    copy was written carelessly: a duplicated rule is a bet on the original
+    never changing.
+
+    `ext run` already asks the server to describe the command, to learn what it
+    declared. That same answer carries `reachable`, so the ordering is kept for
+    free and there is nothing left to drift.
 
     Returns the refusal, or None.
     """
-    name = command_line.strip().split(" ", 1)[0]
-
-    if name.startswith("contao:"):
+    if not isinstance(described, dict) or described.get("reachable") is not False:
         return None
 
-    return (
-        f'"{name}" is outside the contao: namespace and ext run will not reach it.\n'
-        "doctrine:query:sql above all: a generic runner that reaches raw SQL would put every\n"
-        "DCA rule, version and log entry this bundle writes back on the honour system.\n"
-        "Not a security boundary — whoever runs this has shell access — but a bound on what\n"
-        "the tool does on its own. Use the dedicated command, or a shell."
-    )
+    return described.get("reachable_note") or "The server will not run this command."
+
 
 
 def refuse_wrapped(command_line: str) -> str | None:

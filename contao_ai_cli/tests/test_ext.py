@@ -149,17 +149,37 @@ class TestExtRunCommand:
              patch("contao_ai_cli.cli.cli_ext._require_core_bundle"):
             return CliRunner().invoke(cli, ["ext", *args])
 
-    def test_a_command_outside_contao_is_refused_before_the_warning(self):
+    def test_a_command_the_server_will_not_run_is_refused_before_the_warning(self):
         """The warning ends with "the invocation is recorded in the system log".
         For a command the server refuses, nothing is recorded — printing it
-        first stated something about a run that was not going to happen."""
-        b = backend('{"status":"ok"}')
+        first stated something about a run that was not going to happen.
+
+        The refusal reads the server's `reachable` answer rather than repeating
+        its rule. The local copy that used to sit here — "starts with contao:" —
+        drifted the same afternoon the rule changed, and then refused a command
+        the server was willing to run.
+        """
+        b = backend(json.dumps({
+            "status": "ok",
+            "reachable": False,
+            "reachable_note": 'Refusing "doctrine:query:sql": …',
+        }))
         result = self._run(["run", "doctrine:query:sql", "SELECT 1"], b)
 
         assert result.exit_code != 0
         assert "system log" not in result.output
-        assert "outside the contao: namespace" in result.output
-        b.run.assert_not_called()
+        assert "Refusing" in result.output
+        # describe was asked; ai:run was not
+        assert all("contao:ai:run" not in c[0][0] for c in b.run.call_args_list)
+
+    def test_a_declared_contract_lets_a_foreign_prefix_through(self):
+        """A prefix of one's own is the convention; the declaration is what
+        says the author meant the command to be driven from here."""
+        b = backend(json.dumps({"status": "ok", "reachable": True, "contract": None}))
+        result = self._run(["run", "ww:demo:ping"], b)
+
+        assert result.exit_code == 0
+        assert any("contao:ai:run" in c[0][0] for c in b.run.call_args_list)
 
     def test_a_wrapped_command_is_refused_before_anything_is_sent(self):
         b = backend('{"status":"ok"}')

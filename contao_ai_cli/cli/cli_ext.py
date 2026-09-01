@@ -22,8 +22,11 @@ def ext():
     listed and can be described, but not run. `doctrine:query:sql` is the reason
     and the boundary is on running, not on naming.
 
-    A plugin that wants to be reachable registers under `contao:`, which is what
-    this bundle's own `contao:ai:*` commands do.
+    A plugin does NOT have to rename itself into `contao:` for this — a prefix of
+    one's own is the convention (`cookiebar:` is a published Contao extension;
+    Symfony's docs suggest `app:`), and claiming `contao:` would claim someone
+    else's. Declaring an `#[AiContract]` makes the command reachable instead, and
+    says what it does at the same time.
     """
     pass
 
@@ -75,15 +78,23 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     _require_core_bundle(ctx, "ext run")
 
     line = " ".join(command_line)
+    name = line.split(" ", 1)[0]
 
-    # Both refusals come before the warning, and the order matters: the warning
-    # ends with "the invocation is recorded in the system log". For a command
-    # that is refused, nothing is recorded — printing it first said something
-    # about the run that had not happened and was not going to.
-    if (refusal := ext_mod.refuse_outside_contao(line)) is not None:
+    # Which commands this CLI wraps is the CLI's own knowledge, so this one
+    # stays local.
+    if (refusal := ext_mod.refuse_wrapped(line)) is not None:
         raise click.ClickException(refusal)
 
-    if (refusal := ext_mod.refuse_wrapped(line)) is not None:
+    b = _get_backend(ctx.obj.get("session"))
+
+    # One question, two answers: may it run at all, and what did it declare.
+    # Asked before anything is printed, because the warning ends with "the
+    # invocation is recorded in the system log" — for a refused command nothing
+    # is recorded, and the warning would be describing a run that is not going
+    # to happen.
+    described = ext_mod.ext_describe(b, name) or {}
+
+    if (refusal := ext_mod.refuse_unreachable(described)) is not None:
         raise click.ClickException(refusal)
 
     # The warning and the server's log entry are two halves of one decision
@@ -91,17 +102,7 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     # reaches the caller before the effect, the log entry reaches whoever asks
     # afterwards what happened. Either alone leaves one of them without an
     # answer.
-    b = _get_backend(ctx.obj.get("session"))
-
-    # Asked before the warning is written, because it decides what the warning
-    # may say. A command that has declared a trail makes the blanket sentence
-    # below untrue, and printing it anyway would be the CLI stating something
-    # about the target that the target itself contradicts.
-    contract = ext_mod.contract_warning(
-        (ext_mod.ext_describe(b, line.split(" ", 1)[0]) or {}).get("contract")
-    )
-
-    name = line.split(" ", 1)[0]
+    contract = ext_mod.contract_warning(described.get("contract"))
 
     if contract:
         # Not the blanket text plus an appendix. That version said "no promise

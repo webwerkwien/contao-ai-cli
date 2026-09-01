@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.13.2 - 2026-09-01
+
+> **Needs core bundle v0.2.36.**
+
+### Fixed
+
+- **The advice to register under `contao:` was wrong and is withdrawn.** v0.13.1 told
+  plugin authors that a command must live under `contao:` to be reachable. A parallel
+  session measured 22 namespaces on a live site: `cookiebar:` is a published Contao
+  extension using its own product name, and Symfony's docs recommend `app:` for
+  application commands. **A prefix of one's own is the convention, and `contao:` is
+  Contao's property.** The advice told people to break that.
+
+  A command is reachable now by living under `contao:` **or by declaring an
+  `#[AiContract]`** — see the core bundle. The prefix says who wrote a command; only the
+  declaration says its author meant it to be driven this way.
+
+- **The local copy of the namespace rule drifted within hours and is gone.** `ext run`
+  checked "starts with `contao:`" itself before warning, to keep the ordering: the warning
+  says *"the invocation is recorded in the system log"*, which is untrue for a refused
+  command. The docstring justified the duplication on two grounds — the rule was
+  *trivially stable*, and a copy could only refuse earlier, never grant more.
+
+  Both failed the same afternoon. The rule changed, and the copy then refused a command
+  the server was willing to run. `ext run` already asks the server to describe the command
+  to learn what it declared; that answer carries `reachable`, so the ordering is kept for
+  free and there is nothing left to drift.
+
 ## v0.13.1 - 2026-09-01
 
 > **Needs core bundle v0.2.35.**
