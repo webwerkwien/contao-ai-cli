@@ -14,20 +14,32 @@ def ext():
     Named for what it holds rather than who wrote it: Contao's own unwrapped
     commands land here too, and so does a command from your own site bundle.
     "Third party" would be wrong for both.
+
+    
+    One limit, and it used to be missing from this text: `ext run` starts
+    commands under `contao:` only. Everything else — the framework's own
+    namespace, and a site bundle that registered its command elsewhere — is
+    listed and can be described, but not run. `doctrine:query:sql` is the reason
+    and the boundary is on running, not on naming.
+
+    A plugin that wants to be reachable registers under `contao:`, which is what
+    this bundle's own `contao:ai:*` commands do.
     """
     pass
 
 
 @ext.command("list")
 @click.option("--all", "include_infrastructure", is_flag=True,
-              help="Also show Contao's own plumbing, with the reason it is normally set aside")
+              help="Also show Contao's own plumbing and the commands outside the contao: "
+                   "namespace, each with the reason it is set aside")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def ext_list_cmd(ctx, include_infrastructure, as_json):
     """What this installation can do that the CLI has no command for.
 
-    The server answers what exists; the subtraction happens here. A command that
-    appears in this list is reachable through `ext run`.
+    The server answers what exists; the subtraction happens here. A command
+    under `commands` is reachable through `ext run`; anything counted in
+    `out_of_reach` is not, and says why.
     """
     _require_core_bundle(ctx, "ext list")
     b = _get_backend(ctx.obj.get("session"))

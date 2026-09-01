@@ -410,6 +410,16 @@ contao-ai-cli ext run contao:x:y --flag     # run it
 subtraction happens here on purpose: what the CLI wraps is the CLI's business,
 and a copy of that list on the server would drift from the original.
 
+**`ext run` starts commands under `contao:` only.** Everything else — the
+framework's own namespace, and a site bundle that registered its command
+elsewhere — is listed under `out_of_reach` and can be described, but not run.
+`doctrine:query:sql` is the reason: a generic runner that reaches it puts every
+DCA rule, version and log entry back on the honour system. The boundary is on
+running, not on naming, so nothing is hidden from the listing.
+
+A plugin that wants to be reachable registers under `contao:` — which is what
+this bundle's own `contao:ai:*` commands do.
+
 **`ext run` warns, and the server records the invocation before starting the
 target.** Both, deliberately: the warning reaches you before the effect, the log
 entry reaches whoever asks afterwards what happened. The entry says what was

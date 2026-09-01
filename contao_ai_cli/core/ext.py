@@ -125,7 +125,19 @@ def ext_list(backend: ContaoBackend, include_infrastructure: bool = False) -> di
         return answer
 
     wrapped = wrapped_commands()
-    unwrapped = [c for c in answer["commands"] if c.get("name") not in wrapped]
+
+    # Commands the server reports as out of reach — everything outside the
+    # `contao:` namespace. Named rather than filtered, and that is a correction:
+    # leaving them out made this command answer "available: 0" on an
+    # installation with 87 commands it could not reach, through the very command
+    # built to report what it cannot reach. Reported by the ww-buchung session,
+    # whose own `ww:gutschein:import` was invisible here.
+    #
+    # `ext run` still refuses them — the boundary is on running, not on naming.
+    out_of_reach = [c for c in answer["commands"] if c.get("reachable") is False]
+    reachable    = [c for c in answer["commands"] if c.get("reachable") is not False]
+
+    unwrapped = [c for c in reachable if c.get("name") not in wrapped]
 
     infrastructure = [c for c in unwrapped if c.get("name") in _INFRASTRUCTURE]
     if not include_infrastructure:
@@ -134,14 +146,27 @@ def ext_list(backend: ContaoBackend, include_infrastructure: bool = False) -> di
         for entry in infrastructure:
             entry["infrastructure"] = _INFRASTRUCTURE[entry["name"]]
 
-    return {
+    result = {
         "status": "ok",
         "total": answer.get("count", len(answer["commands"])),
-        "wrapped": len(answer["commands"]) - len(unwrapped) - (0 if include_infrastructure else len(infrastructure)),
+        "wrapped": len(reachable) - len(unwrapped) - (0 if include_infrastructure else len(infrastructure)),
         "infrastructure": len(infrastructure),
         "available": len(unwrapped),
         "commands": unwrapped,
     }
+
+    if out_of_reach:
+        result["out_of_reach"] = len(out_of_reach)
+        result["out_of_reach_note"] = (
+            "Outside the contao: namespace, so ext run will not start them — doctrine:query:sql "
+            "above all. Counted here because a command this CLI cannot reach is exactly what this "
+            "listing is for. A plugin that wants to be reachable registers under contao:, which is "
+            "what this bundle's own contao:ai:* commands do."
+        )
+        if include_infrastructure:
+            result["out_of_reach_commands"] = out_of_reach
+
+    return result
 
 
 def ext_describe(backend: ContaoBackend, name: str) -> dict:

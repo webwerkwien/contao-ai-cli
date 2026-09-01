@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.13.1 - 2026-09-01
+
+> **Needs core bundle v0.2.35.**
+
+### Fixed
+
+- **`ext list` said `available: 0` on an installation with 87 commands it cannot reach.**
+  Everything outside the `contao:` namespace was filtered out on the server and never
+  counted here — through the very command built to report what this CLI cannot reach.
+  Reported by a parallel session whose own `ww:gutschein:import` was invisible.
+
+  They are counted as `out_of_reach` now, with the reason, and `--all` lists them. `ext
+  run` still refuses to start them: the boundary is on running, not on naming.
+
+- **The group's help text promised something the guard denied.** It read *"and so does a
+  command from your own site bundle"* — and a site bundle command outside `contao:` was
+  exactly what got refused. The limit is stated now, along with the fact that a plugin
+  registers under `contao:` to be reachable, which is what this bundle's own
+  `contao:ai:*` commands do.
+
+  The guard is not loosened. Letting other namespaces through costs `doctrine:query:sql`,
+  which is the whole reason it exists; the prose overpromised, the rule did not
+  underdeliver.
+
+- **`ext list`'s own help claimed everything listed was runnable.** It now distinguishes
+  `commands` from `out_of_reach`.
+
 ## v0.13.0 - 2026-09-01
 
 > **Needs core bundle v0.2.34.**
