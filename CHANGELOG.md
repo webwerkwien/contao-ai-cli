@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.12.1 - 2026-09-01
+
+> **Needs core bundle v0.2.32.**
+
+### Fixed
+
+- **"Command is not defined" now says when an older bundle is the reason.**
+  Measured against a server on core v0.2.14: `page tree` answered *Command
+  "contao:page:tree" is not defined. Did you mean one of these?* — true, and it
+  reads like a typo or a broken CLI. `health` on the same server reports
+  *v0.2.14 -> update available: v0.2.33* one command earlier, so both numbers
+  were already in reach and nothing connected them to the failure.
+
+  Third occurrence of one shape in a day: a mistyped session name reported a
+  missing bundle, a missing extension reported a broken DCA, and an outdated
+  bundle reported an unknown command. Each answer accurate, each pointing away
+  from the cause.
+
+  The hint deliberately does not overreach. When the server already runs the
+  newest bundle it says so instead — the command really does not exist there,
+  and blaming the version would be the same failure in different clothes. "The
+  version was checked and excluded" and "the version could not be read" are
+  separate sentences, so a reader can tell them apart. Nothing is printed when
+  nothing is known.
+
+  It costs one extra SSH round trip, only on a failure already being reported,
+  and any error while working it out is swallowed: a diagnosis that fails must
+  not replace the diagnosis that succeeded.
+
 ## v0.12.0 - 2026-09-01
 
 > **Needs core bundle v0.2.32.**
