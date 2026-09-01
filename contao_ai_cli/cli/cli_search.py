@@ -4,7 +4,7 @@ search group — Search index management (cmsig/seal).
 import click
 
 from contao_ai_cli.core import search as search_mod
-from .helpers import _get_backend, _output
+from .helpers import _get_backend, _output, _require_core_bundle
 
 
 @click.group()
@@ -40,3 +40,15 @@ def search_index_drop(ctx, index, as_json):
     """Drop search index."""
     b = _get_backend(ctx.obj.get("session"))
     _output(search_mod.search_index_drop(b, index), as_json or ctx.obj.get("as_json"))
+
+
+@search.command("query")
+@click.argument("query")
+@click.option("--limit", type=int, default=None, help="Max results (server default 20)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def search_query_cmd(ctx, query, limit, as_json):
+    """Search the Contao fulltext index."""
+    _require_core_bundle(ctx, "search query")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(search_mod.search_query(b, query, limit), as_json or ctx.obj.get("as_json"))

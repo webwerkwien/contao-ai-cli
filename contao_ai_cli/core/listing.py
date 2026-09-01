@@ -4,7 +4,7 @@ The listing bundle has no own table. It adds a 'listing' module type to
 tl_module. Each module stores which DB table and fields to list.
 """
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import record_list, run_sql_table
+from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, run_sql_table
 
 
 def listing_module_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
@@ -16,6 +16,15 @@ def listing_module_list(backend: ContaoBackend, limit=None, offset=None) -> dict
         order="name ASC",
         limit=limit, offset=offset,
     )
+
+
+def listing_config(backend: ContaoBackend, module_id: int) -> dict:
+    """The configuration of one listing module, read through the server.
+
+    Replaces a hand-written SELECT over tl_module. The server command existed
+    all along and had no caller in this CLI until `ext list` pointed at it.
+    """
+    return run_json_or_raw(backend, f"contao:listing:config {int(module_id)}")
 
 
 def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> list:
@@ -39,14 +48,14 @@ def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None
     Otherwise the module config is fetched from tl_module first.
     """
     if cfg is None:
-        cfg_sql = (
-            f"SELECT list_table, list_fields, list_where "
-            f"FROM tl_module WHERE id = {int(module_id)}"
-        )
-        rows = run_sql_table(backend, cfg_sql)
-        if not rows:
+        # The config half moved to contao:listing:config (2026-09-01). Only the
+        # data half below still writes its own SQL, and only because list_where
+        # is a free fragment configured in the site. Reading the module's own
+        # settings is an ordinary lookup and had no business being raw SQL.
+        answer = listing_config(backend, module_id)
+        if not isinstance(answer, dict) or answer.get("status") != "ok":
             return {"error": f"Module {module_id} not found or not a listing module"}
-        cfg = rows[0]
+        cfg = answer
 
     table = cfg.get("list_table", "").strip()
     fields = cfg.get("list_fields", "").strip()

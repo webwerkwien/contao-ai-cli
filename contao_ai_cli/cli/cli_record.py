@@ -68,3 +68,28 @@ def record_schema_cmd(ctx, table, as_json):
     _require_core_bundle(ctx, "record schema")
     b = _get_backend(ctx.obj.get("session"))
     _output(record_mod.dca_schema(b, table), as_json or ctx.obj.get("as_json"))
+
+
+@record.command("clone")
+@click.option("--source-table", required=True, help="Container table, e.g. tl_news_archive")
+@click.option("--source-id", required=True, type=int, help="ID of the source container record")
+@click.option("--modifications", default="",
+              help="JSON object of overrides for the root record, e.g. {\"title\":\"Kopie\"}")
+@click.option("--recursive", is_flag=True, help="Walk container-of-container hierarchies (e.g. the whole subpage tree)")
+@click.option("--operator", default="", help="Acting user identifier for the audit log")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, operator, as_json):
+    """Clone a container record and everything under it, in one server call.
+
+    The cascade runs in one transaction on the server, so a caller sees a single
+    result instead of one create plus N reads plus N creates.
+
+    Overrides the cloner refuses come back as `ignored_modifications` rather
+    than vanishing — before v0.2.15 they vanished, and two pages meant to stay
+    unpublished went live.
+    """
+    _require_core_bundle(ctx, "record clone")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(record_mod.record_clone(b, source_table, source_id, modifications, recursive, operator),
+            as_json or ctx.obj.get("as_json"))

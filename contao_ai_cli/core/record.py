@@ -21,6 +21,7 @@ comment in the backend bundle).
 import shlex
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend
+from contao_ai_cli.core.contao_ops import run_json_or_raw
 
 
 def record_list(
@@ -62,3 +63,37 @@ def dca_schema(backend: ContaoBackend, table: str) -> dict:
     cache, no parsing, whatever the server currently declares.
     """
     return backend.run_json(f"contao:dca:schema {shlex.quote(table)}")
+
+
+def record_clone(backend: ContaoBackend, source_table: str, source_id: int,
+                 modifications: str = "", recursive: bool = False,
+                 operator: str = "") -> dict:
+    """Clone a container record and everything under it, in one server call.
+
+    Routes to whichever registered EntityCloner supports the table; a table
+    without one gets a structured "no cloner" error rather than a fatal.
+
+    Its only caller used to be RecordCloneTool in the backend bundle — the
+    command existed since Phase 9 and this CLI never reached for it. `ext list`
+    is what surfaced that.
+
+    The point of the macro-clone is fan-out: an LLM cloning an archive by hand
+    produced one create plus N reads plus N creates. Here the server does the
+    cascade in one transaction and the caller sees a single result.
+
+    `modifications` is a JSON object of overrides for the root record. Keys the
+    cloner refuses come back as `ignored_modifications` — before v0.2.15 they
+    vanished silently, which is how two pages meant to stay unpublished went
+    live.
+    """
+    cmd = (
+        f"contao:record:clone --source-table={shlex.quote(source_table)} "
+        f"--source-id={int(source_id)} --no-interaction"
+    )
+    if modifications:
+        cmd += f" --modifications={shlex.quote(modifications)}"
+    if recursive:
+        cmd += " --recursive"
+    if operator:
+        cmd += f" --operator={shlex.quote(operator)}"
+    return run_json_or_raw(backend, cmd)

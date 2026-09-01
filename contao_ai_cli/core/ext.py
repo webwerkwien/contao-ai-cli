@@ -30,6 +30,22 @@ _COMMAND_PATTERN = re.compile(r"contao:[a-z0-9:_-]+")
 #: that reaches them.
 _OWN = {"contao:ai:commands", "contao:ai:run"}
 
+#: Contao's own plumbing: commands that exist on every installation and that
+#: nobody drives from here. Set aside rather than hidden — `ext list` reports
+#: how many, and `--all` shows them.
+#:
+#: The judgement is the CLI's, so it belongs here and not on the server, and it
+#: is stated with a reason each. A silent filter would make `ext list` quietly
+#: incomplete, which is the failure this whole group exists to fix.
+_INFRASTRUCTURE = {
+    "contao:dump-twig-ide-file":
+        "writes an IDE lookup file — local development, not remote site management",
+    "contao:install-web-dir":
+        "restores the manager skeleton files; part of installing, run by the Contao Manager",
+    "contao:supervise-workers":
+        "a long-running process supervisor, started by the system rather than by a caller",
+}
+
 
 def _command_names_in_code(source: str) -> set[str]:
     """
@@ -83,16 +99,24 @@ def wrapped_commands() -> set[str]:
         except SyntaxError:
             continue
 
-    return {name for name in found if not name.endswith(":")} | _OWN
+    # _INFRASTRUCTURE is subtracted, not left to chance: its keys are string
+    # literals in this very module, so the scan finds them and would count them
+    # as wrapped — naming a command in order to set it aside would mark it as
+    # handled. Third time today that mentioning a command made it count as
+    # covered; the first was the help-text example, the second a docstring.
+    return ({name for name in found if not name.endswith(":")} - set(_INFRASTRUCTURE)) | _OWN
 
 
-def ext_list(backend: ContaoBackend) -> dict:
+def ext_list(backend: ContaoBackend, include_infrastructure: bool = False) -> dict:
     """
     The commands this installation has and the CLI does not wrap.
 
     The server answers what exists; the subtraction happens here, because what
     the CLI wraps is the CLI's own business and a copy of it on the server would
     drift from the original.
+
+    Contao's own plumbing is set aside by default and counted in
+    `infrastructure`, so the number is visible even when the entries are not.
     """
     answer = run_json_or_raw(backend, "contao:ai:commands")
 
@@ -102,10 +126,18 @@ def ext_list(backend: ContaoBackend) -> dict:
     wrapped = wrapped_commands()
     unwrapped = [c for c in answer["commands"] if c.get("name") not in wrapped]
 
+    infrastructure = [c for c in unwrapped if c.get("name") in _INFRASTRUCTURE]
+    if not include_infrastructure:
+        unwrapped = [c for c in unwrapped if c.get("name") not in _INFRASTRUCTURE]
+    else:
+        for entry in infrastructure:
+            entry["infrastructure"] = _INFRASTRUCTURE[entry["name"]]
+
     return {
         "status": "ok",
         "total": answer.get("count", len(answer["commands"])),
-        "wrapped": len(answer["commands"]) - len(unwrapped),
+        "wrapped": len(answer["commands"]) - len(unwrapped) - (0 if include_infrastructure else len(infrastructure)),
+        "infrastructure": len(infrastructure),
         "available": len(unwrapped),
         "commands": unwrapped,
     }
@@ -130,6 +162,38 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
     return run_json_or_raw(backend, cmd)
+
+
+def refuse_outside_contao(command_line: str) -> str | None:
+    """
+    Refuse a command outside the `contao:` namespace, before warning about it.
+
+    The server refuses these too — `AiRunGuard` is the authority and stays that
+    way. This is not a second boundary but a check of order: without it the
+    warning printed first, and the warning says *"the invocation is recorded in
+    the system log"*. For a command the server then refuses, nothing is
+    recorded, so the CLI was stating something untrue about what had just
+    happened.
+
+    Duplicating a rule is normally the wrong move here, and this one is only
+    defensible because it is trivially stable ("starts with contao:") and
+    because the copy cannot grant anything the server would refuse — it can
+    only refuse earlier.
+
+    Returns the refusal, or None.
+    """
+    name = command_line.strip().split(" ", 1)[0]
+
+    if name.startswith("contao:"):
+        return None
+
+    return (
+        f'"{name}" is outside the contao: namespace and ext run will not reach it.\n'
+        "doctrine:query:sql above all: a generic runner that reaches raw SQL would put every\n"
+        "DCA rule, version and log entry this bundle writes back on the honour system.\n"
+        "Not a security boundary — whoever runs this has shell access — but a bound on what\n"
+        "the tool does on its own. Use the dedicated command, or a shell."
+    )
 
 
 def refuse_wrapped(command_line: str) -> str | None:

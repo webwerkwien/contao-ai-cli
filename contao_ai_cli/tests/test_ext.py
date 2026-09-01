@@ -52,6 +52,21 @@ class TestWrappedCommands:
         assert "contao:page:tree" in wrapped
         assert "contao:record:list" in wrapped
 
+    def test_infrastructure_is_not_counted_as_wrapped(self):
+        """Third recurrence of the same shape in one day.
+
+        The infrastructure list names its commands as string literals in
+        core/ext.py, so the AST scan finds them there — naming a command in
+        order to set it aside would have marked it as handled. Before this,
+        `ext list` reported 136 wrapped, 0 infrastructure and 0 available: the
+        exclusion had erased itself.
+
+        The first was `ext run`'s help-text example, the second a docstring.
+        """
+        wrapped = ext_mod.wrapped_commands()
+        for name in ext_mod._INFRASTRUCTURE:
+            assert name not in wrapped, f"{name} counts as wrapped because it is named"
+
     def test_its_own_two_commands_count_as_wrapped(self):
         """`ext list` and `ext run` are their wrappers. Leaving them out made
         them appear as things the CLI cannot reach — through the very command
@@ -71,6 +86,26 @@ class TestExtList:
         assert [c["name"] for c in result["commands"]] == [
             "contao:some-plugin:sync", "contao:another:thing",
         ]
+
+    def test_infrastructure_is_set_aside_but_counted(self):
+        """Set aside, not hidden. A silent filter would make `ext list` quietly
+        incomplete — the failure this whole group exists to fix."""
+        listing = json.dumps({
+            "status": "ok", "count": 2,
+            "commands": [
+                {"name": "contao:supervise-workers", "description": "plumbing"},
+                {"name": "contao:some-plugin:sync", "description": "real"},
+            ],
+        })
+
+        default = ext_mod.ext_list(backend(listing))
+        assert default["infrastructure"] == 1
+        assert default["available"] == 1
+        assert [c["name"] for c in default["commands"]] == ["contao:some-plugin:sync"]
+
+        shown = ext_mod.ext_list(backend(listing), include_infrastructure=True)
+        assert shown["available"] == 2
+        assert any(c.get("infrastructure") for c in shown["commands"]),             "--all must say WHY each one is normally set aside"
 
     def test_a_wrapped_command_is_not_offered(self):
         result = ext_mod.ext_list(backend(LISTING))
@@ -113,6 +148,18 @@ class TestExtRunCommand:
         with patch("contao_ai_cli.cli.cli_ext._get_backend", return_value=b), \
              patch("contao_ai_cli.cli.cli_ext._require_core_bundle"):
             return CliRunner().invoke(cli, ["ext", *args])
+
+    def test_a_command_outside_contao_is_refused_before_the_warning(self):
+        """The warning ends with "the invocation is recorded in the system log".
+        For a command the server refuses, nothing is recorded — printing it
+        first stated something about a run that was not going to happen."""
+        b = backend('{"status":"ok"}')
+        result = self._run(["run", "doctrine:query:sql", "SELECT 1"], b)
+
+        assert result.exit_code != 0
+        assert "system log" not in result.output
+        assert "outside the contao: namespace" in result.output
+        b.run.assert_not_called()
 
     def test_a_wrapped_command_is_refused_before_anything_is_sent(self):
         b = backend('{"status":"ok"}')

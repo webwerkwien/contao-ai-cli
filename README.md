@@ -72,7 +72,7 @@ so it cannot drift from what the CLI actually offers.
 | `form` | `create` `delete` `field-create` `field-delete` `field-read` `field-types` `field-update` `fields` `list` `read` `update` | Forms and their fields |
 | `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
 | `layout` | `create` `delete` `list` `read` `update` | Page layouts (theme level) |
-| `listing` | `data` `modules` | Listing module configuration |
+| `listing` | `config` `data` `modules` | Listing module configuration |
 | `mailer` | `test` | Mailer configuration |
 | `member` | `create` `delete` `list` `update` | Front end members |
 | `member-group` | `create` `delete` `list` `read` `update` | Front end member groups — what protected content points at |
@@ -81,9 +81,9 @@ so it cannot drift from what the CLI actually offers.
 | `news` | `archive-create` `archive-delete` `archive-read` `archive-update` `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and their archives |
 | `newsletter` | `channel-create` `channel-delete` `channel-update` `channels` `create` `delete` `list` `send` `subscriber-create` `subscriber-delete` `subscriber-update` `subscribers` `update` | Newsletters, channels and recipients. **`send` always refuses** — sending stays with a person in the Contao back end |
 | `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
-| `record` | `list` `schema` | **Any** table with a DCA, incl. extension tables |
+| `record` | `clone` `list` `schema` | **Any** table with a DCA, incl. extension tables |
 | `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |
-| `search` | `index-create` `index-drop` `reindex` | Fulltext index |
+| `search` | `index-create` `index-drop` `query` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
 | `settings` | `read` `update` | Global settings — `localconfig.php`, not a table |
 | `template` | `list` `read` `write` | Twig and PHP templates |

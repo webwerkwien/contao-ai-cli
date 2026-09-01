@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.11.0 - 2026-09-01
+
+> **Needs core bundle v0.2.32.**
+
+### Added
+
+- **The last three unwrapped commands got their wrappers**, so `ext list` means what it says.
+
+  ```
+  search query <text> [--limit]      the fulltext index — the group maintained it and could not query it
+  record clone --source-table --source-id [--modifications] [--recursive]
+  listing config <id>                one listing module's configuration
+  ```
+
+  `record clone` had existed since Phase 9 with only the browser chat as its caller. The macro-clone is the point: an LLM cloning an archive by hand produced one create plus N reads plus N creates; here the cascade runs in one transaction and the caller sees one result. Overrides the cloner refuses come back as `ignored_modifications` rather than vanishing.
+
+- **`listing data` no longer reads the module config with its own SQL.** It asks `listing config`. The data half still writes SQL — `list_where` is a free fragment configured in the site — but reading a module's own settings was an ordinary lookup that had no business being raw.
+
+### Changed
+
+- **Contao's own plumbing is set aside in `ext list`, not hidden.** `dump-twig-ide-file`, `install-web-dir` and `supervise-workers` exist on every installation and nobody drives them from here. They are counted in `infrastructure` and shown by `--all` **with the reason each is set aside** — a silent filter would make `ext list` quietly incomplete, which is the failure this group exists to fix.
+
+  On a stock installation `ext list` now answers **`available: 0`**, which is the honest number: no extensions, nothing unreachable.
+
+### Fixed
+
+- ⚠️ **`ext run` warned about a command it then refused.** The warning ends with *"the invocation is recorded in the system log"* — for a command outside the `contao:` namespace the server refuses before logging, so nothing was recorded and the CLI had stated something untrue about what just happened. The namespace check now runs locally first; the server's guard remains the authority.
+
+- ⚠️ **Naming a command in order to exclude it marked it as handled.** The infrastructure list holds its names as string literals in the same module the scan reads, so `ext list` reported 136 wrapped, 0 infrastructure, 0 available — the exclusion had erased itself. Third recurrence of one shape in a day: the first was `ext run`'s help-text example, the second a docstring. The infrastructure names are subtracted explicitly now.
+
 ## v0.10.0 - 2026-09-01
 
 > **Needs core bundle v0.2.31.**

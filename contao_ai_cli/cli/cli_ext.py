@@ -19,9 +19,11 @@ def ext():
 
 
 @ext.command("list")
+@click.option("--all", "include_infrastructure", is_flag=True,
+              help="Also show Contao's own plumbing, with the reason it is normally set aside")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def ext_list_cmd(ctx, as_json):
+def ext_list_cmd(ctx, include_infrastructure, as_json):
     """What this installation can do that the CLI has no command for.
 
     The server answers what exists; the subtraction happens here. A command that
@@ -29,7 +31,7 @@ def ext_list_cmd(ctx, as_json):
     """
     _require_core_bundle(ctx, "ext list")
     b = _get_backend(ctx.obj.get("session"))
-    _output(ext_mod.ext_list(b), as_json or ctx.obj.get("as_json"))
+    _output(ext_mod.ext_list(b, include_infrastructure), as_json or ctx.obj.get("as_json"))
 
 
 @ext.command("describe")
@@ -61,6 +63,13 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     _require_core_bundle(ctx, "ext run")
 
     line = " ".join(command_line)
+
+    # Both refusals come before the warning, and the order matters: the warning
+    # ends with "the invocation is recorded in the system log". For a command
+    # that is refused, nothing is recorded — printing it first said something
+    # about the run that had not happened and was not going to.
+    if (refusal := ext_mod.refuse_outside_contao(line)) is not None:
+        raise click.ClickException(refusal)
 
     if (refusal := ext_mod.refuse_wrapped(line)) is not None:
         raise click.ClickException(refusal)

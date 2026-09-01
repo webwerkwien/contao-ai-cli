@@ -33,3 +33,14 @@ def listing_data_cmd(ctx, module_id):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     _output(listing_mod.listing_data(b, module_id), ctx.obj.get("as_json"))
+
+
+@listing.command("config")
+@click.argument("module_id", type=int)
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def listing_config_cmd(ctx, module_id, as_json):
+    """The configuration of one listing module, read through the server."""
+    _require_core_bundle(ctx, "listing config")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(listing_mod.listing_config(b, module_id), as_json or ctx.obj.get("as_json"))
