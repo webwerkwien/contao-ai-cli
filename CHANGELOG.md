@@ -4,6 +4,41 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.12.2 - 2026-09-01
+
+> **Needs core bundle v0.2.32.**
+
+### Fixed
+
+- **The version hint from v0.12.1 never reached `ext describe` and `ext run`** —
+  the two commands a caller actually reaches for when asking about a command it
+  does not have. Reported by a parallel session that measured it instead of
+  assuming, against a server on the newest bundle:
+
+  ```
+  $ contao-ai-cli --session … ext describe contao:gibtsnicht
+  Command not found: contao:gibtsnicht
+  ```
+
+  None of the three sentences appeared — not the accusation, not the exclusion,
+  not "could not check". Two independent causes:
+
+  1. **The phrasing.** The recogniser knew Symfony's two wordings. But
+     `contao:ai:commands` and `contao:ai:run` resolve the target themselves and
+     answer through `outputError`, which says *Command not found: X* — a
+     different sentence, on **stdout** rather than stderr.
+  2. **The path.** `ext run` reads the exit code itself (`check=False`, so a
+     failing foreign command still reports its own output), and the hint rode on
+     the raise that `check=False` prevents.
+
+  Both streams are now read, the core bundle's wording is recognised, and the
+  envelope carries a `hint` field when there is something to say. The nonexistent
+  command is not the case that mattered: `ext describe contao:new:thing` against
+  an older server is exactly what the hint was written for, and it was silent.
+
+  The restriction to the `contao:` namespace still holds — a plugin answering
+  *Command not found: some-plugin:sync* says nothing about this bundle's version.
+
 ## v0.12.1 - 2026-09-01
 
 > **Needs core bundle v0.2.32.**

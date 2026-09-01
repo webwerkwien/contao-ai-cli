@@ -89,3 +89,45 @@ class TestTheHint:
     def test_nothing_known_at_all_produces_no_hint(self):
         """Silence beats a sentence that carries no information."""
         assert ContaoBackend.version_hint("contao:page:tree", None, None) is None
+
+
+class TestTheCoreBundlesOwnPhrasing:
+    """
+    `contao:ai:commands` and `contao:ai:run` look the target up themselves.
+
+    Reported by the ww-buchung session on 2026-09-01, measured rather than
+    assumed, and correct: against a current server
+
+        $ contao-ai-cli --session … ext describe contao:gibtsnicht
+        Command not found: contao:gibtsnicht
+
+    carried none of the three sentences — not the accusation, not the
+    exclusion, not "could not check". Two independent causes:
+
+    1. **The phrasing.** The recogniser knew Symfony's two wordings. The core
+       bundle answers its own lookup through `outputError`, which says
+       *Command not found: X* and puts it on **stdout** as JSON.
+    2. **The path.** `ext run` reads the exit code itself (`check=False`), so
+       the raise that carries the hint never happens there.
+
+    The gap that matters is not the nonexistent command — it is a command that
+    exists in a *newer* bundle: `ext describe contao:new:thing` against an older
+    server is exactly the case the hint was written for, and it was silent.
+    """
+
+    NOT_FOUND = '{"status":"error","message":"Command not found: contao:new:thing","code":1}'
+
+    def test_the_core_bundles_wording_is_recognised(self):
+        assert ContaoBackend.undefined_contao_command(
+            "Command not found: contao:new:thing"
+        ) == "contao:new:thing"
+
+    def test_a_plugin_saying_something_similar_about_its_own_domain_is_not(self):
+        """Only `contao:` names track this bundle's version."""
+        assert ContaoBackend.undefined_contao_command(
+            "Command not found: some-plugin:sync"
+        ) is None
+
+    def test_the_message_is_found_on_stdout_too(self):
+        """outputError writes JSON to stdout; stderr carries PHP noise."""
+        assert ContaoBackend.undefined_contao_command(self.NOT_FOUND) == "contao:new:thing"

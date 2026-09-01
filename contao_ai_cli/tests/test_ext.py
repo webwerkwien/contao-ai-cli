@@ -211,6 +211,10 @@ class TestExtRunEnvelope:
     def _backend(stdout, returncode=0, stderr=""):
         b = MagicMock()
         b.run.return_value = {"stdout": stdout, "returncode": returncode, "stderr": stderr}
+        # Explicit: a bare MagicMock would answer with another MagicMock, which
+        # then lands in the envelope and is not JSON-serialisable. The real
+        # method returns a string or "".
+        b.undefined_command_hint.return_value = ""
         return b
 
     def test_the_plugin_answer_sits_under_output(self):
@@ -293,3 +297,49 @@ class TestExtRunEnvelope:
         assert result.exit_code != 0
         # and the envelope was still printed, not swallowed by the failure
         assert "exit_code" in result.output
+
+
+class TestExtRunVersionHint:
+    """
+    ext run reads the exit code itself, so the hint had to be added here.
+
+    The version hint rides on `backend.run()` raising. `ext_run` passes
+    `check=False` — deliberately, so a failing foreign command still reports
+    its own output — and therefore never saw it. Measured by the ww-buchung
+    session on 2026-09-01: `ext run` and `ext describe` are precisely what a
+    caller reaches for when asking about a command it does not have, and both
+    were silent about the version.
+    """
+
+    @staticmethod
+    def _backend(stdout, returncode=1, hint="the hint"):
+        b = MagicMock()
+        b.run.return_value = {"stdout": stdout, "returncode": returncode, "stderr": ""}
+        b.undefined_command_hint.return_value = hint
+        return b
+
+    def test_a_failing_run_carries_the_hint(self):
+        b = self._backend('{"status":"error","message":"Command not found: contao:x:y"}')
+        result = ext_mod.ext_run(b, "contao:x:y")
+
+        assert result["hint"] == "the hint"
+
+    def test_both_streams_are_offered_to_the_recogniser(self):
+        """The core bundle answers on stdout, Symfony on stderr."""
+        b = self._backend('{"message":"Command not found: contao:x:y"}')
+        ext_mod.ext_run(b, "contao:x:y")
+
+        assert b.undefined_command_hint.called
+        assert "Command not found" in b.undefined_command_hint.call_args[0][0]
+
+    def test_no_hint_key_when_there_is_nothing_to_say(self):
+        b = self._backend('{"status":"error"}', hint="")
+        assert "hint" not in ext_mod.ext_run(b, "contao:x:y")
+
+    def test_a_successful_run_is_not_asked_about_versions(self):
+        """No extra round trip on the path that worked."""
+        b = self._backend('{"status":"ok"}', returncode=0)
+        result = ext_mod.ext_run(b, "contao:x:y")
+
+        assert "hint" not in result
+        assert not b.undefined_command_hint.called

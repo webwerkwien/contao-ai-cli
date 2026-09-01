@@ -173,7 +173,7 @@ class ContaoBackend:
             raise ContaoBackendError(
                 f"Command failed (exit {result.returncode}): {truncated}\n"
                 f"{self._explain_failure(result.stdout, result.stderr)}"
-                f"{self._undefined_command_hint(result.stderr)}"
+                f"{self.undefined_command_hint(result.stdout, result.stderr)}"
             )
 
         if json_output:
@@ -213,12 +213,22 @@ class ContaoBackend:
         cleaned = (stderr or "").strip()
         return f"Stderr: {cleaned[:500]}" if cleaned else "No output from the server."
 
-    #: Symfony's two ways of saying a command is not there. The second appears
-    #: when nothing in the namespace exists at all, which is what an older
-    #: bundle looks like from outside — `contao:ai:*` arrived in v0.2.31.
+    #: The three ways this can be said. The first two are Symfony's, from the
+    #: console dispatcher; the second appears when nothing in the namespace
+    #: exists at all, which is what an older bundle looks like from outside —
+    #: `contao:ai:*` arrived in v0.2.31.
+    #:
+    #: The third is the core bundle's own, and it was missing until the
+    #: ww-buchung session measured it (2026-09-01): `contao:ai:commands` and
+    #: `contao:ai:run` resolve the target themselves and answer through
+    #: `outputError`, which says *Command not found: X* — a different sentence,
+    #: on stdout rather than stderr. So `ext describe` and `ext run` fell
+    #: through, and those are exactly the two commands a caller reaches for
+    #: when asking about a command it does not have.
     _UNDEFINED_PATTERNS = (
         re.compile(r'Command "(contao:[a-z0-9:_-]+)" is not defined'),
         re.compile(r'There are no commands defined in the "(contao:[a-z0-9:_-]*)" namespace'),
+        re.compile(r'Command not found: (contao:[a-z0-9:_-]+)'),
     )
 
     @classmethod
@@ -294,14 +304,18 @@ class ContaoBackend:
 
         return None
 
-    def _undefined_command_hint(self, stderr: str) -> str:
+    def undefined_command_hint(self, stdout: str = "", stderr: str = "") -> str:
         """The hint as a trailing line, or nothing at all.
+
+        Both streams, because the two sources speak on different ones: Symfony
+        writes to stderr, the core bundle's own `outputError` writes JSON to
+        stdout. Reading only stderr is what made `ext describe` silent.
 
         Costs one extra SSH round trip, and only on a failure that is being
         reported anyway. Any error while working that out is swallowed: a
         diagnosis that fails must not replace the diagnosis that succeeded.
         """
-        command = self.undefined_contao_command(stderr)
+        command = self.undefined_contao_command(f"{stdout}\n{stderr}")
 
         if command is None:
             return ""

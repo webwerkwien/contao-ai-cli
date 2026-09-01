@@ -224,6 +224,17 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
     if 0 != result["returncode"] and result.get("stderr"):
         envelope["stderr"] = result["stderr"]
 
+    # `check=False` above means backend.run() never raises here, and the hint
+    # about an outdated bundle rides on that raise — so ext run was silent
+    # about the one thing it is best placed to explain. Measured by the
+    # ww-buchung session (2026-09-01), which reached for `ext run` and
+    # `ext describe` to ask about a command it did not have, and got no version
+    # context at all.
+    if 0 != result["returncode"]:
+        hint = backend.undefined_command_hint(result["stdout"], result.get("stderr", ""))
+        if hint:
+            envelope["hint"] = hint.strip()
+
     return envelope
 
 
