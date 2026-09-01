@@ -429,6 +429,25 @@ Two refusals, and they are not the same kind:
   built to end that. This is not a security boundary: whoever calls this has
   shell access. It bounds what the tool does on its own.
 
+**The foreign command's answer comes back in an envelope**, because its shape is
+unknown by definition — a plugin can answer `"status": "ok"` and have done
+nothing, or exit non-zero while its own JSON still reads fine:
+
+```json
+{ "status": "error", "command": "contao:demo:ping --nosuch",
+  "wrapped": false, "exit_code": 1,
+  "command_output": { "status": "error", "message": "RuntimeException: …" } }
+```
+
+Read `status` as **this CLI's verdict on the run**, derived from the exit code
+alone. Everything the command itself said is under `command_output`, untouched,
+and nothing it says can reach the top level — for a wrapped command the CLI
+knows the shape because the core bundle produces it, and here it does not.
+
+The process exits non-zero when the foreign command failed, so a shell loop
+around `ext run` cannot read success from a failed run. `stderr` appears **only
+on failure**: its absence means the run succeeded, not that stderr was empty.
+
 ### The newsletter does not send
 
 `newsletter send` exists as a command and **always refuses**. This is a decision, not a
