@@ -465,3 +465,35 @@ class TestTheWarningDoesNotContradictItself:
         out = self._warn(None)
 
         assert "no promise that it writes" in out
+
+
+class TestTheTrailLineReadsAsASentence:
+    """
+    A single template produced "written on-success the run".
+
+    The field was right and only the sentence around it was wrong, which is why
+    it survived being written, reviewed and released — reported by the
+    ww-buchung session from the first contract anyone else wrote.
+    """
+
+    @staticmethod
+    def _line(when):
+        return ext_mod.contract_warning({
+            "checked_with_statement": {
+                "trace": ["tl_log"], "trace_when": when,
+                "retention": {"tl_log": {"days": 7}},
+            },
+        })
+
+    def test_before(self):
+        assert "written before the run" in self._line("before")
+
+    def test_on_success(self):
+        line = self._line("on-success")
+        assert "on-success the run" not in line
+        assert "only if the run succeeds" in line
+
+    def test_no_timing_leaves_the_line_intact(self):
+        line = self._line(None)
+        assert "tl_log kept 7 days" in line
+        assert "written" not in line

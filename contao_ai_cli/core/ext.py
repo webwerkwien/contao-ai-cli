@@ -379,7 +379,14 @@ def contract_warning(contract: dict | None) -> str:
             f"{t} kept {statement.get('retention', {}).get(t, {}).get('days', '?')} days"
             for t in trace
         )
-        lines.append(f"  trail         {periods}" + (f", written {when} the run" if when else ""))
+        # Two values, two sentences. A single template read "written on-success
+        # the run" — the kind of thing that survives review because the field is
+        # correct and only the sentence around it is not.
+        timing = {
+            "before":     ", written before the run",
+            "on-success": ", written only if the run succeeds",
+        }.get(when, "")
+        lines.append(f"  trail         {periods}{timing}")
 
     if (shape := statement.get("answer_shape")):
         lines.append(f"  answers with  {', '.join(shape)}")

@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.13.3 - 2026-09-01
+
+> **Needs core bundle v0.2.37.**
+
+### Fixed
+
+- **The trail line in the `ext run` warning read "written on-success the run".** One
+  template served both timings, and only `before` fit it. The field was right and only the
+  sentence around it was wrong, which is how it survived being written, reviewed and
+  released. Now: *written before the run* / *written only if the run succeeds*.
+
+  Reported by a parallel session from the first contract anyone else wrote.
+
 ## v0.13.2 - 2026-09-01
 
 > **Needs core bundle v0.2.36.**
