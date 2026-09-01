@@ -48,6 +48,18 @@ def make_table(headers, rows):
     return "\n".join(lines)
 
 
+
+def json_backend(payload: str = '{"status":"ok","results":[]}'):
+    """A backend whose console answers JSON, like every listing now does."""
+    b = MagicMock()
+    b.run.return_value = {"stdout": payload, "returncode": 0, "stderr": ""}
+    return b
+
+
+def sent_cmd(backend) -> str:
+    return backend.run.call_args[0][0]
+
+
 class _TempFile:
     def __init__(self, name):
         self.name = name
@@ -126,51 +138,40 @@ class TestCache:
 
 
 class TestComment:
-    def test_comment_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(
-                ["id", "source", "parent", "date", "name", "email", "comment", "published"],
-                [["1", "tl_news", "2", "1711", "Jane", "j@example.com", "Hello", "1"]],
-            ),
-            "returncode": 0,
-        }
-        result = comment_list(backend)
-        assert len(result) == 1
-        assert result[0]["source"] == "tl_news"
-
+    def test_comment_list_goes_through_record_list(self):
+        backend = json_backend()
+        comment_list(backend)
+        cmd = sent_cmd(backend)
+        assert cmd.startswith("contao:record:list tl_comments")
+        assert "--order=" in cmd
     def test_comment_list_with_source(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": "", "returncode": 0}
         comment_list(backend, source="tl_news")
         assert "tl_news" in backend.run.call_args[0][0]
 
-    def test_comment_list_with_parent(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+    def test_comment_list_filters_by_parent(self):
+        backend = json_backend()
         comment_list(backend, parent_id=5)
-        assert "parent = 5" in backend.run.call_args[0][0]
-
-
+        assert "--filter=parent=5" in sent_cmd(backend)
 class TestContent:
-    def test_content_list_parses_headline(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(
-                ["id", "pid", "type", "headline", "invisible", "ptable"],
-                [["1", "2", "text", 'a:2:{s:5:"value";s:4:"Hero";}', "", "tl_article"]],
-            ),
-            "returncode": 0,
-        }
+    def test_content_list_still_unpacks_the_headline(self):
+        """headline is an inputUnit field and arrives serialized; the listing
+        unpacks it to plain text, as it always did."""
+        backend = json_backend(json.dumps({
+            "status": "ok",
+            "results": [{
+                "id": 1, "pid": 2, "type": "text",
+                "headline": 'a:2:{s:5:"value";s:5:"Hallo";s:4:"unit";s:2:"h2";}',
+                "invisible": 0, "ptable": "tl_article",
+            }],
+        }))
         result = content_list(backend)
-        assert result[0]["headline"] == "Hero"
-
-    def test_content_list_with_article_id(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
-        content_list(backend, article_id=9)
-        assert "WHERE pid = 9" in backend.run.call_args[0][0]
-
+        assert result["results"][0]["headline"] == "Hallo"
+    def test_content_list_filters_by_article(self):
+        backend = json_backend()
+        content_list(backend, article_id=7)
+        assert "--filter=pid=7" in sent_cmd(backend)
     def test_content_read(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": json.dumps({"id": 7, "type": "text"}), "returncode": 0}
@@ -250,21 +251,14 @@ class TestDebugOps:
 
 
 class TestEvent:
-    def test_calendar_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "title"], [["1", "Main Calendar"]]),
-            "returncode": 0,
-        }
-        result = calendar_list(backend)
-        assert result[0]["title"] == "Main Calendar"
-
-    def test_event_list_with_calendar_id(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+    def test_calendar_list_goes_through_record_list(self):
+        backend = json_backend()
+        calendar_list(backend)
+        assert sent_cmd(backend).startswith("contao:record:list tl_calendar ")
+    def test_event_list_filters_by_calendar(self):
+        backend = json_backend()
         event_list(backend, calendar_id=3)
-        assert "WHERE pid = 3" in backend.run.call_args[0][0]
-
+        assert "--filter=pid=3" in sent_cmd(backend)
     def test_event_read(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": json.dumps({"id": 5, "title": "Launch"}), "returncode": 0}
@@ -290,21 +284,14 @@ class TestEvent:
 
 
 class TestFaq:
-    def test_faq_category_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "title"], [["1", "General"]]),
-            "returncode": 0,
-        }
-        result = faq_category_list(backend)
-        assert result[0]["title"] == "General"
-
-    def test_faq_list_with_category(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+    def test_faq_category_list_goes_through_record_list(self):
+        backend = json_backend()
+        faq_category_list(backend)
+        assert sent_cmd(backend).startswith("contao:record:list tl_faq_category")
+    def test_faq_list_filters_by_category(self):
+        backend = json_backend()
         faq_list(backend, category_id=4)
-        assert "WHERE pid = 4" in backend.run.call_args[0][0]
-
+        assert "--filter=pid=4" in sent_cmd(backend)
     def test_faq_read(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": json.dumps({"id": 1, "question": "What now?"}), "returncode": 0}
@@ -435,15 +422,15 @@ class TestLayout:
 
 
 class TestListing:
-    def test_listing_module_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "name", "list_table", "list_fields", "list_where"], [["1", "Demo", "tl_demo", "id,title", "published=1"]]),
-            "returncode": 0,
-        }
-        result = listing_module_list(backend)
-        assert result[0]["name"] == "Demo"
-
+    def test_listing_module_list_goes_through_record_list(self):
+        """The module list moved; listing_data did not — it runs SQL configured
+        in the site itself, which cannot be expressed as checked equality
+        filters (decision 2026-09-01)."""
+        backend = json_backend()
+        listing_module_list(backend)
+        cmd = sent_cmd(backend)
+        assert cmd.startswith("contao:record:list tl_module")
+        assert "--filter=type=listing" in cmd
     def test_listing_data_with_cfg(self):
         backend = MagicMock()
         backend.run.return_value = {
@@ -520,21 +507,14 @@ class TestMessenger:
 
 
 class TestNews:
-    def test_news_archive_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "title"], [["1", "News"]]),
-            "returncode": 0,
-        }
-        result = news_archive_list(backend)
-        assert result[0]["title"] == "News"
-
-    def test_news_list_with_archive(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+    def test_news_archive_list_goes_through_record_list(self):
+        backend = json_backend()
+        news_archive_list(backend)
+        assert sent_cmd(backend).startswith("contao:record:list tl_news_archive")
+    def test_news_list_filters_by_archive(self):
+        backend = json_backend()
         news_list(backend, archive_id=2)
-        assert "WHERE pid = 2" in backend.run.call_args[0][0]
-
+        assert "--filter=pid=2" in sent_cmd(backend)
     def test_news_read(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": json.dumps({"id": 1, "headline": "Test News"}), "returncode": 0}
@@ -552,28 +532,20 @@ class TestNews:
 
 
 class TestNewsletter:
-    def test_channel_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "title"], [["1", "Weekly"]]),
-            "returncode": 0,
-        }
-        result = channel_list(backend)
-        assert result[0]["title"] == "Weekly"
-
-    def test_newsletter_list_with_channel(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
-        newsletter_list(backend, channel_id=3)
-        assert "WHERE pid = 3" in backend.run.call_args[0][0]
-
-    def test_subscriber_list_with_channel(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
-        subscriber_list(backend, channel_id=5)
-        assert "WHERE pid = 5" in backend.run.call_args[0][0]
-
-
+    def test_channel_list_goes_through_record_list(self):
+        backend = json_backend()
+        channel_list(backend)
+        assert sent_cmd(backend).startswith("contao:record:list tl_newsletter_channel")
+    def test_newsletter_list_filters_by_channel(self):
+        backend = json_backend()
+        newsletter_list(backend, channel_id=1)
+        assert "--filter=pid=1" in sent_cmd(backend)
+    def test_subscriber_list_filters_by_channel(self):
+        backend = json_backend()
+        subscriber_list(backend, channel_id=1)
+        cmd = sent_cmd(backend)
+        assert cmd.startswith("contao:record:list tl_newsletter_recipients")
+        assert "--filter=pid=1" in cmd
 class TestSearch:
     def test_search_reindex(self):
         backend = MagicMock()

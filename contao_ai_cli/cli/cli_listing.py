@@ -4,7 +4,7 @@ listing group — Manage Contao listing modules (contao/listing-bundle).
 import click
 
 from contao_ai_cli.core import session as session_mod, listing as listing_mod
-from .helpers import _get_backend, _output
+from .helpers import _require_core_bundle, _get_backend, _output
 
 
 @click.group()
@@ -14,12 +14,15 @@ def listing():
 
 
 @listing.command("modules")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def listing_modules(ctx):
+def listing_modules(ctx, limit, offset):
     """List all configured listing modules."""
+    _require_core_bundle(ctx, "listing modules")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(listing_mod.listing_module_list(b), ctx.obj.get("as_json"))
+    _output(listing_mod.listing_module_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @listing.command("data")

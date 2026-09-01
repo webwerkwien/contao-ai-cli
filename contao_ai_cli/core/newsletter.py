@@ -6,37 +6,41 @@ of this module for the reasoning and the message an agent gets instead.
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
-def channel_list(backend: ContaoBackend) -> list:
+def channel_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
     """List all newsletter channels (tl_newsletter_channel)."""
-    sql = "SELECT id, title FROM tl_newsletter_channel ORDER BY title"
-    return run_sql_table(backend, sql)
+    return record_list(
+        backend, "tl_newsletter_channel",
+        fields=["id", "title"], order="title ASC",
+        limit=limit, offset=offset,
+    )
 
 
-def newsletter_list(backend: ContaoBackend, channel_id: int | None = None) -> list:
+def newsletter_list(backend: ContaoBackend, channel_id: int | None = None,
+                    limit=None, offset=None) -> dict:
     """List newsletters. Optionally filter by channel ID (pid)."""
-    where = f"WHERE pid = {int(channel_id)}" if channel_id is not None else ""
-    sql = (
-        f"SELECT id, pid, subject, alias, sent, date "
-        f"FROM tl_newsletter {where} ORDER BY date DESC"
+    return record_list(
+        backend, "tl_newsletter",
+        fields=["id", "pid", "subject", "alias", "sent", "date"],
+        filters=[f"pid={int(channel_id)}"] if channel_id is not None else None,
+        order="date DESC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
 
 
-def subscriber_list(backend: ContaoBackend, channel_id: int | None = None) -> list:
+def subscriber_list(backend: ContaoBackend, channel_id: int | None = None,
+                    limit=None, offset=None) -> dict:
     """List newsletter subscribers (tl_newsletter_recipients)."""
-    where = f"WHERE pid = {int(channel_id)}" if channel_id is not None else ""
-    sql = (
-        f"SELECT id, pid, email, active "
-        f"FROM tl_newsletter_recipients {where} ORDER BY email"
+    return record_list(
+        backend, "tl_newsletter_recipients",
+        fields=["id", "pid", "email", "active"],
+        filters=[f"pid={int(channel_id)}"] if channel_id is not None else None,
+        order="email ASC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
-
-
-# --- the channel: the root every newsletter and recipient hangs off -------
 
 
 def channel_create(backend: ContaoBackend, title: str,

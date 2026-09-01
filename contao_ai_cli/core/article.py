@@ -2,15 +2,20 @@
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
-def article_list(backend: ContaoBackend, page_id: int | None = None) -> list:
+def article_list(backend: ContaoBackend, page_id: int | None = None,
+                 limit=None, offset=None) -> dict:
     """List articles. Optionally filter by page ID (pid)."""
-    where = f"WHERE pid = {int(page_id)}" if page_id is not None else ""
-    sql = f"SELECT id, pid, title, alias, published, inColumn FROM tl_article {where} ORDER BY pid, sorting"
-    return run_sql_table(backend, sql)
+    return record_list(
+        backend, "tl_article",
+        fields=["id", "pid", "title", "alias", "published", "inColumn"],
+        filters=[f"pid={int(page_id)}"] if page_id is not None else None,
+        order="pid ASC, sorting ASC",
+        limit=limit, offset=offset,
+    )
 
 
 def article_read(backend: ContaoBackend, article_id: int) -> dict:

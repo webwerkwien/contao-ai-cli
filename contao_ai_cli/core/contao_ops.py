@@ -83,10 +83,54 @@ def setup(backend: ContaoBackend) -> dict:
 
 
 def run_sql_table(backend: ContaoBackend, sql: str) -> list[dict]:
-    """Run a doctrine:query:sql and parse the table output. Returns [] on empty result."""
+    """Run a doctrine:query:sql and parse the table output. Returns [] on empty result.
+
+    Kept for read paths that are genuinely ad hoc. Listings do NOT use this any
+    more — see record_list() for why.
+    """
     result = backend.run(f'doctrine:query:sql {shlex.quote(sql)}')
     parsed = parse_table(result["stdout"])
     return parsed if isinstance(parsed, list) else []
+
+
+def record_list(backend: ContaoBackend, table: str, *, fields=None, filters=None,
+                prefixes=None, order: str | None = None, limit=None, offset=None) -> dict:
+    """
+    List records through contao:record:list — the server answers in JSON.
+
+    Replaces the hand-written SQL every listing used to carry. The difference is
+    not the format:
+
+      * the column list came from a Python f-string; now it comes from the DCA,
+        and a name the table does not have is refused by name
+      * every value arrived as a string — `"id": "3"`, `"sent": "1"`. Now `3`
+        and `1`, and NULL is distinguishable from an empty string
+      * the answer carries `count`, `total`, `limit`, `offset`, `columns`, so a
+        truncated listing says so instead of looking complete
+
+    **And the parsing itself could go wrong silently.** Symfony renders a
+    table for humans; parse_table() cut it back apart by column position. That
+    breaks on anything whose display width differs from its character count —
+    it did on 2026-05-09, when UTF-8 umlauts shifted every column right of them
+    and "Jährliche Konferenz" came back as "Jährliche Konferen", with a success
+    status. A value containing a newline breaks it the same way.
+    """
+    cmd = f"contao:record:list {shlex.quote(table)}"
+
+    if fields:
+        cmd += f" --fields={shlex.quote(','.join(fields))}"
+    for expr in (filters or []):
+        cmd += f" --filter={shlex.quote(expr)}"
+    for expr in (prefixes or []):
+        cmd += f" --filter-prefix={shlex.quote(expr)}"
+    if order:
+        cmd += f" --order={shlex.quote(order)}"
+    if limit is not None:
+        cmd += f" --limit={int(limit)}"
+    if offset:
+        cmd += f" --offset={int(offset)}"
+
+    return run_json_or_raw(backend, cmd)
 
 
 def run_json_or_raw(backend: ContaoBackend, cmd: str) -> dict:

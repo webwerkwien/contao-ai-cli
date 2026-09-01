@@ -17,12 +17,15 @@ def file():
 @click.option("--path", default=None, help="Filter by path prefix (e.g. files/images)")
 @click.option("--type", "type_filter", type=click.Choice(["file", "folder"]), default=None,
               help="Show only files or only folders")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def file_list_cmd(ctx, path, type_filter):
+def file_list_cmd(ctx, path, type_filter, limit, offset):
     """List files and folders from the Contao file manager."""
+    _require_core_bundle(ctx, "file list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(file_mod.file_list(b, path, type_filter), ctx.obj.get("as_json"))
+    _output(file_mod.file_list(b, path, type_filter, limit, offset), ctx.obj.get("as_json"))
 
 
 @file.command("sync")

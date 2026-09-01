@@ -17,12 +17,15 @@ def member():
 
 @member.command("list")
 @click.option("--json", "as_json", is_flag=True)
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def member_list_cmd(ctx, as_json):
+def member_list_cmd(ctx, as_json, limit, offset):
     """List all frontend members."""
+    _require_core_bundle(ctx, "member list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(member_mod.member_list(b), as_json or ctx.obj.get("as_json"))
+    _output(member_mod.member_list(b, limit, offset), as_json or ctx.obj.get("as_json"))
 
 
 @member.command("create")

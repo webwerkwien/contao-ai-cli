@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.9.0 - 2026-09-01
+
+> **Needs core bundle v0.2.30.**
+
+### Changed
+
+- **Every listing goes through `contao:record:list` instead of writing its own SQL.** Twelve of the thirteen `list`-style commands used to build a `SELECT` in Python, run it through `doctrine:query:sql`, and parse Symfony's ASCII table back apart **by column position**.
+
+  🎯 **That last step could go wrong without saying so.** Column-position parsing breaks on anything whose display width differs from its character count, and then every column to the right shifts. It happened: on 2026-05-09 UTF-8 umlauts truncated a value and the command still reported success. A value containing a newline breaks it the same way.
+
+  What changes for a caller:
+
+  - **the answer is an object, not a bare array** — rows are in `results`, beside `count`, `total`, `limit`, `offset`, `order` and `columns`
+  - **values keep their type** — `"id": 3` rather than `"id": "3"`, and NULL is distinguishable from an empty string
+  - **a truncated listing says so** — `count` against `total`. The server caps at 100 rows and defaults to 20; `--limit` and `--offset` exist on every listing now
+  - **column names are checked against the DCA**, so a wrong one is refused by name
+
+- **`page tree` is answered by the server** (`contao:page:tree`). It could not move to `record:list`: the 100-row cap is passed by any real site — wienerwandern.at has 283 pages. But the cap was never the real problem; paginating around it would still hand the caller **80 KB** of JSON for a question that is almost never "all 283 pages".
+
+  Contao answers it the same way — the back end tree renders one level and keeps the expanded state per node. So depth is the control: **two levels by default**, `--root` to descend into a branch, `--depth` for more. `truncated` says whether pages exist below the cut, so a depth-limited tree cannot be mistaken for a complete one.
+
+- **`file list --path` matches a prefix through the server**, bound as a parameter. A `%` in the value stays literal instead of turning a scoped listing into a full table scan.
+
+- ⚠️ **All listings now require contao-ai-core-bundle on the target.** They used to run through `doctrine:query:sql`, which is plain Contao. The failure is a named message rather than "command not defined".
+
+- **One exception, deliberately:** `listing data` still writes its own SQL. `list_where` is a free SQL fragment stored in the listing module, so the query is configured in the site rather than by the caller. Passing it through `record:list` would mean handing the server arbitrary WHERE clauses — which removes the point — and ignoring it would answer with different rows than the module shows in the front end.
+
 ## v0.8.7 - 2026-08-31
 
 > **Needs core bundle v0.2.25.**

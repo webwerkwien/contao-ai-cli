@@ -19,12 +19,15 @@ def content():
 @content.command("list")
 @click.option("--article", "article_id", type=int, default=None,
               help="Filter by article ID (pid)")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def content_list_cmd(ctx, article_id):
+def content_list_cmd(ctx, article_id, limit, offset):
     """List content elements, optionally filtered by article ID."""
+    _require_core_bundle(ctx, "content list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(content_mod.content_list(b, article_id), ctx.obj.get("as_json"))
+    _output(content_mod.content_list(b, article_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @content.command("read")

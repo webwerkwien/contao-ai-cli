@@ -17,23 +17,29 @@ def faq():
 
 
 @faq.command("categories")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def faq_categories(ctx):
+def faq_categories(ctx, limit, offset):
     """List all FAQ categories."""
+    _require_core_bundle(ctx, "faq categories")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(faq_mod.faq_category_list(b), ctx.obj.get("as_json"))
+    _output(faq_mod.faq_category_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @faq.command("list")
 @click.option("--category", "category_id", type=int, default=None,
               help="Filter by category ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def faq_list_cmd(ctx, category_id):
+def faq_list_cmd(ctx, category_id, limit, offset):
     """List FAQ entries, optionally filtered by category ID."""
+    _require_core_bundle(ctx, "faq list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(faq_mod.faq_list(b, category_id), ctx.obj.get("as_json"))
+    _output(faq_mod.faq_list(b, category_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @faq.command("read")

@@ -1,7 +1,7 @@
 """Contao backend user management."""
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import run_json_or_raw, build_set_args
 
 
 def user_list(backend: ContaoBackend) -> list:

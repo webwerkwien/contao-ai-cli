@@ -242,18 +242,12 @@ MEMBER_TABLE = (
 
 
 class TestMember:
-    def test_member_list_fallback(self):
-        backend = MagicMock()
-        # First call (contao:member:list) raises, second call (doctrine:query:sql) succeeds
-        from contao_ai_cli.utils.contao_backend import ContaoBackendError
-        backend.run.side_effect = [
-            ContaoBackendError("no such command"),
-            {"stdout": MEMBER_TABLE, "returncode": 0},
-        ]
-        result = member_list(backend)
-        assert isinstance(result, list)
-        assert result[0]["username"] == "j.smith"
-
+    def test_member_list_goes_through_record_list(self):
+        backend = json_backend()
+        member_list(backend)
+        cmd = sent(backend)
+        assert cmd.startswith("contao:record:list tl_member")
+        assert "--fields=id,username,email,firstname,lastname,disable" in cmd
     def test_member_create(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": '{"status": "created", "username": "jdoe"}', "returncode": 0}
@@ -277,31 +271,57 @@ PAGE_TABLE = (
 )
 
 
+def json_backend(payload: str = '{"status":"ok","results":[]}'):
+    """A backend whose console answers JSON, like every listing now does."""
+    b = MagicMock()
+    b.run.return_value = {"stdout": payload, "returncode": 0, "stderr": ""}
+    return b
+
+
+def sent(backend) -> str:
+    return backend.run.call_args[0][0]
+
 class TestPage:
-    def test_page_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
-        result = page_list(backend)
-        assert len(result) == 3
-        assert result[0]["title"] == "Root"
+    """The listing and the tree both moved off hand-written SQL (2026-09-01).
 
-    def test_page_list_with_pid(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
+    What is pinned here is the command string, because that is the contract with
+    the bundle. The rules behind it — which columns exist, what a filter may
+    say — live in the DCA and are tested on the server.
+    """
+
+    def test_page_list_goes_through_record_list(self):
+        backend = json_backend()
+        page_list(backend)
+        cmd = sent(backend)
+        assert cmd.startswith("contao:record:list tl_page")
+        assert "--fields=id,pid,title,alias,type,published,hide" in cmd
+        assert "--order=" in cmd
+
+    def test_page_list_filters_by_parent(self):
+        backend = json_backend()
         page_list(backend, pid=1)
-        # Verify WHERE clause was included in the SQL
-        call_arg = backend.run.call_args[0][0]
-        assert "WHERE pid = 1" in call_arg
+        assert "--filter=pid=1" in sent(backend)
 
-    def test_page_tree_structure(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": PAGE_TABLE, "returncode": 0}
-        result = page_tree(backend)
-        assert len(result) == 1  # one root
-        assert result[0]["title"] == "Root"
-        assert len(result[0]["children"]) == 1
-        assert result[0]["children"][0]["title"] == "Home"
-        assert result[0]["children"][0]["children"][0]["title"] == "Sub"
+    def test_page_list_passes_limit_and_offset(self):
+        backend = json_backend()
+        page_list(backend, None, 50, 100)
+        cmd = sent(backend)
+        assert "--limit=50" in cmd
+        assert "--offset=100" in cmd
+
+    def test_page_tree_uses_the_server_command(self):
+        """The tree is built server-side; record:list caps at 100 rows and a
+        real site passes that (wienerwandern.at has 283 pages)."""
+        backend = json_backend()
+        page_tree(backend)
+        assert sent(backend) == "contao:page:tree"
+
+    def test_page_tree_passes_root_and_depth(self):
+        backend = json_backend()
+        page_tree(backend, root=5, depth=4)
+        cmd = sent(backend)
+        assert "--root=5" in cmd
+        assert "--depth=4" in cmd
 
 
 # ─── article ──────────────────────────────────────────────────────────────────
@@ -318,20 +338,16 @@ ARTICLE_TABLE = (
 
 
 class TestArticle:
-    def test_article_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": ARTICLE_TABLE, "returncode": 0}
-        result = article_list(backend)
-        assert len(result) == 1
-        assert result[0]["title"] == "Home"
-        assert result[0]["inColumn"] == "main"
-
-    def test_article_list_with_page(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": ARTICLE_TABLE, "returncode": 0}
+    def test_article_list_goes_through_record_list(self):
+        backend = json_backend()
+        article_list(backend)
+        cmd = sent(backend)
+        assert cmd.startswith("contao:record:list tl_article")
+        assert "--fields=id,pid,title,alias,published,inColumn" in cmd
+    def test_article_list_filters_by_page(self):
+        backend = json_backend()
         article_list(backend, page_id=2)
-        call_arg = backend.run.call_args[0][0]
-        assert "WHERE pid = 2" in call_arg
+        assert "--filter=pid=2" in sent(backend)
 
 
 # ─── dca_schema resolve_callback_options ──────────────────────────────────────
@@ -344,7 +360,6 @@ def _write_schema(path, table, fields):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as f:
         json.dump({'table': table, 'fetched': '2026-01-01T00:00:00', 'fields': fields}, f)
-
 
 class TestResolveCallbackOptions:
     def test_static_language_resolved(self, tmp_dir):

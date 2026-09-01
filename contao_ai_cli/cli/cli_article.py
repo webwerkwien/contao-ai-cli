@@ -19,12 +19,15 @@ def article():
 @article.command("list")
 @click.option("--page", "page_id", type=int, default=None,
               help="Filter by page ID (pid)")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def article_list_cmd(ctx, page_id):
+def article_list_cmd(ctx, page_id, limit, offset):
     """List articles, optionally filtered by page ID."""
+    _require_core_bundle(ctx, "article list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(article_mod.article_list(b, page_id), ctx.obj.get("as_json"))
+    _output(article_mod.article_list(b, page_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @article.command("read")

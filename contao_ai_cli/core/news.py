@@ -2,24 +2,29 @@
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
-def news_archive_list(backend: ContaoBackend) -> list:
+def news_archive_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
     """List all news archives (tl_news_archive)."""
-    sql = "SELECT id, title FROM tl_news_archive ORDER BY title"
-    return run_sql_table(backend, sql)
-
-
-def news_list(backend: ContaoBackend, archive_id: int | None = None) -> list:
-    """List news entries. Optionally filter by archive ID (pid)."""
-    where = f"WHERE pid = {int(archive_id)}" if archive_id is not None else ""
-    sql = (
-        f"SELECT id, pid, headline, alias, published, date "
-        f"FROM tl_news {where} ORDER BY date DESC"
+    return record_list(
+        backend, "tl_news_archive",
+        fields=["id", "title"], order="title ASC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
+
+
+def news_list(backend: ContaoBackend, archive_id: int | None = None,
+              limit=None, offset=None) -> dict:
+    """List news entries. Optionally filter by archive ID (pid)."""
+    return record_list(
+        backend, "tl_news",
+        fields=["id", "pid", "headline", "alias", "published", "date"],
+        filters=[f"pid={int(archive_id)}"] if archive_id is not None else None,
+        order="date DESC",
+        limit=limit, offset=offset,
+    )
 
 
 def news_read(backend: ContaoBackend, news_id: int) -> dict:

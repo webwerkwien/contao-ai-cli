@@ -18,12 +18,15 @@ def comment():
               help="Filter by source table (e.g. tl_news, tl_page)")
 @click.option("--parent", "parent_id", type=int, default=None,
               help="Filter by parent record ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def comment_list_cmd(ctx, source, parent_id):
+def comment_list_cmd(ctx, source, parent_id, limit, offset):
     """List comments, optionally filtered by source and/or parent ID."""
+    _require_core_bundle(ctx, "comment list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(comment_mod.comment_list(b, source, parent_id), ctx.obj.get("as_json"))
+    _output(comment_mod.comment_list(b, source, parent_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @comment.command("delete")

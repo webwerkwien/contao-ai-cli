@@ -2,24 +2,29 @@
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
-def calendar_list(backend: ContaoBackend) -> list:
+def calendar_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
     """List all calendars (tl_calendar)."""
-    sql = "SELECT id, title FROM tl_calendar ORDER BY title"
-    return run_sql_table(backend, sql)
-
-
-def event_list(backend: ContaoBackend, calendar_id: int | None = None) -> list:
-    """List calendar events. Optionally filter by calendar ID (pid)."""
-    where = f"WHERE pid = {int(calendar_id)}" if calendar_id is not None else ""
-    sql = (
-        f"SELECT id, pid, title, alias, published, startDate, endDate "
-        f"FROM tl_calendar_events {where} ORDER BY startDate DESC"
+    return record_list(
+        backend, "tl_calendar",
+        fields=["id", "title"], order="title ASC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
+
+
+def event_list(backend: ContaoBackend, calendar_id: int | None = None,
+               limit=None, offset=None) -> dict:
+    """List events. Optionally filter by calendar ID (pid)."""
+    return record_list(
+        backend, "tl_calendar_events",
+        fields=["id", "pid", "title", "alias", "published", "startDate", "endDate"],
+        filters=[f"pid={int(calendar_id)}"] if calendar_id is not None else None,
+        order="startDate DESC",
+        limit=limit, offset=offset,
+    )
 
 
 def event_read(backend: ContaoBackend, event_id: int) -> dict:

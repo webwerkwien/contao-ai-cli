@@ -345,6 +345,46 @@ it fails loudly rather than silently returning the wrong thing. 20 rows by defau
 `update` command means the back end or a new command — not raw SQL, for the reasons under
 *Audit trail* below.
 
+### Every listing answers an object, not a bare array
+
+Since v0.9.0 the `list`-style commands go through `contao:record:list` instead of writing
+their own SQL. What comes back is:
+
+```json
+{"status":"ok","table":"tl_news","count":2,"total":61,"limit":2,"offset":0,
+ "order":"`date` DESC","columns":["id","pid","headline"],"results":[...]}
+```
+
+The rows are in `results`. Three things follow, and all three matter more than the shape:
+
+- **Values keep their type.** `"id": 3`, not `"id": "3"`; NULL is distinguishable from an
+  empty string. The old path parsed Symfony's ASCII table by column position, so
+  everything arrived as a string — and anything whose display width differed from its
+  character count shifted the columns silently. That happened: on 2026-05-09 a UTF-8
+  umlaut truncated a value and the command still reported success.
+- **A truncated listing says so.** `count` against `total`. The server caps at 100 rows,
+  defaults to 20; pass `--limit`/`--offset`. A listing that is cut off is never silent
+  about it.
+- **Column names are checked against the DCA**, so a wrong one is refused by name rather
+  than answering something plausible.
+
+`--limit`/`--offset` exist on every listing. `file list --path` matches a path prefix
+through `--filter-prefix`, bound as a parameter, so a `%` in the value stays literal.
+
+**`page tree` is its own command** (`contao:page:tree`): the tree is built server-side,
+level by level, because `record:list` caps at 100 rows and a real site passes that —
+wienerwandern.at has 283 pages. Two levels by default; `truncated` says whether pages
+exist below the cut, so a depth-limited tree cannot be mistaken for a complete one. Use
+`--root` to descend into one branch, `--depth` for more levels.
+
+**One exception, on purpose:** `listing data` still writes its own SQL. `list_where` is a
+free SQL fragment stored in the listing module, so the query is configured in the site
+rather than by the caller — it cannot be expressed as checked equality filters, and
+ignoring it would answer with different rows than the module shows in the front end.
+
+⚠️ **All listings now need contao-ai-core-bundle on the target.** They used to run through
+`doctrine:query:sql`, which is plain Contao.
+
 ## Available command groups
 
 `article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `settings`, `template`, `undo`, `user`, `user-group`, `version`

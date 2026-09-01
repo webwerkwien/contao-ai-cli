@@ -17,23 +17,29 @@ def event():
 
 
 @event.command("calendars")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def event_calendars(ctx):
+def event_calendars(ctx, limit, offset):
     """List all calendars."""
+    _require_core_bundle(ctx, "event calendars")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(event_mod.calendar_list(b), ctx.obj.get("as_json"))
+    _output(event_mod.calendar_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @event.command("list")
 @click.option("--calendar", "calendar_id", type=int, default=None,
               help="Filter by calendar ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def event_list_cmd(ctx, calendar_id):
+def event_list_cmd(ctx, calendar_id, limit, offset):
     """List calendar events, optionally filtered by calendar ID."""
+    _require_core_bundle(ctx, "event list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(event_mod.event_list(b, calendar_id), ctx.obj.get("as_json"))
+    _output(event_mod.event_list(b, calendar_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @event.command("read")

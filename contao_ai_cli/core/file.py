@@ -6,28 +6,25 @@ It stores metadata for files and folders under the configured upload path.
 import shlex
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, build_set_args
 
 
-def file_list(backend: ContaoBackend, path: str | None = None, type_filter: str | None = None) -> list:
+def file_list(backend: ContaoBackend, path: str | None = None,
+              type_filter: str | None = None, limit=None, offset=None) -> dict:
+    """List files from the DBAFS. Optionally scope to a path prefix and/or type.
+
+    The path used to become `path LIKE '<value>%'` with the value pasted into
+    the SQL. It is a bound parameter now, and a percent sign inside it stays
+    literal instead of turning the listing into a full table scan.
     """
-    List files/folders from tl_files.
-
-    path: optional path prefix to filter (e.g. 'files/images')
-    type_filter: 'file' or 'folder' — omit for both
-    """
-    conditions = []
-    if path:
-        safe_path = path.replace("'", "''")
-        conditions.append(f"path LIKE '{safe_path}%'")
-    if type_filter in ("file", "folder"):
-        conditions.append(f"type = '{type_filter}'")
-    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-    sql = (
-        f"SELECT id, path, name, type, extension, hash, found, lastModified "
-        f"FROM tl_files {where} ORDER BY path"
+    return record_list(
+        backend, "tl_files",
+        fields=["id", "path", "name", "type", "extension", "hash", "found", "lastModified"],
+        filters=[f"type={type_filter}"] if type_filter else None,
+        prefixes=[f"path={path}"] if path else None,
+        order="path ASC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
 
 
 def file_sync(backend: ContaoBackend) -> dict:

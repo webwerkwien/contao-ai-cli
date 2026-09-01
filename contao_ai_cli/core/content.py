@@ -4,7 +4,7 @@ import shlex
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
@@ -16,19 +16,26 @@ def _parse_headline(value: str) -> str:
     return match.group(1) if match else value
 
 
-def content_list(backend: ContaoBackend, article_id: int | None = None) -> list:
-    """List content elements. Optionally filter by article ID (pid)."""
-    where = f"WHERE pid = {int(article_id)}" if article_id is not None else ""
-    sql = (
-        f"SELECT id, pid, type, headline, invisible, ptable "
-        f"FROM tl_content {where} ORDER BY pid, sorting"
+def content_list(backend: ContaoBackend, article_id: int | None = None,
+                 limit=None, offset=None) -> dict:
+    """List content elements. Optionally filter by article ID (pid).
+
+    headline is an inputUnit field, so it arrives serialized; it is unpacked to
+    plain text here the way it always was.
+    """
+    result = record_list(
+        backend, "tl_content",
+        fields=["id", "pid", "type", "headline", "invisible", "ptable"],
+        filters=[f"pid={int(article_id)}"] if article_id is not None else None,
+        order="pid ASC, sorting ASC",
+        limit=limit, offset=offset,
     )
-    parsed = run_sql_table(backend, sql)
-    for row in parsed:
+
+    for row in (result.get("results") or []):
         if isinstance(row, dict) and "headline" in row:
             row["headline"] = _parse_headline(row["headline"])
-    return parsed
 
+    return result
 
 def content_read(backend: ContaoBackend, content_id: int) -> dict:
     """Read all fields of a tl_content record (headline deserialized)."""

@@ -2,18 +2,16 @@
 import json
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
-from contao_ai_cli.core.contao_ops import run_sql_table, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, build_set_args
 
 
-def member_list(backend: ContaoBackend) -> list:
-    try:
-        result = backend.run("contao:member:list --format=json")
-        return json.loads(result["stdout"])
-    except (ContaoBackendError, json.JSONDecodeError):
-        pass
-    # No native member:list command — fall back to direct SQL
-    sql = "SELECT id, username, email, firstname, lastname, disable FROM tl_member"
-    return run_sql_table(backend, sql)
+def member_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
+    """List front end members (tl_member)."""
+    return record_list(
+        backend, "tl_member",
+        fields=["id", "username", "email", "firstname", "lastname", "disable"],
+        limit=limit, offset=offset,
+    )
 
 
 def member_create(backend: ContaoBackend, username: str, password: str,

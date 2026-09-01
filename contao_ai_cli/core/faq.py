@@ -2,24 +2,29 @@
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete,
 )
 
 
-def faq_category_list(backend: ContaoBackend) -> list:
+def faq_category_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
     """List all FAQ categories (tl_faq_category)."""
-    sql = "SELECT id, title FROM tl_faq_category ORDER BY id"
-    return run_sql_table(backend, sql)
-
-
-def faq_list(backend: ContaoBackend, category_id: int | None = None) -> list:
-    """List FAQ entries. Optionally filter by category ID (pid)."""
-    where = f"WHERE pid = {int(category_id)}" if category_id is not None else ""
-    sql = (
-        f"SELECT id, pid, question, alias, published "
-        f"FROM tl_faq {where} ORDER BY sorting"
+    return record_list(
+        backend, "tl_faq_category",
+        fields=["id", "title"], order="id ASC",
+        limit=limit, offset=offset,
     )
-    return run_sql_table(backend, sql)
+
+
+def faq_list(backend: ContaoBackend, category_id: int | None = None,
+             limit=None, offset=None) -> dict:
+    """List FAQ entries. Optionally filter by category ID (pid)."""
+    return record_list(
+        backend, "tl_faq",
+        fields=["id", "pid", "question", "alias", "published"],
+        filters=[f"pid={int(category_id)}"] if category_id is not None else None,
+        order="sorting ASC",
+        limit=limit, offset=offset,
+    )
 
 
 def faq_read(backend: ContaoBackend, faq_id: int) -> dict:

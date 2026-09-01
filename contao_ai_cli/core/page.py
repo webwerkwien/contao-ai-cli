@@ -2,43 +2,47 @@
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import (
-    run_sql_table, run_json_or_raw, build_set_args, run_update, run_delete, run_publish,
+    record_list, run_json_or_raw, build_set_args, run_update, run_delete, run_publish,
 )
 
 
-def page_list(backend: ContaoBackend, pid: int | None = None) -> list:
+def page_list(backend: ContaoBackend, pid: int | None = None,
+              limit=None, offset=None) -> dict:
     """List pages. Optionally filter by parent ID."""
-    where = f"WHERE pid = {int(pid)}" if pid is not None else ""
-    sql = f"SELECT id, pid, title, alias, type, published, hide FROM tl_page {where} ORDER BY sorting"
-    return run_sql_table(backend, sql)
+    return record_list(
+        backend, "tl_page",
+        fields=["id", "pid", "title", "alias", "type", "published", "hide"],
+        filters=[f"pid={int(pid)}"] if pid is not None else None,
+        order="sorting ASC",
+        limit=limit, offset=offset,
+    )
 
 
-def page_tree(backend: ContaoBackend) -> list:
+def page_tree(backend: ContaoBackend, root: int | None = None, depth: int | None = None) -> dict:
     """
-    Return page tree as nested list of dicts.
-    Each page has a 'children' key with sub-pages.
+    The page tree, built on the server.
+
+    Used to be a SELECT over every page, nested in Python. That could not move
+    to record:list — its 100-row cap is passed by any real site (wienerwandern.at
+    has 283 pages).
+
+    **The cap was never the real problem.** Paginating around it would still
+    put 80 KB of JSON in front of the caller, for a question that is almost
+    never "all 283 pages" but "what hangs under this node". Contao answers it
+    the same way: the back end tree renders one level and keeps the expanded
+    state per node, and `Database::getChildRecords()` descends level by level
+    where a whole subtree is genuinely needed.
+
+    So the depth is the control, not the row count. The default of 2 returns the
+    roots and their children; `truncated` in the answer says whether pages exist
+    below the cut, so a depth-limited tree cannot be mistaken for a complete one.
     """
-    sql = "SELECT id, pid, title, alias, type, published FROM tl_page ORDER BY sorting"
-    pages = run_sql_table(backend, sql)
-    if not isinstance(pages, list):
-        return pages  # error fallback
-
-    by_id = {}
-    for p in pages:
-        p = dict(p)
-        p["id"] = int(p["id"])
-        p["pid"] = int(p["pid"])
-        p["children"] = []
-        by_id[p["id"]] = p
-
-    roots = []
-    for p in by_id.values():
-        if p["pid"] == 0:
-            roots.append(p)
-        elif p["pid"] in by_id:
-            by_id[p["pid"]]["children"].append(p)
-
-    return roots
+    cmd = "contao:page:tree"
+    if root is not None:
+        cmd += f" --root={int(root)}"
+    if depth is not None:
+        cmd += f" --depth={int(depth)}"
+    return run_json_or_raw(backend, cmd)
 
 
 def page_read(backend: ContaoBackend, page_id: int) -> dict:

@@ -18,21 +18,35 @@ def page():
 
 @page.command("list")
 @click.option("--pid", type=int, default=None, help="Filter by parent page ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def page_list_cmd(ctx, pid):
-    """List pages, optionally filtered by parent ID."""
-    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
-    b = _get_backend(session_path)
-    _output(page_mod.page_list(b, pid), ctx.obj.get("as_json"))
+def page_list_cmd(ctx, pid, limit, offset):
+    """List pages, optionally filtered by parent ID.
+
+    The answer carries count and total, so a listing cut off by the limit says
+    so rather than looking complete.
+    """
+    _require_core_bundle(ctx, "page list")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(page_mod.page_list(b, pid, limit, offset), ctx.obj.get("as_json"))
 
 
 @page.command("tree")
+@click.option("--root", type=int, default=None, help="Start at this page ID instead of the site roots")
+@click.option("--depth", type=int, default=None, help="Levels to return (default 2)")
 @click.pass_context
-def page_tree_cmd(ctx):
-    """Show page tree (nested structure)."""
-    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
-    b = _get_backend(session_path)
-    _output(page_mod.page_tree(b), ctx.obj.get("as_json"))
+def page_tree_cmd(ctx, root, depth):
+    """Show the page tree, built on the server.
+
+    Two levels by default: the roots and their children. `truncated` in the
+    answer says whether pages exist below the cut, so a depth-limited tree
+    cannot be mistaken for a complete one. Use --root to descend into one
+    branch and --depth for more levels.
+    """
+    _require_core_bundle(ctx, "page tree")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(page_mod.page_tree(b, root, depth), ctx.obj.get("as_json"))
 
 
 @page.command("read")

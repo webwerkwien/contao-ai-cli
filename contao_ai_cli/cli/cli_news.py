@@ -17,23 +17,29 @@ def news():
 
 
 @news.command("archives")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def news_archives(ctx):
+def news_archives(ctx, limit, offset):
     """List all news archives."""
+    _require_core_bundle(ctx, "news archives")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(news_mod.news_archive_list(b), ctx.obj.get("as_json"))
+    _output(news_mod.news_archive_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @news.command("list")
 @click.option("--archive", "archive_id", type=int, default=None,
               help="Filter by archive ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def news_list_cmd(ctx, archive_id):
+def news_list_cmd(ctx, archive_id, limit, offset):
     """List news entries, optionally filtered by archive ID."""
+    _require_core_bundle(ctx, "news list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(news_mod.news_list(b, archive_id), ctx.obj.get("as_json"))
+    _output(news_mod.news_list(b, archive_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @news.command("read")

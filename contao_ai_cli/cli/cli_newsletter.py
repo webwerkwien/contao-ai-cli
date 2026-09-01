@@ -17,34 +17,43 @@ def newsletter():
 
 
 @newsletter.command("channels")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def newsletter_channels(ctx):
+def newsletter_channels(ctx, limit, offset):
     """List all newsletter channels."""
+    _require_core_bundle(ctx, "newsletter channels")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(newsletter_mod.channel_list(b), ctx.obj.get("as_json"))
+    _output(newsletter_mod.channel_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @newsletter.command("list")
 @click.option("--channel", "channel_id", type=int, default=None,
               help="Filter by channel ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def newsletter_list_cmd(ctx, channel_id):
+def newsletter_list_cmd(ctx, channel_id, limit, offset):
     """List newsletters, optionally filtered by channel ID."""
+    _require_core_bundle(ctx, "newsletter list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(newsletter_mod.newsletter_list(b, channel_id), ctx.obj.get("as_json"))
+    _output(newsletter_mod.newsletter_list(b, channel_id, limit, offset), ctx.obj.get("as_json"))
 
 
 @newsletter.command("subscribers")
 @click.option("--channel", "channel_id", type=int, default=None,
               help="Filter by channel ID")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def newsletter_subscribers(ctx, channel_id):
+def newsletter_subscribers(ctx, channel_id, limit, offset):
     """List newsletter subscribers."""
+    _require_core_bundle(ctx, "newsletter subscribers")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(newsletter_mod.subscriber_list(b, channel_id), ctx.obj.get("as_json"))
+    _output(newsletter_mod.subscriber_list(b, channel_id, limit, offset), ctx.obj.get("as_json"))
 
 
 # --- the channel: the root every newsletter and recipient hangs off -------
