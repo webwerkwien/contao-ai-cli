@@ -66,6 +66,7 @@ so it cannot drift from what the CLI actually offers.
 | `content` | `create` `delete` `list` `read` `update` | Content elements |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
+| `ext` | `describe` `list` `run` | Console commands this CLI does not wrap — extensions, plugins, your own. `run` warns and records the invocation |
 | `faq` | `categories` `category-create` `category-delete` `category-read` `category-update` `create` `delete` `list` `read` `update` | FAQ entries and their categories |
 | `file` | `folder-create` `list` `meta` `process` `read` `sync` `write` | Files in the file system |
 | `form` | `create` `delete` `field-create` `field-delete` `field-read` `field-types` `field-update` `fields` `list` `read` `update` | Forms and their fields |

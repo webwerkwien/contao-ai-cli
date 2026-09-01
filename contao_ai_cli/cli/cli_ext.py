@@ -1,0 +1,83 @@
+"""
+ext group — commands this installation offers that the CLI does not wrap.
+"""
+import click
+
+from contao_ai_cli.core import ext as ext_mod
+from .helpers import _get_backend, _output, _require_core_bundle
+
+
+@click.group()
+def ext():
+    """Reach console commands this CLI does not wrap (extensions, plugins, your own).
+
+    Named for what it holds rather than who wrote it: Contao's own unwrapped
+    commands land here too, and so does a command from your own site bundle.
+    "Third party" would be wrong for both.
+    """
+    pass
+
+
+@ext.command("list")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def ext_list_cmd(ctx, as_json):
+    """What this installation can do that the CLI has no command for.
+
+    The server answers what exists; the subtraction happens here. A command that
+    appears in this list is reachable through `ext run`.
+    """
+    _require_core_bundle(ctx, "ext list")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(ext_mod.ext_list(b), as_json or ctx.obj.get("as_json"))
+
+
+@ext.command("describe")
+@click.argument("name")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def ext_describe_cmd(ctx, name, as_json):
+    """Arguments, options and help for one command, read off the server."""
+    _require_core_bundle(ctx, "ext describe")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(ext_mod.ext_describe(b, name), as_json or ctx.obj.get("as_json"))
+
+
+@ext.command("run", context_settings={"ignore_unknown_options": True})
+@click.argument("command_line", nargs=-1, required=True)
+@click.option("--operator", default="", help="Acting user identifier for the log entry")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def ext_run_cmd(ctx, command_line, operator, as_json):
+    """Run an unwrapped command. Warns, and records that it was started.
+
+    \b
+      contao-ai-cli ext run contao:some-plugin:sync --dry-run
+
+    A wrapped command is refused here: the wrapper converts fields, checks them
+    against the DCA and shapes the answer, so the bare command would answer
+    differently under the same name.
+    """
+    _require_core_bundle(ctx, "ext run")
+
+    line = " ".join(command_line)
+
+    if (refusal := ext_mod.refuse_wrapped(line)) is not None:
+        raise click.ClickException(refusal)
+
+    # The warning and the server's log entry are two halves of one decision
+    # (2026-09-01), and they have different readers at different times: this
+    # reaches the caller before the effect, the log entry reaches whoever asks
+    # afterwards what happened. Either alone leaves one of them without an
+    # answer.
+    click.echo(
+        f"Warning: {line.split(' ', 1)[0]} is not wrapped by this CLI.\n"
+        "Nothing here knows what it does, so none of the guarantees the wrapped commands\n"
+        "carry apply: no field conversion, no DCA check, and no promise that it writes a\n"
+        "version, an undo entry or a log line of its own. The invocation is recorded in\n"
+        "the system log before it starts; the outcome is not.",
+        err=True,
+    )
+
+    b = _get_backend(ctx.obj.get("session"))
+    _output(ext_mod.ext_run(b, line, operator), as_json or ctx.obj.get("as_json"))

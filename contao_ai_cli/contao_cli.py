@@ -47,6 +47,7 @@ from contao_ai_cli.cli.cli_search import search
 from contao_ai_cli.cli.cli_schema import schema
 from contao_ai_cli.cli.cli_repl import repl
 from contao_ai_cli.cli.cli_bridge import bridge
+from contao_ai_cli.cli.cli_ext import ext
 from contao_ai_cli.cli.cli_health import health
 
 
@@ -120,6 +121,7 @@ cli.add_command(security)
 cli.add_command(search)
 cli.add_command(schema)
 cli.add_command(bridge)
+cli.add_command(ext)
 cli.add_command(health)
 
 

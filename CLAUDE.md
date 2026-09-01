@@ -394,6 +394,41 @@ Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-lis
 Run `contao-ai-cli <group> --help` for the subcommands of a group; the full table is in
 [README.md](README.md) and is generated from the command tree, so it cannot go stale.
 
+### Commands this CLI does not wrap: the `ext` group
+
+An extension — someone else's, or your own site bundle — registers its own
+`contao:*` console command with Symfony. It exists on the server, and until now
+nothing here could learn that it does.
+
+```bash
+contao-ai-cli ext list                      # what this installation has that the CLI has no command for
+contao-ai-cli ext describe contao:x:y       # its arguments, options and help, read off the server
+contao-ai-cli ext run contao:x:y --flag     # run it
+```
+
+`ext list` asks the server what exists and subtracts what this CLI wraps. The
+subtraction happens here on purpose: what the CLI wraps is the CLI's business,
+and a copy of that list on the server would drift from the original.
+
+**`ext run` warns, and the server records the invocation before starting the
+target.** Both, deliberately: the warning reaches you before the effect, the log
+entry reaches whoever asks afterwards what happened. The entry says what was
+*started* — a foreign command may write without leaving any trace of its own, so
+the one thing that can be promised is the smaller one.
+
+Two refusals, and they are not the same kind:
+
+- **A command this CLI wraps is refused here.** Not for safety — it would run
+  fine — but because the wrapper converts fields, checks them against the DCA
+  and shapes the answer. The bare command would answer differently under the
+  same name, and which one you got would depend on how you asked. Use the
+  dedicated command.
+- **Anything outside `contao:` is out of reach**, `doctrine:query:sql` above all.
+  A generic runner that reaches it would put every DCA rule, version and log
+  entry this bundle writes back on the honour system — through the very tool
+  built to end that. This is not a security boundary: whoever calls this has
+  shell access. It bounds what the tool does on its own.
+
 ### The newsletter does not send
 
 `newsletter send` exists as a command and **always refuses**. This is a decision, not a

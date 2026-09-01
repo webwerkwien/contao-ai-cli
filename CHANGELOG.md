@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.10.0 - 2026-09-01
+
+> **Needs core bundle v0.2.31.**
+
+### Added
+
+- **`ext` — the commands this CLI does not wrap.** An extension (someone else's, or your own site bundle) registers its own `contao:*` console command and it exists on the server, invisible from here.
+
+  ```
+  ext list                      what this installation has that the CLI has no command for
+  ext describe contao:x:y       its arguments, options and help, read off the server
+  ext run contao:x:y --flag     run it
+  ```
+
+  Named for what it holds rather than who wrote it: Contao's own unwrapped commands land there too, and so does a command from your own bundle — "third party" would be wrong for both.
+
+- **`ext run` warns, and the server records the invocation before starting.** Two halves of one decision, with different readers at different times: the warning reaches the caller before the effect, the log entry reaches whoever asks afterwards. Either alone leaves one of them without an answer.
+
+  The warning names which guarantees do not apply — no field conversion, no DCA check, no promise of a version, undo entry or log line of its own. "Be careful" would be noise; what a caller can act on is the specific list.
+
+- **Two refusals, and they are not the same kind.** A command the CLI wraps is refused because the wrapper converts, checks and shapes — the bare command would answer differently under the same name. Anything outside `contao:` is refused because a generic runner that reaches `doctrine:query:sql` would undo the audited path this CLI exists to keep.
+
+### Fixed
+
+- ⚠️ **The set of wrapped commands is derived from the source, and the first version of that scan was wrong within minutes.** A plain-text scan counted the example `contao:some-plugin:sync` in `ext run`'s own help text as a wrapped command — so the command the example was written to illustrate became invisible to `ext list`. Any command named in prose would have done the same, and documentation is exactly where unwrapped commands get mentioned. The scan reads string literals off the AST now and skips docstrings; comments never reach it.
+
 ## v0.9.0 - 2026-09-01
 
 > **Needs core bundle v0.2.30.**
