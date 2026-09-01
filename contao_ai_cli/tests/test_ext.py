@@ -343,3 +343,105 @@ class TestExtRunVersionHint:
 
         assert "hint" not in result
         assert not b.undefined_command_hint.called
+
+
+class TestExtRunWarningWithAContract:
+    """
+    The blanket warning became untrue the moment contracts existed.
+
+    It ends with "no promise that it writes a version, an undo entry or a log
+    line of its own" — correct for a silent plugin, and wrong for one that has
+    declared `trace: ['tl_log'], traceWhen: 'before'`. Saying "nothing is
+    promised" where something was is the same failure as every other one this
+    week: a sentence that is easy to read and no longer matches the thing it
+    describes.
+
+    🎯 What the replacement must not do is overcorrect. A declaration is the
+    command's own word; this CLI cannot enforce any of it. The warning says
+    what was declared **and** that nobody checked it — dropping either half
+    would mislead in one direction or the other.
+    """
+
+    CONTRACT = {
+        "checked": {"tables": ["tl_news"], "tables_with_dca": ["tl_news"]},
+        "checked_with_statement": {
+            "writes": True,
+            "trace": ["tl_log"],
+            "trace_when": "before",
+            "retention": {"tl_log": {"setting": "logPeriod", "seconds": 604800, "days": 7}},
+        },
+        "declared": {
+            "irreversible_outside_database": "sends a confirmation mail to the guest",
+            "repeatable": False,
+        },
+    }
+
+    def test_a_declared_trail_is_named_instead_of_denied(self):
+        lines = ext_mod.contract_warning(self.CONTRACT)
+
+        assert "tl_log" in lines
+        assert "before" in lines
+
+    def test_the_retention_travels_with_the_trail(self):
+        """"Writes a log entry" and "writes a version" are an order of
+        magnitude apart in how long they survive."""
+        assert "7" in ext_mod.contract_warning(self.CONTRACT)
+
+    def test_the_irreversible_effect_is_the_prominent_line(self):
+        lines = ext_mod.contract_warning(self.CONTRACT)
+
+        assert "confirmation mail" in lines
+        assert "cannot be undone" in lines.lower()
+
+    def test_it_says_nobody_checked_any_of_it(self):
+        lines = ext_mod.contract_warning(self.CONTRACT)
+
+        assert "declar" in lines.lower()
+        assert "cannot" in lines.lower()
+
+    def test_no_contract_means_no_replacement(self):
+        assert ext_mod.contract_warning(None) == ""
+        assert ext_mod.contract_warning({}) == ""
+
+    def test_a_contract_with_only_problems_is_not_dressed_up_as_one(self):
+        """A declaration that failed validation promises nothing."""
+        assert ext_mod.contract_warning({"problems": ["trace must be a list"]}) == ""
+
+
+class TestTheWarningDoesNotContradictItself:
+    """
+    The first version appended the contract to the blanket warning.
+
+    The result said "no promise that it writes a version, an undo entry or a
+    log line of its own" and then, two lines later, "trail tl_log kept 7 days,
+    written before the run". One message making both claims — caught by reading
+    the live output rather than by a test, which is why this one exists now.
+    """
+
+    def _warn(self, contract):
+        b = MagicMock()
+        b.run.return_value = {"stdout": json.dumps({"status": "ok"}), "returncode": 0, "stderr": ""}
+        b.undefined_command_hint.return_value = ""
+        with patch("contao_ai_cli.cli.cli_ext._get_backend", return_value=b), \
+             patch("contao_ai_cli.cli.cli_ext._require_core_bundle"), \
+             patch("contao_ai_cli.core.ext.ext_describe", return_value={"contract": contract}):
+            return CliRunner().invoke(cli, ["ext", "run", "contao:demo:ping"]).output
+
+    def test_the_no_promise_sentence_is_dropped_when_a_trail_is_declared(self):
+        out = self._warn(TestExtRunWarningWithAContract.CONTRACT)
+
+        assert "no promise that it writes" not in out
+        assert "tl_log" in out
+
+    def test_the_guarantees_that_still_do_not_apply_are_still_named(self):
+        """Dropping the whole warning would overcorrect: a declaration is not
+        a wrapper, and field conversion and the DCA check are still absent."""
+        out = self._warn(TestExtRunWarningWithAContract.CONTRACT)
+
+        assert "no field conversion" in out
+        assert "DCA check" in out
+
+    def test_without_a_contract_the_blanket_warning_is_unchanged(self):
+        out = self._warn(None)
+
+        assert "no promise that it writes" in out

@@ -4,6 +4,46 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.13.0 - 2026-09-01
+
+> **Needs core bundle v0.2.34.**
+
+### Added
+
+- **`ext run` says what a command declared about itself, before running it.** Stage 3 of
+  the plugin work. An extension can now carry an `#[AiContract]` attribute — see the core
+  bundle — and `ext describe` and the warning before `ext run` both surface it:
+
+  ```
+  Warning: contao:shop:confirm is not wrapped by this CLI, but it declares a contract.
+  The wrapped commands' guarantees still do not apply — no field conversion and
+  no DCA check — and nothing here verifies what follows.
+
+  It declares the following about itself. Nothing here checks any of it — the
+  declaration is the command's own word.
+    tables        tl_shop_order, tl_shop_voucher
+    writes        yes
+    trail         tl_log kept 7 days, written before the run
+    hands off     tl_shop_order — the transitions hang on save_callbacks
+
+    IRREVERSIBLE  sends a confirmation mail to the customer
+                  This cannot be undone by anything in this CLI.
+  ```
+
+  The irreversible effect is last and set apart, because it is the one a caller has to
+  stop at. A database write has `tl_undo`; a sent mail has nothing.
+
+### Changed
+
+- **The blanket warning is replaced, not appended to, when a contract exists.** It ends
+  with *"no promise that it writes a version, an undo entry or a log line of its own"* —
+  untrue the moment a command has declared `trace` and `traceWhen`. The first version
+  printed both, so one message made both claims two lines apart. Caught by reading the
+  live output; pinned by a test now.
+
+  It does not overcorrect either: field conversion and the DCA check are still absent, and
+  a declaration is not a wrapper. Both halves are said.
+
 ## v0.12.2 - 2026-09-01
 
 > **Needs core bundle v0.2.32.**

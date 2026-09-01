@@ -466,6 +466,35 @@ reason — "contao:x:y" does not exist in that bundle at all.
 worded differently on purpose, so neither can be mistaken for the other. When
 nothing is known, no `hint` appears.
 
+**A command may declare a contract, and then the warning says what it declared.**
+An extension can carry an `#[AiContract]` attribute (see the core bundle's README);
+`ext describe` returns it under `contract` and `ext run` prints it before running:
+
+```
+  tables        tl_shop_order, tl_shop_voucher
+  writes        yes
+  trail         tl_log kept 7 days, written before the run
+  hands off     tl_shop_order — the transitions hang on save_callbacks
+
+  IRREVERSIBLE  sends a confirmation mail to the customer
+```
+
+Read it as the command's own word. Nothing in this CLI checks any of it, and the text
+says so — the wrapped commands' guarantees still do not apply. Three things are worth
+treating differently:
+
+- **`IRREVERSIBLE`** is the line to stop at. A database write has `tl_undo`; this has
+  nothing, and no part of this CLI can take it back.
+- **`hands off`** is the extension saying a generic writer must not touch that table,
+  usually because its transitions hang on DCA callbacks. It holds for a future dedicated
+  wrapper too, not only for a generic path.
+- **The retention** beside a trail is read from the installation, not declared. `tl_log`
+  and `tl_version` are 7 days against 90, so "leaves a log entry" and "leaves a version"
+  are not interchangeable assurances.
+
+When a command declares nothing, the older blanket warning applies unchanged — that is
+the normal case, not a fault.
+
 ### The newsletter does not send
 
 `newsletter send` exists as a command and **always refuses**. This is a decision, not a

@@ -293,3 +293,81 @@ def refuse_wrapped(command_line: str) -> str | None:
         "DCA and shapes the answer. Running the bare command here would answer differently\n"
         "under the same name, and which one you got would depend on how you asked."
     )
+
+
+def contract_warning(contract: dict | None) -> str:
+    """
+    What a command declared about itself, for the warning before it runs.
+
+    The blanket warning ends with *"no promise that it writes a version, an
+    undo entry or a log line of its own"* — correct for a silent plugin, and
+    untrue the moment one declares `trace` and `traceWhen`. Saying "nothing is
+    promised" where something was is the same failure as the rest of this week:
+    a sentence that is easy to read and no longer matches what it describes.
+
+    The replacement must not overcorrect either. A declaration is the command's
+    own word and this CLI enforces none of it, so the text says what was
+    declared **and** that nobody checked it. Dropping either half misleads in
+    one direction or the other.
+
+    Returns "" when there is nothing to say — including for a declaration that
+    failed validation, which promises nothing.
+    """
+    if not contract or not isinstance(contract, dict):
+        return ""
+
+    checked   = contract.get("checked") or {}
+    statement = contract.get("checked_with_statement") or {}
+    declared  = contract.get("declared") or {}
+
+    if not (checked or statement or declared):
+        return ""
+
+    lines = [
+        "",
+        "It declares the following about itself. Nothing here checks any of it — the",
+        "declaration is the command's own word.",
+    ]
+
+    if (tables := checked.get("tables")):
+        line = f"  tables        {', '.join(tables)}"
+        if (missing := checked.get("tables_without_dca")):
+            # A named table with no DCA is a typo or a missing extension, and
+            # both matter more before the run than after.
+            line += f"   (no DCA here: {', '.join(missing)})"
+        lines.append(line)
+
+    if "writes" in statement:
+        lines.append(f"  writes        {'yes' if statement['writes'] else 'no'}")
+
+    if (trace := statement.get("trace")):
+        when = statement.get("trace_when")
+        # The period is read from the installation, not declared — and it is
+        # the difference between a trail that outlives the question and one
+        # that does not.
+        periods = ", ".join(
+            f"{t} kept {statement.get('retention', {}).get(t, {}).get('days', '?')} days"
+            for t in trace
+        )
+        lines.append(f"  trail         {periods}" + (f", written {when} the run" if when else ""))
+
+    if (shape := statement.get("answer_shape")):
+        lines.append(f"  answers with  {', '.join(shape)}")
+
+    if (unsuitable := checked.get("generic_path_unsuitable")):
+        for table, reason in unsuitable.items():
+            lines.append(f"  hands off     {table} — {reason}")
+
+    if "repeatable" in declared:
+        lines.append(f"  repeatable    {'yes' if declared['repeatable'] else 'no'}")
+
+    if (irreversible := declared.get("irreversible_outside_database")):
+        # Last and on its own line, because it is the one a caller has to stop
+        # at. A database write has tl_undo; this has nothing.
+        lines += [
+            "",
+            f"  IRREVERSIBLE  {irreversible}",
+            "                This cannot be undone by anything in this CLI.",
+        ]
+
+    return "\n".join(lines)

@@ -79,16 +79,40 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     # reaches the caller before the effect, the log entry reaches whoever asks
     # afterwards what happened. Either alone leaves one of them without an
     # answer.
-    click.echo(
-        f"Warning: {line.split(' ', 1)[0]} is not wrapped by this CLI.\n"
-        "Nothing here knows what it does, so none of the guarantees the wrapped commands\n"
-        "carry apply: no field conversion, no DCA check, and no promise that it writes a\n"
-        "version, an undo entry or a log line of its own. The invocation is recorded in\n"
-        "the system log before it starts; the outcome is not.",
-        err=True,
+    b = _get_backend(ctx.obj.get("session"))
+
+    # Asked before the warning is written, because it decides what the warning
+    # may say. A command that has declared a trail makes the blanket sentence
+    # below untrue, and printing it anyway would be the CLI stating something
+    # about the target that the target itself contradicts.
+    contract = ext_mod.contract_warning(
+        (ext_mod.ext_describe(b, line.split(" ", 1)[0]) or {}).get("contract")
     )
 
-    b = _get_backend(ctx.obj.get("session"))
+    name = line.split(" ", 1)[0]
+
+    if contract:
+        # Not the blanket text plus an appendix. That version said "no promise
+        # that it writes a version, an undo entry or a log line" and then listed
+        # the trail two lines further down — the warning contradicting itself
+        # inside one message.
+        click.echo(
+            f"Warning: {name} is not wrapped by this CLI, but it declares a contract.\n"
+            "The wrapped commands' guarantees still do not apply — no field conversion and\n"
+            "no DCA check — and nothing here verifies what follows. The invocation is\n"
+            "recorded in the system log before it starts; the outcome is not."
+            + contract,
+            err=True,
+        )
+    else:
+        click.echo(
+            f"Warning: {name} is not wrapped by this CLI.\n"
+            "Nothing here knows what it does, so none of the guarantees the wrapped commands\n"
+            "carry apply: no field conversion, no DCA check, and no promise that it writes a\n"
+            "version, an undo entry or a log line of its own. The invocation is recorded in\n"
+            "the system log before it starts; the outcome is not.",
+            err=True,
+        )
     result = ext_mod.ext_run(b, line, operator)
     _output(result, as_json or ctx.obj.get("as_json"))
 
