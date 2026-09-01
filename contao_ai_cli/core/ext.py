@@ -11,6 +11,7 @@ and an entry in the system log, because a foreign command carries none of the
 guarantees the wrapped ones do.
 """
 import ast
+import json
 import pathlib
 import re
 import shlex
@@ -152,16 +153,78 @@ def ext_describe(backend: ContaoBackend, name: str) -> dict:
 
 def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> dict:
     """
-    Run an unwrapped command through contao:ai:run.
+    Run an unwrapped command through contao:ai:run, inside an envelope.
 
     The server writes the log entry before it starts the target, so a command
     that crashes still leaves the record that it was started. The warning to the
     caller is the CLI's half of the same decision — see cli_ext.py.
+
+    ## Why the answer is wrapped instead of passed through
+
+    Until 2026-09-01 this returned the target's stdout as its own result. A
+    throwaway plugin on c5 answered:
+
+        { "status": "ok", "echo": "HALLO" }
+
+    and the CLI printed exactly that. The `status: ok` is the *plugin's* word,
+    standing where every wrapped command puts the CLI's — two different claims
+    under one name, which is the failure this whole group was built against.
+
+    For a wrapped command the CLI knows the shape, because the core bundle
+    produces it. For an unwrapped one the shape is unknown by definition: a
+    plugin may answer `status: ok` and have done nothing, or exit non-zero while
+    its JSON still reads ok. `AiRunCommand` deliberately does not normalise it —
+    *"this command promises to run it and to have said so, not to normalise what
+    it answers"* — so the separation belongs on this side.
+
+    `status` here is this CLI's verdict on the run and is derived from the exit
+    code alone. Everything the foreign command said sits under `output`,
+    untouched, and nothing it says can reach the top level.
     """
     cmd = f"contao:ai:run --command-line={shlex.quote(command_line)}"
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
-    return run_json_or_raw(backend, cmd)
+
+    # check=False: a non-zero exit is the most useful thing this function can
+    # report about a command it does not understand, and raising would throw it
+    # away along with whatever the target managed to say first.
+    result = backend.run(cmd, check=False)
+
+    try:
+        output = json.loads(result["stdout"])
+    except (json.JSONDecodeError, TypeError):
+        output = result["stdout"]
+
+    envelope = {
+        "status": "ok" if 0 == result["returncode"] else "error",
+        "command": command_line,
+        # Stated rather than implied. A reader that sees this field knows none
+        # of the wrapped commands' guarantees applied to what is under `output`.
+        "wrapped": False,
+        "exit_code": result["returncode"],
+        # Not `output`: `_output()` treats a field of that name as raw
+        # passthrough and prints it *instead of* the surrounding dict, so the
+        # envelope would vanish in exactly the mode a human reads. Around 40
+        # commands rely on that convention for their stdout, so the name gives
+        # way here rather than the convention there.
+        "command_output": output,
+    }
+
+    # Only on a failed run, and the rule is stated rather than left to be
+    # noticed: the absence of this field means the command succeeded, never
+    # that stderr was clean.
+    #
+    # Every other command in this CLI ignores stderr completely, so carrying it
+    # is new here — and c5 shows why it cannot be carried unconditionally: PHP
+    # emits ionCube and imagick startup warnings on every single call, which
+    # would put several lines of unrelated noise in front of an agent on every
+    # successful run and teach it to skip the field. When the run fails, stderr
+    # is often the only place the reason exists — a plugin that dies before the
+    # error boundary catches it leaves nothing on stdout at all.
+    if 0 != result["returncode"] and result.get("stderr"):
+        envelope["stderr"] = result["stderr"]
+
+    return envelope
 
 
 def refuse_outside_contao(command_line: str) -> str | None:

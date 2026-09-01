@@ -186,3 +186,110 @@ class TestExtRunCommand:
 
         assert "DCA check" in out
         assert "version" in out
+
+
+class TestExtRunEnvelope:
+    """
+    A foreign command's answer is reported as foreign, not as the CLI's own.
+
+    Measured on c5-axeltest on 2026-09-01 with a throwaway plugin. `ext run`
+    returned the plugin's stdout verbatim:
+
+        { "status": "ok", "echo": "HALLO" }
+
+    That `status: ok` is the plugin's word, printed where every wrapped command
+    prints the CLI's. For a wrapped command the CLI knows the shape, because the
+    core bundle produces it. For an unwrapped one the shape is unknown by
+    definition — a plugin can answer `status: ok` and have done nothing, or exit
+    non-zero while its JSON still says ok.
+
+    The server deliberately does not normalise it ("its shape is its own",
+    AiRunCommand), so the envelope belongs here.
+    """
+
+    @staticmethod
+    def _backend(stdout, returncode=0, stderr=""):
+        b = MagicMock()
+        b.run.return_value = {"stdout": stdout, "returncode": returncode, "stderr": stderr}
+        return b
+
+    def test_the_plugin_answer_sits_under_output(self):
+        b = self._backend('{"status":"ok","echo":"HALLO"}')
+        result = ext_mod.ext_run(b, "contao:demo:ping hallo")
+
+        assert result["command_output"] == {"status": "ok", "echo": "HALLO"}
+        assert "echo" not in result
+
+    def test_a_plugin_claiming_ok_while_failing_does_not_set_the_status(self):
+        """The case the envelope exists for."""
+        b = self._backend('{"status":"ok"}', returncode=1)
+        result = ext_mod.ext_run(b, "contao:demo:ping")
+
+        assert result["status"] == "error"
+        assert result["exit_code"] == 1
+        assert result["command_output"] == {"status": "ok"}
+
+    def test_it_names_the_command_and_says_it_is_unwrapped(self):
+        b = self._backend('{"status":"ok"}')
+        result = ext_mod.ext_run(b, "contao:demo:ping hallo --upper")
+
+        assert result["command"] == "contao:demo:ping hallo --upper"
+        assert result["wrapped"] is False
+
+    def test_non_json_output_survives_as_a_string(self):
+        b = self._backend("pong")
+        result = ext_mod.ext_run(b, "contao:demo:ping")
+
+        assert result["command_output"] == "pong"
+        assert result["status"] == "ok"
+
+    def test_stderr_is_carried_when_there_is_any(self):
+        b = self._backend("", returncode=1, stderr="RuntimeException: nope")
+        result = ext_mod.ext_run(b, "contao:demo:ping --gibtsnicht")
+
+        assert "nope" in result["stderr"]
+
+    def test_the_envelope_survives_human_mode(self):
+        """
+        `_output()` prints a field named `output` *instead of* the dict around
+        it — a convention about 40 commands use for raw stdout. The envelope's
+        payload is deliberately not called that: under the old name the whole
+        envelope disappeared in the one mode a person reads, taking `wrapped`
+        and `exit_code` with it.
+        """
+        b = self._backend('{"status":"ok","echo":"HALLO"}')
+        with patch("contao_ai_cli.cli.cli_ext._get_backend", return_value=b),              patch("contao_ai_cli.cli.cli_ext._require_core_bundle"):
+            result = CliRunner().invoke(cli, ["ext", "run", "contao:demo:ping"])
+
+        assert '"wrapped": false' in result.output
+        assert '"exit_code": 0' in result.output
+
+    def test_no_stderr_key_when_there_was_none(self):
+        b = self._backend('{"status":"ok"}')
+        assert "stderr" not in ext_mod.ext_run(b, "contao:demo:ping")
+
+    def test_stderr_is_dropped_on_a_successful_run(self):
+        """
+        c5 emits ionCube and imagick startup warnings on every PHP call. Carried
+        unconditionally, several lines of unrelated noise would precede every
+        successful run and train a reader to skip the field entirely.
+
+        The absence of `stderr` therefore means "the run succeeded", not
+        "stderr was empty" — stated in the code, not left to be inferred.
+        """
+        b = self._backend('{"status":"ok"}', returncode=0, stderr="Cannot load the ionCube PHP Loader")
+        assert "stderr" not in ext_mod.ext_run(b, "contao:demo:ping")
+
+    def test_the_process_exits_non_zero_when_the_foreign_command_failed(self):
+        """
+        Otherwise a script wrapping `ext run` reads success from a failed run.
+        The envelope reports the exit code; the process has to carry it too.
+        """
+        b = self._backend('{"status":"ok"}', returncode=1)
+        with patch("contao_ai_cli.cli.cli_ext._get_backend", return_value=b), \
+             patch("contao_ai_cli.cli.cli_ext._require_core_bundle"):
+            result = CliRunner().invoke(cli, ["ext", "run", "contao:demo:ping"])
+
+        assert result.exit_code != 0
+        # and the envelope was still printed, not swallowed by the failure
+        assert "exit_code" in result.output

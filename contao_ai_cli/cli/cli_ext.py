@@ -89,4 +89,12 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     )
 
     b = _get_backend(ctx.obj.get("session"))
-    _output(ext_mod.ext_run(b, line, operator), as_json or ctx.obj.get("as_json"))
+    result = ext_mod.ext_run(b, line, operator)
+    _output(result, as_json or ctx.obj.get("as_json"))
+
+    # The envelope reports the foreign command's exit code; the process has to
+    # carry it too, or a shell loop around `ext run` reads success from a run
+    # that failed. Printed first, so the answer survives the failure — the same
+    # reason the server logs before it runs.
+    if result.get("exit_code"):
+        ctx.exit(1)
