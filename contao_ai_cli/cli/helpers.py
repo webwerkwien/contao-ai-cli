@@ -616,16 +616,55 @@ def _require_core_bundle(ctx, command_name: str):
     which talks to contao-ai-backend-bundle over HTTP — and the collision was read
     as evidence that editing was meant to go through the backend, which it was not.
     """
-    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    session_path = pathlib.Path(ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE)
+
+    # Three different failures used to arrive as one sentence, because a bare
+    # `except Exception: available = False` cannot tell them apart. On
+    # 2026-09-01 a mistyped session name (`c5` for `c5-axeltest`) answered
+    # "contao-ai-core-bundle is not installed on this server" — for a server
+    # that had never been contacted and does have the bundle. The advice sent
+    # the reader to `composer require` on an installation that does not exist.
+    #
+    # Only the third branch below is a statement about the server. The first
+    # two are statements about this machine, and saying so is the whole fix.
+    if not session_path.exists():
+        raise click.UsageError(_no_such_session(session_path))
+
     try:
-        with open(session_path, encoding="utf-8") as f:
-            cfg = json.load(f)
-        # Sessions written before v0.5.0 carry the old key.
-        available = cfg.get("core_bundle_available", cfg.get("bridge_available", False))
-    except Exception:
-        available = False
-    if not available:
+        cfg = json.loads(session_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise click.UsageError(
+            f"Session file {session_path} cannot be read: {e}\n"
+            f"Recreate it with: contao-ai-cli connect --host HOST --user USER --root /path/to/contao"
+        ) from e
+
+    # Sessions written before v0.5.0 carry the old key.
+    if not cfg.get("core_bundle_available", cfg.get("bridge_available", False)):
         raise click.UsageError(
             f"'{command_name}' requires contao-ai-core-bundle which is not installed on this server.\n"
             f"Install with: composer require webwerkwien/contao-ai-core-bundle"
         )
+
+
+def _no_such_session(session_path: pathlib.Path) -> str:
+    """
+    Name the session that was asked for, and the ones that exist.
+
+    The names are already on disk and `session-list` already reads them, so
+    withholding them here would be a dead end that knows the answer — the same
+    failure this message is being fixed for, one size smaller.
+    """
+    known = [s["name"] for s in session_mod.list_sessions()]
+    wanted = session_path.stem
+
+    if not known:
+        return (
+            f"No session named '{wanted}' — no sessions are configured at all.\n"
+            f"Create one with: contao-ai-cli connect --host HOST --user USER --root /path/to/contao"
+        )
+
+    return (
+        f"No session named '{wanted}' (looked for {session_path}).\n"
+        f"Known sessions: {', '.join(sorted(known))}\n"
+        f"This says nothing about the server — nothing was asked of one."
+    )
