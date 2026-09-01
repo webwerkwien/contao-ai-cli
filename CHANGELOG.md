@@ -4,6 +4,41 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.12.0 - 2026-09-01
+
+> **Needs core bundle v0.2.32.**
+
+Stage 1 and 2 of the plugin work were measured against a real third-party plugin
+installed on the test server, rather than against an empty result. Two defects
+came out of that.
+
+### Changed
+
+- **`ext run` reports a foreign command's answer as foreign.** It used to return
+  the target's stdout as its own result: a plugin answering
+  `{"status":"ok","echo":"HALLO"}` had its `status` printed where every wrapped
+  command prints the CLI's. For a wrapped command the CLI knows the shape,
+  because the core bundle produces it; for an unwrapped one the shape is unknown
+  by definition, and a plugin can answer `ok` while exiting non-zero. The answer
+  now sits in an envelope stating what ran, that it was not wrapped, and the exit
+  code, with everything the command said under `command_output`. Nothing it says
+  can reach the top level.
+- **`ext run` exits non-zero when the foreign command failed**, after printing
+  the envelope. A shell loop around it previously read success from a failed run.
+- **`ext run` carries `stderr` on failure only.** The absence of the field means
+  the run succeeded, not that stderr was empty — PHP startup warnings would
+  otherwise precede every successful run with unrelated noise.
+
+### Fixed
+
+- **A mistyped session name no longer reports a missing core bundle.**
+  `--session c5` instead of `--session c5-axeltest` answered
+  *"contao-ai-core-bundle is not installed on this server"* for a server that had
+  never been contacted. A bare `except Exception` collapsed three causes, two of
+  which are statements about the local machine. The missing and unreadable
+  session file are now named as such, and the message lists the sessions that do
+  exist. ([#17](https://github.com/webwerkwien/contao-ai-cli/issues/17))
+
 ## v0.11.0 - 2026-09-01
 
 > **Needs core bundle v0.2.32.**
