@@ -6,6 +6,20 @@ examples — `content update --id 5` and `news delete --id 3` — for commands t
 did not have, with an option spelling it never used. CLAUDE.md is the agent guide:
 it is exactly what a caller reads to decide what to invoke. These tests pin the
 docs to the real command tree so the promise cannot drift from the product again.
+
+What these tests do NOT check: what a command answers.
+
+The command tree is the whole question here — name, existence, option spelling.
+A changed return value is invisible to them, and exactly that slipped through
+twice on 2026-09-01: v0.12.0 changed what `ext run` returns, v0.12.2 added a
+`hint` field. Both times this file stayed green and CLAUDE.md — the guide a
+calling agent reasons from — said nothing about it.
+
+That is not a weakness of the tests but their boundary. It is written down
+because their green is otherwise read as a statement about something they never
+looked at, and the file name says "docs match cli" without qualifying which
+half. If what a caller sees has changed, no test covers it — that is step 3 of
+the release round in the `contao-ai-status` skill.
 """
 import pathlib
 import re
