@@ -448,6 +448,24 @@ The process exits non-zero when the foreign command failed, so a shell loop
 around `ext run` cannot read success from a failed run. `stderr` appears **only
 on failure**: its absence means the run succeeded, not that stderr was empty.
 
+A failed run may also carry a **`hint`** field, and `ext describe` appends the
+same sentence to its error. It answers the question a missing command raises —
+*is this server's bundle too old, or does the command not exist at all?* Both
+are said explicitly, and they are not the same claim:
+
+```
+"contao:page:tree" is missing on this server, which runs contao-ai-core-bundle
+v0.2.14; v0.2.33 is available. …
+```
+```
+This server runs contao-ai-core-bundle v0.2.33, so the version is not the
+reason — "contao:x:y" does not exist in that bundle at all.
+```
+
+"The version was checked and excluded" and "the version could not be read" are
+worded differently on purpose, so neither can be mistaken for the other. When
+nothing is known, no `hint` appears.
+
 ### The newsletter does not send
 
 `newsletter send` exists as a command and **always refuses**. This is a decision, not a
