@@ -10,13 +10,15 @@ One connection, one console invocation — but still one version per record on
 the server, because the audit trail is the reason writes go through the console
 at all.
 """
+import io
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+import click
 import pytest
 
 from contao_ai_cli.cli.helpers import resolve_bulk_ids
-from contao_ai_cli.core.contao_ops import run_bulk_update
+from contao_ai_cli.core.contao_ops import run_bulk_update, BulkUpdateFailed
 from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 
@@ -95,12 +97,27 @@ class TestRunBulkUpdate:
 
         assert backend.run.call_count == 1, "The point of the exercise is one connection."
 
-    def test_a_partial_run_returns_its_summary_instead_of_raising(self):
+    def test_a_partial_run_raises_but_keeps_its_summary(self):
         """
-        The server exits non-zero when any record failed, so a shell loop can
-        notice. ContaoBackend.run() raises on a non-zero exit by default, which
-        threw away the very payload naming the failures — found in live testing
-        on c5, 2026-08-29.
+        Both halves matter, and this test used to hold only one of them.
+
+        The original concern was right: `ContaoBackend.run()` raises on a
+        non-zero exit, and that threw away the very payload naming the failures
+        (found on c5, 2026-08-29). The answer then was `check=False` and
+        returning the summary.
+
+        🔴 Audit 2026-09-02 (M-3) found what that traded away. Returning
+        normally meant `contao-ai-cli … --ids=…` exited **0** after "1 of 2
+        records failed". An agent reading the JSON saw `failed`; a shell script
+        checking `$?` saw success. Same answer, two meanings.
+
+        ⚠️ The test as written asserted exactly that — `result == summary`, no
+        error — so it certified the defect. It is the fourth of its kind found
+        this day. Inverted rather than deleted: the requirement it was protecting
+        is real, it just was not the whole requirement.
+
+        Now: raise (so `$?` is right) **and** carry the summary (so the caller
+        keeps what it needs). `show()` puts it on stdout.
         """
         summary = {
             "status": "partial", "total": 2, "succeeded": 1, "failed": 1,
@@ -111,10 +128,25 @@ class TestRunBulkUpdate:
             "returncode": 1, "stdout": json.dumps(summary), "stderr": "",
         }
 
-        result = run_bulk_update(backend, "contao:page:update", [105, 999999], {"x": "y"})
+        with pytest.raises(BulkUpdateFailed) as excinfo:
+            run_bulk_update(backend, "contao:page:update", [105, 999999], {"x": "y"})
 
-        assert result == summary
+        # The payload survives — that was the point of the original fix.
+        assert excinfo.value.summary == summary
+        assert excinfo.value.returncode == 1
+        assert "1 of 2" in str(excinfo.value)
         assert backend.run.call_args.kwargs.get("check") is False
+
+    def test_the_summary_reaches_stdout_when_the_error_is_shown(self):
+        """A caller that only reads stdout must still get the failed record ids."""
+        summary = {"status": "partial", "total": 2, "failed": 1,
+                   "errors": [{"id": 999999, "message": "Page not found: 999999"}]}
+        buf = io.StringIO()
+
+        with patch("sys.stdout", buf), patch.object(click.ClickException, "show", lambda self, file=None: None):
+            BulkUpdateFailed(summary, 1).show()
+
+        assert json.loads(buf.getvalue()) == summary
 
     def test_a_genuine_failure_still_raises(self):
         """No JSON back means the command did not run — that is not a partial result."""

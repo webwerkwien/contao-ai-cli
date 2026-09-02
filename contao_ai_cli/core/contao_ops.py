@@ -5,6 +5,50 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.table_parser import parse_table
 
 
+class BulkUpdateFailed(ContaoBackendError):
+    """
+    A bulk update where some records failed.
+
+    Carries the server's summary so the caller keeps what it needs — which
+    records failed and why — while `$?` finally says that something did.
+    `ContaoBackendError` is a `click.ClickException`, so this prints one
+    `Error: …` line and exits 1 instead of unwinding a traceback.
+    """
+
+    def __init__(self, summary: dict, returncode: int):
+        self.summary = summary
+        self.returncode = returncode
+
+        failed = summary.get("failed")
+        total = summary.get("total")
+        errors = summary.get("errors") or {}
+
+        detail = "; ".join(f"{k}: {v}" for k, v in list(errors.items())[:5]) if isinstance(errors, dict) \
+            else "; ".join(str(e) for e in list(errors)[:5])
+
+        super().__init__(
+            f"Bulk update: {failed} of {total} records failed"
+            + (f" ({detail})" if detail else "")
+            + ". The full summary was written to stdout."
+        )
+
+    def show(self, file=None) -> None:
+        """
+        Print the summary on stdout, the message on stderr, and exit 1.
+
+        Raising alone would have traded one broken reader for another: the shell
+        script would finally see a non-zero `$?`, and the agent — the main
+        consumer — would lose the JSON that names which records failed. Both
+        readers get what they need this way, which is also the ordinary shell
+        contract: data on stdout, diagnosis on stderr, failure in the exit code.
+        """
+        import json as _json
+        import sys as _sys
+
+        _sys.stdout.write(_json.dumps(self.summary, indent=2, ensure_ascii=False) + "\n")
+        super().show(file)
+
+
 def migrate(backend: ContaoBackend, dry_run: bool = False) -> dict:
     cmd = "contao:migrate --no-interaction"
     if dry_run:
@@ -153,8 +197,8 @@ def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
     The core bundle takes the ID as an argument and every changed field as a
     repeated --set, which is what build_set_args produces.
     """
-    cmd = f"{command} {int(record_id)} {build_set_args(fields)} --no-interaction"
-    return run_json_or_raw(backend, " ".join(cmd.split()))
+    cmd = join_args(command, int(record_id), build_set_args(fields), "--no-interaction")
+    return run_json_or_raw(backend, cmd)
 
 
 def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict:
@@ -170,14 +214,14 @@ def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict
     Returns the summary payload: total, succeeded, failed, ids, errors.
     """
     id_list = ",".join(str(int(i)) for i in ids)
-    cmd = " ".join(f"{command} --ids={id_list} {build_set_args(fields)} --no-interaction".split())
+    cmd = join_args(command, f"--ids={id_list}", build_set_args(fields), "--no-interaction")
 
     # check=False: a partial run exits non-zero on purpose, so a shell loop
     # notices — but the JSON summary is what names the failed records, and
     # letting run() raise discarded it.
     result = backend.run(cmd, check=False)
     try:
-        return json.loads(result["stdout"])
+        payload = json.loads(result["stdout"])
     except json.JSONDecodeError:
         # No JSON at all means the command never ran; that is a real failure.
         if result["returncode"] != 0:
@@ -186,6 +230,20 @@ def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict
                 f"{result['stderr'][:500] or result['stdout'][:500]}"
             ) from None
         return {"raw": result["stdout"]}
+
+    # Audit 2026-09-02 (M-3): a partial run used to end here with exit code 0.
+    # The server exits non-zero on purpose so a caller notices, and swallowing
+    # that turned "3 of 5 records updated" into a success for every shell script
+    # checking $?. An agent reading the JSON saw `failed` and `errors`; a
+    # pipeline saw nothing at all — the same answer meaning two different things
+    # depending on who read it.
+    #
+    # The summary is still what names the failures, so it is carried INTO the
+    # error rather than replaced by it.
+    if result["returncode"] != 0:
+        raise BulkUpdateFailed(payload, result["returncode"])
+
+    return payload
 
 
 def run_delete(backend, command: str, record_id: int) -> dict:
@@ -210,3 +268,26 @@ def build_set_args(fields: dict[str, str]) -> str:
     if not fields:
         return ""
     return " ".join(f"--set {shlex.quote(f'{k}={v}')}" for k, v in fields.items())
+
+
+def join_args(*parts) -> str:
+    """
+    Join command parts with single spaces, dropping the empty ones.
+
+    Audit 2026-09-02 (M-2). Five call sites used to build the command with an
+    f-string and then tidy it with `" ".join(cmd.split())`, because
+    `build_set_args({})` returns "" and left a double space behind.
+
+    That normalisation ran over the WHOLE command, including the values
+    `shlex.quote()` had just protected:
+
+        --set 'text=Zeile1\\nZeile2'   ->   --set 'text=Zeile1 Zeile2'
+
+    A news text lost its paragraphs, runs of spaces collapsed, and the command
+    answered `ok`. Quoting defends a value against the shell; nothing defended it
+    against us.
+
+    Dropping the empty parts before joining removes the reason the tidy-up
+    existed, so no step touches the values at all.
+    """
+    return " ".join(str(p) for p in parts if p is not None and str(p) != "")

@@ -2,7 +2,7 @@
 import secrets
 import shlex
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
-from contao_ai_cli.core.contao_ops import run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import run_json_or_raw, build_set_args, join_args
 
 
 def user_list(backend: ContaoBackend) -> list:
@@ -65,8 +65,8 @@ def user_create(backend: ContaoBackend, username: str, password: str,
 def user_update(backend: ContaoBackend, username: str, fields: dict) -> dict:
     """Update backend user fields via contao-ai-core-bundle."""
     set_args = build_set_args(fields)
-    cmd = f"contao:user:update {shlex.quote(username)} {set_args} --no-interaction"
-    return run_json_or_raw(backend, " ".join(cmd.split()))
+    cmd = join_args("contao:user:update", shlex.quote(username), set_args, "--no-interaction")
+    return run_json_or_raw(backend, cmd)
 
 
 def user_delete(backend: ContaoBackend, username: str) -> dict:

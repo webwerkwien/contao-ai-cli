@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.14.0"
+__version__ = "0.15.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -590,8 +590,22 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
         interactive = False
     if not interactive:
         return True
+
     answered = ask_yes_no(question, default=False)
-    return True if answered is None else answered
+
+    if answered is None:
+        # Audit 2026-09-02 (L). The prompt has already been printed at this
+        # point — `isatty()` said someone was there, and the read then hit EOF.
+        # Proceeding is deliberate and stays (see above), but leaving a bare
+        # "… [y/N]:" on screen followed by the action makes a transcript read as
+        # though somebody said yes. Say what actually happened instead.
+        click.echo(
+            "    (no answer on stdin — proceeding, as documented for non-interactive use)",
+            err=True,
+        )
+        return True
+
+    return answered
 
 
 def confirm_escalation(question: str) -> bool:

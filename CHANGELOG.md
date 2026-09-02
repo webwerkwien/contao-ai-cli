@@ -4,6 +4,76 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.15.0 - 2026-09-02
+
+The rest of the audit. v0.14.0 closed the SSH option injection and the passwords;
+these are the findings that were left open that morning.
+
+### Fixed
+
+- **A quoted value could be rewritten after it was quoted.** Five call sites
+  built a command with an f-string and then tidied it with
+  `" ".join(cmd.split())`, because `build_set_args({})` returns `""` and left a
+  double space behind. That tidy-up ran over the whole command, values included:
+
+      --set 'text=Zeile1\nZeile2'   ->   --set 'text=Zeile1 Zeile2'
+
+  A news text lost its paragraphs, runs of spaces collapsed, and the command
+  answered `ok`. `shlex.quote()` defends a value against the shell; nothing
+  defended it against us. Commands are now assembled from parts with the empty
+  ones dropped, so no step touches the values. **Not a security fix — a silent
+  data loss in the everyday write path, and the most consequential item in this
+  release.**
+
+- **A bulk update with failures exited 0.** The server exits non-zero on purpose
+  when some records fail, and that was swallowed so the JSON summary naming the
+  failures could be returned. An agent reading the JSON saw `failed`; a shell
+  script checking `$?` saw success — the same answer meaning two different
+  things depending on who read it.
+
+  Both readers are served now: the summary still goes to stdout, the diagnosis
+  to stderr, and the exit code says a failure happened.
+
+- **The bridge accepted `http://` and followed redirects with the token
+  attached.** The URL was only stripped of a trailing slash, so a bearer token
+  could travel in clear text; and `urllib` — unlike `requests` — keeps the
+  `Authorization` header across a redirect, including to another host. https is
+  required now, and redirects are refused outright rather than followed.
+  `allow_insecure` covers a local development bridge and must be passed
+  explicitly.
+
+- **The bridge token was a required command-line option.** Same defect as the
+  passwords fixed in v0.14.0; the mechanism built for those had simply not been
+  applied here. `bridge configure --token-stdin` added.
+
+- **A session file kept its old permissions.** `os.open()`'s mode argument
+  applies only when the file is created, so a file that was once `0644` stayed
+  `0644` while a bearer token was written into it — while the docstring promised
+  `0600`. A `chmod` after writing makes the promise true; it is best-effort,
+  because refusing to save a session over a failed chmod would be worse.
+
+- **`bridge configure --test` called a broken bridge healthy.** HTTP 500 counted
+  as `ok` on the grounds that reaching it proves authentication passed. That much
+  is true, which is why this is now a distinct `auth_ok_server_error` (exit 3)
+  rather than a failure — but answering *"Bridge auth OK"* to a server error hid
+  a bridge that authenticates fine and then breaks on every call.
+
+### Changed
+
+- **`connect` reports a host key it accepted.** We connect with
+  `StrictHostKeyChecking=accept-new`, and that stays: measured against a live
+  host, it still refuses when a *known* key changes, and `yes` would — next to
+  `BatchMode=yes`, where ssh cannot ask — make every first connection fail with
+  no way forward. What was wrong was the silence. ssh announces a first contact
+  and we dropped the line on success, so the user was told "connected" and never
+  learned a key had been trusted on their behalf. Silent trust-on-first-use
+  becomes stated trust-on-first-use; no behaviour changes.
+
+- **A confirmation nobody could answer now says so.** `undo restore` printed
+  `… [y/N]:` and then proceeded, which is the documented behaviour for
+  non-interactive use (otherwise every call in an agent harness dies) — but a
+  transcript read as though somebody had said yes.
+
 ## v0.14.0 - 2026-09-02
 
 > **Use core bundle v0.4.0.** Nothing added here needs it — the password work

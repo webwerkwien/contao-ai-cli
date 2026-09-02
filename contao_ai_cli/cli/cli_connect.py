@@ -17,6 +17,24 @@ from .helpers import (
 )
 
 
+def _host_key_notice(stderr: str) -> str | None:
+    """
+    The 'Permanently added ...' line, if ssh reported a first contact.
+
+    Measured against OpenSSH on 2026-09-02, the line reads:
+
+        Warning: Permanently added 'c5.axeltest.at' (ED25519) to the list of known hosts.
+
+    Matched on the stable middle of it rather than the whole sentence, so a
+    reworded warning still registers as "a key was accepted". Returns None when
+    the host was already known, which is the ordinary case.
+    """
+    for line in (stderr or "").splitlines():
+        if "Permanently added" in line:
+            return line.strip().removeprefix("Warning: ").strip()
+    return None
+
+
 def _install_core_bundle(b, manager, action: str) -> bool:
     """
     Install ('require') or update the core bundle on the target server.
@@ -106,7 +124,34 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         result = backend.run("--version")
         saved = session_mod.save_session(config, session_path)
         data = {"status": "connected", "session": saved, "version": result["stdout"]}
+
+        # Audit 2026-09-02 (H-10). We connect with StrictHostKeyChecking=accept-new,
+        # which is the right setting: measured against a live host, it still
+        # refuses when a KNOWN key changes, and `yes` would — next to
+        # BatchMode=yes, where ssh cannot ask — simply make every first
+        # connection fail with no way forward.
+        #
+        # 🎯 What was wrong was not the setting but the silence. ssh announces a
+        # first contact ("Warning: Permanently added ... to the list of known
+        # hosts"), and run() captured that on stderr and dropped it on success.
+        # The user was told "connected" and never learned that a host key had
+        # just been trusted on their behalf. Reporting it turns silent
+        # trust-on-first-use into stated trust-on-first-use; it changes no
+        # behaviour and breaks no first connection.
+        neuer_hostkey = _host_key_notice(result.get("stderr", ""))
+        if neuer_hostkey:
+            data["host_key_accepted"] = neuer_hostkey
+
         _output(data, as_json or ctx.obj.get("as_json"))
+
+        if neuer_hostkey and not (as_json or ctx.obj.get("as_json")):
+            click.echo(click.style(
+                f"\n[!] First contact with this host — its key was accepted and stored:\n"
+                f"    {neuer_hostkey}\n"
+                f"    Later connections are refused if that key changes. If you did not\n"
+                f"    expect a first contact here, verify the fingerprint with the server.",
+                fg="yellow",
+            ), err=True)
 
         if click.confirm("Create a database backup now?", default=True):
             click.echo("Creating backup...")

@@ -15,8 +15,30 @@ unchanged.
 """
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """
+    Refuse every redirect instead of following it.
+
+    Audit 2026-09-02 (C-1). `urllib` follows redirects by default and keeps the
+    `Authorization` header while doing so, including across hosts — so a bridge
+    answering `302 -> https://elsewhere` handed the bearer token to that host,
+    and the caller saw an ordinary response.
+
+    A bridge endpoint does not legitimately redirect. If one starts to, that is
+    worth an error rather than a silent hop.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise BridgeError(
+            f"Bridge redirected to {newurl!r} (HTTP {code}). Refusing to follow: "
+            f"the Authorization header would travel with it. Check bridge_url."
+        )
+
 
 
 class BridgeError(Exception):
@@ -29,12 +51,42 @@ class BridgeError(Exception):
 
 
 class BackendBridgeClient:
-    def __init__(self, base_url: str, token: str, timeout: int = 120):
+    def __init__(self, base_url: str, token: str, timeout: int = 120, allow_insecure: bool = False):
+        """
+        Audit 2026-09-02 (C-1). The URL was only stripped of a trailing slash.
+        Two consequences, both of which sent the bearer token somewhere it did
+        not belong:
+
+        * `http://…` was accepted, so the token travelled in clear text.
+        * `urllib` follows redirects by default and — unlike `requests` — keeps
+          the `Authorization` header across hosts. A bridge answering
+          `302 -> https://elsewhere` handed the token over, and the caller saw a
+          normal response.
+
+        Both are closed here: https is required, and redirects are refused
+        outright (`_NoRedirect`). A bridge does not legitimately redirect; if one
+        starts to, that should surface as an error rather than as a silent hop.
+
+        `allow_insecure` exists for a local http bridge during development. It
+        has to be passed explicitly and is never set from a stored session.
+        """
         if not base_url or not token:
             raise ValueError("BackendBridgeClient requires base_url and token")
+
+        parsed = urllib.parse.urlparse(base_url)
+        if parsed.scheme != "https" and not allow_insecure:
+            raise BridgeError(
+                f"Refusing a non-https bridge URL: {base_url!r}. The bearer token would "
+                f"travel in clear text. Use https, or pass allow_insecure for a local "
+                f"development bridge."
+            )
+        if not parsed.netloc:
+            raise BridgeError(f"Bridge URL has no host: {base_url!r}")
+
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.timeout = timeout
+        self._opener = urllib.request.build_opener(_NoRedirect)
 
     def clone(
         self,
@@ -84,7 +136,7 @@ class BackendBridgeClient:
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with self._opener.open(req, timeout=self.timeout) as resp:
                 raw = resp.read().decode("utf-8")
                 status = resp.getcode()
         except urllib.error.HTTPError as e:

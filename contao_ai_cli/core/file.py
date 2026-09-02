@@ -6,7 +6,7 @@ It stores metadata for files and folders under the configured upload path.
 import shlex
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, build_set_args
+from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, build_set_args, join_args
 
 
 def file_list(backend: ContaoBackend, path: str | None = None,
@@ -104,5 +104,6 @@ def file_meta_update(backend: ContaoBackend, path: str, meta: dict, lang: str = 
     lang: language key matching the Contao root-page language (default: en).
     """
     set_args = build_set_args(meta)
-    cmd = f'contao:file:meta --path {shlex.quote(path)} --lang {shlex.quote(lang)} {set_args}'
-    return run_json_or_raw(backend, " ".join(cmd.split()))
+    cmd = join_args('contao:file:meta', '--path', shlex.quote(path),
+                    '--lang', shlex.quote(lang), set_args)
+    return run_json_or_raw(backend, cmd)

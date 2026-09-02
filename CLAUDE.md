@@ -617,6 +617,29 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
 - The CLI never stores passwords; use SSH key authentication
 - Always maintain a current backup of the Contao installation before making changes
 
+### A bulk update that partly failed now exits non-zero (since v0.15.0)
+
+`--ids` / `--ids-from-file` used to end with exit code 0 even when the server
+reported *"1 of 2 records failed"*. It now exits 1, and **the JSON summary is
+still written to stdout** — read it, it names the failed ids and why.
+
+So: parse stdout as before, and stop treating a zero exit as "all of them
+worked". If you are looping in a shell, `$?` finally means what it looks like.
+
+### The bridge must be https (since v0.15.0)
+
+`bridge configure --url` refuses anything but `https://`, and the client no
+longer follows redirects: `urllib` keeps the `Authorization` header across one,
+including to another host. A redirecting bridge is now an error rather than a
+silent hop. Pass the token with `--token-stdin` for the same reason as the
+passwords below.
+
+### `connect` may report an accepted host key
+
+On a first contact it prints the key it accepted and adds `host_key_accepted` to
+the JSON. That is information, not a failure — nothing is blocked. It appears
+only the first time a machine talks to that host.
+
 ### Passing a password: use `--password-stdin`
 
 Three commands take a password. Each accepts it two ways, and **an agent should

@@ -24,7 +24,7 @@ from contao_ai_cli.core import (
     backend_bridge as bridge_mod,
     session as session_mod,
 )
-from .helpers import _output
+from .helpers import _output, resolve_password
 
 
 @click.group()
@@ -35,11 +35,21 @@ def bridge():
 
 @bridge.command("configure")
 @click.option("--url", required=True, help="Base URL of the Contao site, e.g. https://c5.example.com")
-@click.option("--token", required=True, help="Bridge token in the format <userId>.<random>")
+@click.option("--token", default=None,
+              help="Bridge token <userId>.<random>. Visible in the process list — prefer --token-stdin.")
+@click.option("--token-stdin", is_flag=True,
+              help="Read the token from stdin instead, so it stays out of the process list.")
 @click.option("--test", is_flag=True, help="After saving, do a sanity-check call (record_clone with invalid args, expects HTTP 422)")
 @click.pass_context
-def bridge_configure(ctx, url, token, test):
-    """Save bridge URL + token to the current session file."""
+def bridge_configure(ctx, url, token, token_stdin, test):
+    """Save bridge URL + token to the current session file.
+
+    Audit 2026-09-02 (H-1). The token used to be a required CLI option, so it
+    sat in this process's command line where any other user of the machine can
+    read it — the same defect as the passwords fixed in v0.14.0, and the
+    mechanism built for those was simply never applied here.
+    """
+    token = resolve_password(token, token_stdin, what="--token")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     cfg = session_mod.load_session(session_path)
     if not cfg:
@@ -63,10 +73,27 @@ def bridge_configure(ctx, url, token, test):
             client.clone(table="__nonexistent__", source_id=1)
             result["test"] = {"status": "unexpected_success", "note": "Expected refusal but call succeeded — token may be wrong scope."}
         except bridge_mod.BridgeError as e:
-            if e.status in (403, 422, 500):
-                # 403 = voter refusal (tool gated), 422 = invalid args, 500 = tool exec
-                # all confirm we reached our controller through valid auth.
+            if e.status in (403, 422):
+                # 403 = voter refusal (tool gated), 422 = invalid args. Both are
+                # our controller answering, so auth and routing are proven.
                 result["test"] = {"status": "ok", "reason": f"Bridge auth OK, server rejected as expected (HTTP {e.status})"}
+            elif e.status == 500:
+                # Audit 2026-09-02 (M-4). A 500 used to count as "ok" on the
+                # grounds that reaching it proves auth passed — which is true,
+                # and is why this is a warning rather than a failure. But the
+                # test says "expects HTTP 422", and answering `Bridge auth OK`
+                # to a server error hides a bridge that authenticates fine and
+                # then breaks on every call. The distinction the user needs is
+                # "your token works" AND "the bridge does not".
+                result["test"] = {
+                    "status": "auth_ok_server_error",
+                    "reason": f"Token accepted (a 500 means our controller ran), but the bridge "
+                              f"raised HTTP 500 on the probe call instead of the expected 422. "
+                              f"Check the site's log — the configuration is saved either way.",
+                    "http_status": e.status,
+                }
+                _output(result, ctx.obj.get("as_json"))
+                sys.exit(3)
             elif e.status == 401:
                 result["test"] = {"status": "auth_failed", "reason": "401 Unauthorized — token wrong or user disabled"}
                 _output(result, ctx.obj.get("as_json"))

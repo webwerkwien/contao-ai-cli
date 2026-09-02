@@ -17,12 +17,27 @@ def get_session_path(session_name: str | None = None) -> str:
 
 
 def save_session(config: dict, session_path: str | None = None) -> str:
-    """Save session config with restricted permissions (owner-read-only, 0o600)."""
+    """Save session config with restricted permissions (owner-read-only, 0o600).
+
+    Audit 2026-09-02 (M-1). The mode argument to `os.open()` applies only when
+    the file is CREATED. An existing session file kept whatever mode it already
+    had — so a file that was once 0644 stayed 0644 while `bridge configure`
+    wrote a bearer token into it, and the docstring above said otherwise.
+
+    The chmod after writing is what makes the promise true for a file that
+    already existed. It is best-effort on purpose: POSIX modes mean little on
+    Windows and the call can fail on odd filesystems, and refusing to save a
+    session over that would be the worse outcome.
+    """
     path = session_path or DEFAULT_SESSION_FILE
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
     return path
 
 
