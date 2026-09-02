@@ -267,7 +267,9 @@ contao-ai-cli --session my-site --json bridge rewrite \
 The bridge line distinguishes three states, because the next step differs:
 
 - **not installed** — contao-ai-backend-bundle is absent from the server.
-  Fix with `composer require webwerkwien/contao-ai-backend-bundle`.
+  Fix with `composer require "webwerkwien/contao-ai-backend-bundle:>=0.1 <1.0"`
+  (the explicit constraint keeps later 0.x releases reachable — a plain
+  `composer require` caps at the next minor).
 - **installed, not configured** — the bundle is there, but this session has no token.
   Fix with `contao-ai-cli bridge configure --url … --token …`.
 - **ready** — both.
