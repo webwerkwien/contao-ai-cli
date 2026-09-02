@@ -4,6 +4,64 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.14.0 - 2026-09-02
+
+> **Use core bundle v0.4.0.** Nothing added here needs it — the password work
+> below drives Contao's own commands, not ours. But `record clone` goes through
+> the core bundle's cloners, and before v0.4.0 those left the content elements
+> under cloned news and events behind and wrote duplicate aliases, silently and
+> answering `ok`.
+
+Second security audit, part 4. The findings here are about secrets ending up
+where anyone can read them.
+
+### Added
+
+- **`--password-stdin` on `user create`, `user password` and
+  `security hash-password`.** A password given as `--password Geheim` is an
+  argument of this process: `/proc/<pid>/cmdline` is world-readable on Linux and
+  Windows lets any process enumerate the same thing, so every other user of the
+  machine can read it. Piping it in keeps it out of the process list on both
+  ends.
+
+  `--password` still works — piping is not always possible — but the agent guide
+  now says to prefer stdin, and `security hash-password` accepts its `PASSWORD`
+  argument as optional for the same reason.
+
+### Fixed
+
+- **Passwords no longer reach any remote command line.** `contao:user:password
+  --password=…` and `echo <password> | php bin/console security:hash-password`
+  put the plaintext into the argument list of the local ssh process *and* of the
+  remote php process. `shlex.quote` protected against the shell interpreting the
+  value; it never had anything to do with the value being visible.
+
+  Contao states the rule in its own help text — `contao:user:password` documents
+  `--password` as *"not recommended for security reasons"* — and offers the
+  prompt instead. Both commands now answer that prompt over ssh's stdin. A TODO
+  from the April audit stood at both call sites and named exactly this fix.
+
+- **`user create` sets the password in a second step.** Driving
+  `contao:user:create` through its prompts is not possible: measured against
+  Contao 5, the sequence ends in a mandatory group selection whose options are
+  the groups of that installation, and `--no-interaction` suppresses the password
+  prompt along with it. The account is created with a `secrets.token_urlsafe`
+  throwaway and re-passworded through the prompt path.
+
+  If that second step fails the command now raises instead of reporting
+  `created` — the account would otherwise exist with a secret nobody holds.
+
+### Changed
+
+- **`ContaoBackend.run()` and `run_raw()` take an optional `stdin_data`.**
+  Default behaviour is unchanged: without it stdin stays `DEVNULL`, because ssh
+  would otherwise drain the caller's own stdin and a
+  `while read id; do … done < ids.txt` loop would run exactly once while
+  reporting success. The choice lives in one helper so the two call sites cannot
+  drift apart, and `test_stdin_isolation.py` was widened to recognise it —
+  the first attempt at that refactor left one call site unpinned and the test
+  caught it.
+
 ## v0.13.3 - 2026-09-01
 
 > **Needs core bundle v0.2.37.**

@@ -616,3 +616,43 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
 - Session files contain SSH connection details — treat them as credentials
 - The CLI never stores passwords; use SSH key authentication
 - Always maintain a current backup of the Contao installation before making changes
+
+### Passing a password: use `--password-stdin`
+
+Three commands take a password. Each accepts it two ways, and **an agent should
+always use the second**:
+
+```bash
+# Readable by every other user of this machine and of the server
+contao-ai-cli user password --username alice --password "Geheim"
+
+# Not in any process list
+printf '%s\n' "Geheim" | contao-ai-cli user password --username alice --password-stdin
+```
+
+The same applies to `user create --password-stdin` and
+`security hash-password --password-stdin` (whose `PASSWORD` argument became
+optional in v0.14.0 for this reason). One line is read; only the trailing newline
+is stripped, so a password may begin or end with a space.
+
+A command line is not private. On Linux `/proc/<pid>/cmdline` is world-readable
+and on Windows any process can be enumerated the same way — so `--password` is
+visible to anyone logged in, on **both** ends of the connection. Contao says so
+itself: `contao:user:password` documents its own `--password` as *"not
+recommended for security reasons"*.
+
+`--password` still works and is not deprecated — piping is not always possible.
+But when you are choosing, choose stdin.
+
+### What `user create` does under the hood
+
+Since v0.14.0 it makes **two** server calls: it creates the account with a random
+throwaway secret, then sets the requested password through the prompt. This is
+not decoration — `contao:user:create` cannot be driven through its prompts,
+because it ends with a mandatory group question whose options are the groups of
+that particular site, and `--no-interaction` suppresses the password prompt along
+with everything else.
+
+Consequence for a caller: if the second step fails, the command **raises** rather
+than reporting `created`, and the account then exists with a password nobody
+holds. The error says so and names the two ways out.

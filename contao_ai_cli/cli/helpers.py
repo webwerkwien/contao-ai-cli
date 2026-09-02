@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.13.3"
+__version__ = "0.14.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -409,6 +409,38 @@ def dispatch_update(backend, command: str, record_id, ids, ids_from_file, fields
         return run_update(backend, command, targets[0], fields)
 
     return run_bulk_update(backend, command, targets, fields)
+
+
+def resolve_password(password: str | None, password_stdin: bool, what: str = "--password") -> str:
+    """
+    Take a password from an option or from this process's stdin.
+
+    Audit 2026-09-02 (H-1/M-10). `--password Geheim` is an argument of *this*
+    process, and on both Linux and Windows any other user of the machine can read
+    another process's command line. Sending it over ssh on stdin (see
+    `ContaoBackend.run`) closes the remote half; this closes the local one.
+
+    Reads exactly one line, and strips only the trailing newline — a password may
+    legitimately begin or end with a space, and `.strip()` would silently hand the
+    server a different secret than the one that was piped in.
+
+    :raises click.UsageError: when neither or both sources are given, or when
+        stdin is empty
+    """
+    if password_stdin:
+        if password is not None:
+            raise click.UsageError(f"Use either {what} or --password-stdin, not both.")
+        data = sys.stdin.readline()
+        if not data:
+            raise click.UsageError("--password-stdin was given but stdin was empty.")
+        return data.rstrip("\r\n")
+
+    if password is None:
+        raise click.UsageError(
+            f"A password is required: pass {what}, or pipe it in with --password-stdin "
+            f"(which keeps it out of the process list)."
+        )
+    return password
 
 
 def configure_output_encoding(*streams) -> None:

@@ -1,6 +1,9 @@
 ﻿import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from contao_ai_cli.utils.contao_backend import ContaoBackendError
 from contao_ai_cli.core.backup import backup_create, backup_list, backup_restore
 from contao_ai_cli.core.cache import cache_clear, cache_warmup, cache_pool_list, cache_pool_clear
 from contao_ai_cli.core.comment import comment_list
@@ -570,16 +573,29 @@ class TestSearch:
 class TestSecurity:
     def test_hash_password(self):
         backend = MagicMock()
-        backend.run_raw.return_value = {"stdout": "  $argon2id$v=19$hash  ", "returncode": 0}
+        backend.run.return_value = {"stdout": "  $argon2id$v=19$hash  ", "returncode": 0}
         result = hash_password(backend, "secret")
         assert result["output"] == "$argon2id$v=19$hash"
-        assert "security:hash-password --no-interaction" in backend.run_raw.call_args[0][0]
+        assert "security:hash-password" in backend.run.call_args[0][0]
+
+    def test_hash_password_never_puts_the_password_in_the_command(self):
+        # Audit 2026-09-02. This used to build `echo <password> | php bin/console`
+        # and hand it to run_raw() — quoted, and therefore safe from the shell,
+        # but an argument of the local ssh process all the same.
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": "hash", "returncode": 0}
+        hash_password(backend, "Streng-Geheim-42")
+
+        assert "Streng-Geheim-42" not in backend.run.call_args[0][0]
+        assert backend.run_raw.call_count == 0, "back on the shell-string path"
+        # A blank line first: Symfony asks for the user class before the password.
+        assert backend.run.call_args.kwargs["stdin_data"] == "\nStreng-Geheim-42\n"
 
     def test_hash_password_with_algorithm(self):
         backend = MagicMock()
-        backend.run_raw.return_value = {"stdout": "hash", "returncode": 0}
+        backend.run.return_value = {"stdout": "hash", "returncode": 0}
         hash_password(backend, "secret", algorithm="bcrypt")
-        assert "--algorithm=bcrypt" in backend.run_raw.call_args[0][0]
+        assert "--algorithm=bcrypt" in backend.run.call_args[0][0]
 
 
 class TestTemplate:
@@ -623,12 +639,51 @@ class TestUser:
         backend = MagicMock()
         backend.run.return_value = {"stdout": "created", "returncode": 0}
         result = user_create(backend, "admin", "secret", "Admin User", "admin@example.com", admin=True)
-        cmd = backend.run.call_args[0][0]
+
+        # Two calls now: create with a throwaway, then set the real password
+        # through the prompt. call_args is the LAST one — reading it here is how
+        # this test first failed, and the reading was the mistake, not the code.
+        create_cmd = backend.run.call_args_list[0][0][0]
         assert result["status"] == "created"
-        assert "--username=admin" in cmd
-        assert "--password=secret" in cmd
-        assert "--name='Admin User'" in cmd
-        assert "--admin" in cmd
+        assert "--username=admin" in create_cmd
+        assert "--name='Admin User'" in create_cmd
+        assert "--admin" in create_cmd
+
+    def test_user_create_never_puts_the_real_password_in_a_command(self):
+        # Audit 2026-09-02. The account is created with a random throwaway
+        # because contao:user:create cannot be driven through its prompts — its
+        # group question is mandatory and site-specific. The caller's password
+        # goes down stdin in the second step.
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": "created", "returncode": 0}
+        user_create(backend, "alice", "Streng-Geheim-42", "Alice", "a@example.com")
+
+        commands = [c[0][0] for c in backend.run.call_args_list]
+        assert len(commands) == 2, f"expected create + password, got {commands}"
+        assert not any("Streng-Geheim-42" in c for c in commands)
+        assert "contao:user:password" in commands[1]
+
+        stdin_seen = backend.run.call_args_list[1].kwargs["stdin_data"]
+        assert stdin_seen == "Streng-Geheim-42\nStreng-Geheim-42\n"
+
+        # The throwaway must not be the password either — a constant would be
+        # worse than the argument it replaces.
+        assert "--password=" in commands[0]
+        assert "--password='Streng-Geheim-42'" not in commands[0]
+
+    def test_user_create_says_so_when_the_password_step_fails(self):
+        # Otherwise the account exists with a random secret and the caller is
+        # told "created".
+        backend = MagicMock()
+        backend.run.side_effect = [
+            {"stdout": "created", "returncode": 0},
+            ContaoBackendError("remote refused"),
+        ]
+        with pytest.raises(ContaoBackendError) as excinfo:
+            user_create(backend, "bob", "geheim", "Bob", "b@example.com")
+
+        assert "was created" in str(excinfo.value)
+        assert "geheim" not in str(excinfo.value)
 
     def test_user_update(self):
         backend = MagicMock()

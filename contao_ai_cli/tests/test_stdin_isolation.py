@@ -67,7 +67,17 @@ def test_scp_upload_does_not_inherit_stdin():
 
 
 def test_every_subprocess_call_in_the_module_pins_stdin():
-    """A new call site added without stdin= reopens the same hole silently."""
+    """A new call site added without stdin= reopens the same hole silently.
+
+    Since 2026-09-02 two call sites route the decision through
+    `_stdin_kwargs()`, because passwords now go to the remote command on stdin
+    and `subprocess.run()` refuses `input=` and `stdin=` together. That helper
+    counts as pinning: it returns `stdin=DEVNULL` whenever no data was given, so
+    the default this test was written to protect is unchanged.
+
+    What is NOT accepted is a bare call with neither — which is exactly what the
+    first version of that refactor produced, and this test caught it.
+    """
     import ast
     import pathlib
 
@@ -75,6 +85,7 @@ def test_every_subprocess_call_in_the_module_pins_stdin():
     tree = ast.parse(source.read_text(encoding="utf-8"))
 
     offenders = []
+    checked = 0
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -82,7 +93,31 @@ def test_every_subprocess_call_in_the_module_pins_stdin():
         if not (isinstance(func, ast.Attribute) and func.attr == "run"
                 and isinstance(func.value, ast.Name) and func.value.id == "subprocess"):
             continue
-        if not any(kw.arg == "stdin" for kw in node.keywords):
+        checked += 1
+
+        if any(kw.arg == "stdin" for kw in node.keywords):
+            continue
+
+        # `**_stdin_kwargs(...)` — a ** unpacking carries arg=None.
+        via_helper = any(
+            kw.arg is None
+            and isinstance(kw.value, ast.Call)
+            and isinstance(kw.value.func, ast.Name)
+            and kw.value.func.id == "_stdin_kwargs"
+            for kw in node.keywords
+        )
+        if not via_helper:
             offenders.append(node.lineno)
 
-    assert not offenders, f"subprocess.run() without stdin= at line(s) {offenders}"
+    # A scan that matches nothing passes exactly like one that matches everything.
+    assert checked >= 3, f"the scan found only {checked} subprocess.run() call sites"
+    assert not offenders, f"subprocess.run() with unpinned stdin at line(s) {offenders}"
+
+
+def test_the_stdin_helper_defaults_to_devnull():
+    """The helper is only acceptable above because of this."""
+    from contao_ai_cli.utils.contao_backend import _stdin_kwargs
+
+    assert _stdin_kwargs(None) == {"stdin": subprocess.DEVNULL}
+    assert _stdin_kwargs("secret\n") == {"input": "secret\n"}
+    assert "stdin" not in _stdin_kwargs("secret\n"), "input= and stdin= together raise ValueError"

@@ -4,7 +4,7 @@ user group — Backend user management.
 import click
 
 from contao_ai_cli.core import session as session_mod, user as user_mod, dca_schema
-from .helpers import _get_backend, _output, _require_core_bundle
+from .helpers import _get_backend, _output, _require_core_bundle, resolve_password
 
 
 @click.group()
@@ -23,7 +23,10 @@ def user_list(ctx, as_json):
 
 @user.command("create")
 @click.option("--username", required=True)
-@click.option("--password", required=True)
+@click.option("--password", default=None,
+              help="The password. Visible in the process list — prefer --password-stdin.")
+@click.option("--password-stdin", is_flag=True,
+              help="Read the password from stdin instead, so it stays out of the process list.")
 @click.option("--name", required=True, help="Full name (required by Contao)")
 @click.option("--email", required=True, help="E-mail address (required by Contao)")
 @click.option("--language", default="en", show_default=True,
@@ -31,8 +34,9 @@ def user_list(ctx, as_json):
 @click.option("--admin", is_flag=True)
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_create(ctx, username, password, name, email, language, admin, as_json):
+def user_create(ctx, username, password, password_stdin, name, email, language, admin, as_json):
     """Create a backend user."""
+    password = resolve_password(password, password_stdin)
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
 
     # DCA validation — runs only if schema has been synced, skipped otherwise
@@ -61,11 +65,15 @@ def user_create(ctx, username, password, name, email, language, admin, as_json):
 
 @user.command("password")
 @click.option("--username", required=True)
-@click.option("--password", required=True)
+@click.option("--password", default=None,
+              help="The new password. Visible in the process list — prefer --password-stdin.")
+@click.option("--password-stdin", is_flag=True,
+              help="Read the password from stdin instead, so it stays out of the process list.")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_password(ctx, username, password, as_json):
+def user_password(ctx, username, password, password_stdin, as_json):
     """Change a user's password."""
+    password = resolve_password(password, password_stdin)
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_password(b, username, password),
             as_json or ctx.obj.get("as_json"))
