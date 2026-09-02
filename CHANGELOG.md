@@ -30,6 +30,23 @@ where anyone can read them.
 
 ### Fixed
 
+- **An SSH user beginning with `-` made ssh run a local command.** The
+  destination was put on the command line with nothing marking the end of the
+  options, so `connect --user '-oProxyCommand=…'` was parsed by ssh as an option
+  of its own and the command it named was executed on the machine running the
+  CLI. Reproduced with a working proof of concept before the fix.
+
+  Two changes: `--` now precedes the destination — and the operands of `scp`,
+  where the same shape was measured as not exploitable, but "the payload happens
+  not to fit" is not a defence — and host, user and key path are refused at
+  construction if they begin with `-` or carry whitespace or control characters.
+  A key path may still contain spaces, which is an ordinary Windows path and
+  travels as its own argument.
+
+  Worth recording how nearly this was missed: a first check through Git Bash's
+  `ssh` showed nothing executing. The code picks
+  `C:\Windows\System32\OpenSSH\ssh.exe` on Windows, and only there does it fire.
+
 - **Passwords no longer reach any remote command line.** `contao:user:password
   --password=…` and `echo <password> | php bin/console security:hash-password`
   put the plaintext into the argument list of the local ssh process *and* of the

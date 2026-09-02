@@ -14,6 +14,50 @@ from typing import Any
 import click
 
 
+def _reject_option_lookalike(label: str, value: str) -> str:
+    """
+    Refuse a connection value that ssh would read as an option of its own.
+
+    Audit 2026-09-02 (C-10), confirmed with a working proof of concept. `_ssh_args`
+    put `user@host` on the command line with nothing marking the end of the
+    options, so a session whose user began with `-o` made ssh run an arbitrary
+    LOCAL command:
+
+        connect --user '-oProxyCommand=cmd.exe /c … & rem '
+
+    ssh parsed that as `-o ProxyCommand=…`, spawned it, and the file it created
+    is how this was measured. The user is the reachable one — it is a `connect`
+    option and lands in the session file — but host, port and key path travel the
+    same path and are checked here for the same reason.
+
+    ## Why both this and `--`
+
+    `--` alone would be enough against ssh, and it is there. This exists because
+    the value also reaches scp, a session file, and error messages, and because
+    a check at the door says what went wrong at the moment someone can still fix
+    it — `_ssh_args` cannot.
+
+    ## Why the measurement nearly said the opposite
+
+    A first run through Git Bash's ssh showed no execution, and the finding was
+    almost written off. The code selects `C:\\Windows\\System32\\OpenSSH\\ssh.exe`
+    on Windows, and only there does it fire. A result belongs to the binary it
+    was taken from.
+
+    :raises ContaoBackendError: on a leading `-`, whitespace or a control character
+    """
+    if value.startswith("-"):
+        raise ContaoBackendError(
+            f"Refusing an SSH {label} that begins with '-': {value!r}. "
+            f"ssh would read it as an option rather than a value."
+        )
+    if any(c.isspace() or ord(c) < 32 for c in value):
+        raise ContaoBackendError(
+            f"Refusing an SSH {label} containing whitespace or control characters: {value!r}."
+        )
+    return value
+
+
 def _stdin_kwargs(stdin_data: str | None) -> dict:
     """
     The one place that decides what a remote command reads on stdin.
@@ -58,11 +102,18 @@ class ContaoBackend:
     def __init__(self, host: str, user: str, contao_root: str,
                  key_path: str | None = None, port: int = 22,
                  php_path: str = "php"):
-        self.host = host
-        self.user = user
+        self.host = _reject_option_lookalike("host", host)
+        self.user = _reject_option_lookalike("user", user)
         self.contao_root = contao_root
+        # Only the leading dash: a key path legitimately contains spaces
+        # (`C:\Program Files\…`) and travels as its own argv element after `-i`,
+        # where a space cannot split it.
         self.key_path = key_path or self._default_key()
-        self.port = port
+        if self.key_path.startswith("-"):
+            raise ContaoBackendError(
+                f"Refusing an SSH key path that begins with '-': {self.key_path!r}."
+            )
+        self.port = int(port)
         self.php_path = php_path
         self._ssh_bin: str = self._find_ssh()  # cache — find_ssh called once
 
@@ -109,7 +160,9 @@ class ContaoBackend:
             ]
         if self.key_path:
             args += ["-i", self.key_path]
-        args.append(f"{self.user}@{self.host}")
+        # `--` ends option parsing. Without it a user or host beginning with `-`
+        # is read by ssh as an option of its own; see _reject_option_lookalike.
+        args += ["--", f"{self.user}@{self.host}"]
         return args
 
     def run_raw(self, shell_command: str, timeout: int = 60, stdin_data: str | None = None) -> dict:
@@ -385,7 +438,10 @@ class ContaoBackend:
                 "-P", str(self.port)]
         if self.key_path:
             args += ["-i", self.key_path]
-        args += [local_path, f"{self.user}@{self.host}:{remote_path}"]
+        # Same reasoning as _ssh_args(). Measured as not exploitable here — the
+        # injected option eats the source operand and scp aborts with usage —
+        # but "the payload happens not to fit" is not a defence.
+        args += ["--", local_path, f"{self.user}@{self.host}:{remote_path}"]
 
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
