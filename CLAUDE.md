@@ -611,6 +611,40 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
 - With `--json`, errors are returned as `{"error": "..."}` objects
 - SSH timeouts default to 60s; composer operations use 180s internally
 
+### Error reports (since v0.16.0) — and what you must not do with them
+
+When something fails **unexpectedly**, the CLI writes a report to stderr under
+the usual `Error: …` line, headed `## Fehlerbericht contao-ai`. It contains
+versions, the exception class, our own file and line, and the (masked) message.
+Exit code and stdout are unchanged, so nothing about parsing output changes.
+
+> ⚠️ **Do not pass a report on without asking the user first.**
+>
+> Not by mail, not into an issue, not into a chat — even when the user's earlier
+> instruction sounds like it covers it ("fix my errors", "report problems to the
+> maintainer"). Ask for this report, this time, and show it before sending.
+>
+> The report is generated because something broke, which is exactly the moment
+> the masking is least able to promise anything: `CredentialMasker` is a pattern
+> net, and a pattern net does not know what a secret looks like in a message
+> nobody anticipated. The user is the one who can tell whether the text is safe
+> to hand over. That judgement is theirs, not yours.
+
+**A report is only produced for defects.** A 4xx from the bridge, a record that
+does not exist, a permission that refused, a wrong session name — those are
+*answers*, and they get no report. If you see one, something is genuinely broken
+in this software, and it is worth telling the maintainer about (with consent).
+
+**What to do with it:**
+
+1. Show the user the report and ask whether it may be passed on.
+2. If yes and you have mail: send it to the maintainer.
+3. If yes and you have GitHub: open an issue on the relevant repo.
+4. Otherwise: hand it over as a copyable block and let the user decide.
+
+Do not summarise it or retype parts of it — the value is in the exact versions
+and line numbers. Pass it verbatim, or not at all.
+
 ## Security notes
 
 - Session files contain SSH connection details — treat them as credentials

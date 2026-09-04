@@ -4,6 +4,41 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.16.0 - 2026-09-04
+
+### Added
+
+- **An unexpected failure now writes an error report to stderr.** Headed
+  `## Fehlerbericht contao-ai`, under the usual `Error: …` line: versions,
+  exception class, our own file and line, and the masked message. Exit code and
+  stdout are unchanged, so nothing about parsing output changes.
+
+  Most CLI failures never reach the server — no SSH key, host unreachable, a bug
+  in this code — so the bundles' `ErrorReportBuilder` cannot describe them. This
+  is the same idea in the other runtime, with the same field names so a report
+  reads identically whichever end produced it.
+
+- **Only defects get one.** A 4xx from the bridge is the server telling us
+  something about the request — wrong token, missing route — and reporting those
+  would train users to send noise. A 5xx broke. Anything else that reaches the
+  top-level handler is unexpected by definition: Click handles what it planned
+  for, and `ContaoBackendError` is a `ClickException`, so a plain exception
+  arriving there means nobody planned for it. `Ctrl+C` exits 130 with no report.
+
+- **`CLAUDE.md` says what an agent must not do with a report:** not pass it on
+  without asking the user *for this report, this time* — not by mail, not into an
+  issue, not into a chat, and not because an earlier instruction sounded like it
+  covered it. A report exists because something broke, which is the moment the
+  masking can promise least; the user is the one who can judge whether the text
+  is safe to hand over.
+
+### Changed
+
+- **Console entry point is now `contao_ai_cli.contao_cli:main`** (was `:cli`).
+  `main()` wraps the Click group to attach the report. A test resolves the
+  declaration in `setup.py` to a callable — nothing else would have noticed a
+  broken entry point until after `pipx install`, on someone else's machine.
+
 ## v0.15.0 - 2026-09-02
 
 The rest of the audit. v0.14.0 closed the SSH option injection and the passwords;
