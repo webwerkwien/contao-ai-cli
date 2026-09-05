@@ -4,6 +4,46 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.16.1 - 2026-09-05
+
+Documentation only — no behaviour change in the CLI itself. The behaviour it
+describes changed in `contao-ai-core-bundle` v0.7.0.
+
+### Changed
+
+- **`CLAUDE.md` on writing a value back to a `tinyint` field.** It said a value
+  read as `true` "would be stored as `1`". That is now only half true, and the
+  guide states both halves:
+
+  | the column's DCA `sql` | `--set feld=true` | who declares it that way |
+  |---|---|---|
+  | `['type' => 'boolean']` | refused — `{"status":"error"}`, exit 1 | every flag in Contao's own DCA |
+  | `'tinyint(4) NOT NULL …'` | stored as `1`, value lost silently | a project that declared a *number* as tinyint |
+
+  The refusal arrived with core-bundle v0.7.0. The second row is the one that
+  still bites, and it is not covered on purpose: the column is declared as a
+  number, so refusing a number would break the field.
+
+  Worth stating rather than dropping, because a calling agent that knows the old
+  text expects silent corruption and now gets an error.
+
+- **`test_docs_match_cli.py` — the second half of its boundary.** The docstring
+  already said these tests do not check what a command *answers*. It now also
+  says they see one repository: the behaviour a sentence in `CLAUDE.md`
+  describes does not have to live in the same repository as the sentence.
+
+  This entry is the proof. The change was in the core bundle; the paragraph
+  describing the old outcome is here. Nothing in this repository changed, so
+  nothing here could have gone red. It was found by a second session reading the
+  release note against the guide.
+
+### Added
+
+- **`REVIEW.md`** — review instructions for this repository: three passes (bugs,
+  security, compliance), what counts as *Important*, a cap on nits, and what not
+  to report. The *Important* list is six failure shapes that have each actually
+  happened here.
+
 ## v0.16.0 - 2026-09-04
 
 ### Added

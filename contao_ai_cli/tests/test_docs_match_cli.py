@@ -20,6 +20,20 @@ because their green is otherwise read as a statement about something they never
 looked at, and the file name says "docs match cli" without qualifying which
 half. If what a caller sees has changed, no test covers it — that is step 3 of
 the release round in the `contao-ai-status` skill.
+
+There is a second half to that boundary, and it is the harder one: these tests
+see one repository. The behaviour a sentence in CLAUDE.md describes does not
+have to live in the same repository as the sentence.
+
+On 2026-09-05 core-bundle v0.7.0 started refusing non-boolean values for boolean
+columns. The paragraph describing the old outcome — "would be stored as 1" —
+sits in *this* repository, because that is where the guide for calling agents
+lives. Nothing here changed, so nothing here could have gone red. It was found
+by a second session reading the release note against the guide.
+
+So the boundary is not only "what a command answers" but also **"where the
+promise that changed is written down"**. A cross-repository change needs a human
+or an agent holding both, not a test.
 """
 import pathlib
 import re

@@ -4,6 +4,65 @@ This is an agent-native CLI for managing Contao 5 installations via SSH.
 It wraps Contao's Symfony Console (`php bin/console`) and provides structured
 output suitable for AI-driven workflows.
 
+**Everything below Step 1 describes how to *use* this CLI against a site.** If
+you are working *on* the CLI itself, read the next section first.
+
+---
+
+## Working on this CLI
+
+```bash
+python -m pytest -q        # the gate — must be green
+```
+
+There is no linter and no type checker configured; the suite is the whole gate.
+
+Healthy output has this shape:
+
+```
+… passed, … skipped in …s
+```
+
+The counts are deliberately not written down — they change with every commit.
+What must hold is that nothing failed.
+
+**Run it before reporting any task complete, and paste the output.**
+
+**For a bug fix, write the failing test first.** Reproduce the bug as a test, run
+it, confirm it fails for the reason you expect, and commit that test before
+touching the implementation. Do not edit test files while making the fix — a test
+that existed before the fix, and could not be rewritten, is the proof.
+
+### Two things that go wrong here
+
+**1. This file is part of the product, and it drifts.**
+
+`test_docs_match_cli.py` pins README and this guide to the real command tree —
+name, existence, option spelling — because both once promised commands that did
+not exist. **Its own docstring names its boundary:** it does not check what a
+command *answers*. On 2026-09-01 `ext run` changed its return value and then
+gained a `hint` field; the file stayed green both times while this guide said
+nothing about either.
+
+> A green `docs match cli` is a statement about the command tree only. If what a
+> caller sees has changed, no test covers it — that is a release-round step in
+> the `contao-ai-status` skill.
+
+**2. A measurement belongs to the binary and the environment it was taken in.**
+
+On Windows the code picks `C:\Windows\System32\OpenSSH\ssh.exe` explicitly. A
+reproduction typed into Git Bash runs MSYS-ssh instead and answers differently —
+close enough to look like a result, different enough to be the wrong one. Drive
+the real code path (`ContaoBackend.__new__` plus `_ssh_args()`) and set the same
+environment the code sets.
+
+### Convention
+
+Every scanning test needs a counter and at least one known non-match. A search
+that finds nothing passes exactly like one that finds everything.
+
+---
+
 ## Step 1: Check for existing sessions
 
 ```bash
@@ -72,8 +131,26 @@ It bites where a project has declared a *number* as `tinyint`.
 Two rules follow:
 
 - **Never write a value back that you read from such a field.** `2` returns as
-  `true` and would be stored as `1`. Setting a field outright is safe —
-  `--set stunden=2` passes a string and never meets the cast.
+  `true`, and what happens when you send that back depends on how the column is
+  declared:
+
+  | the column's DCA `sql` | `--set feld=true` | who declares it that way |
+  |---|---|---|
+  | `['type' => 'boolean']` | **refused** — `{"status":"error"}`, exit 1, nothing written | every flag in Contao's own DCA (`published`, `hide`, `protected`) |
+  | `'tinyint(4) NOT NULL …'` | stored as `1` — the value is lost silently | a project that declared a *number* as tinyint |
+
+  The refusal arrived with core-bundle **v0.7.0**: Contao 6 casts any text into
+  the column's type instead of letting the database refuse it, so
+  `--set published=vielleicht` used to publish the page and report success.
+  Boolean columns now take `1`, `0` or an empty value only — `true`, `yes` and
+  `on` are refused too.
+
+  ⚠️ **The second row is the one to keep in mind.** It is not covered and cannot
+  be: the column is declared as a number, so refusing a number would break the
+  field. That is exactly the `stunden` case below, and it still fails silently.
+
+  Setting a field outright is safe — `--set stunden=2` passes a string and never
+  meets the cast.
 - **When you need the stored number, query it.** Reading SQL directly is fine:
   `SELECT id, stunden FROM tl_page WHERE id = 98`.
 
