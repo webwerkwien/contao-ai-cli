@@ -7,7 +7,9 @@ Agent-native Python CLI for managing Contao 5 installations from the terminal �
 > changelog before updating, and keep a backup of the Contao installation you point
 > it at — this tool writes.
 
-## The contao-ai ecosystem
+## ConpAI — the contao-ai family
+
+**ConpAI** is the family name of the contao-ai packages. The story is *kanpai* (乾杯, Japanese for "cheers") — a toast to Contao and AI working together. The P stands for *protocol*: changes are recorded in Contao's own [audit trail](#audit-trail) instead of bypassing it. The package names stay `contao-ai-*`.
 
 | Package | What it is | When to use |
 |---|---|---|
