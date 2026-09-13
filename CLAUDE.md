@@ -256,6 +256,20 @@ contao-ai-cli cache clear
 contao-ai-cli cache warmup
 ```
 
+**Since contao-ai-core-bundle v0.10.0 a write invalidates the HTTP cache itself**,
+the way the back end does — including `/sitemap.xml`, which Contao caches for thirty
+days. The answer names what went out:
+
+| key | present | meaning |
+|---|---|---|
+| `cacheTags` | when anything was invalidated | the tags, e.g. `contao.db.tl_page.12`, `contao.sitemap.1` |
+| `cacheWarnings` | **only** when something failed | a callback that could not run on the console, or no invalidation service — that part of the cache may still be stale |
+
+`cache clear` is still the way when `cacheWarnings` appears, after file writes
+(`tl_files` is not covered), and against a core bundle older than v0.10.0 — there
+no write invalidated anything. It rebuilds the whole container, so it is not a
+reflex after every write any more.
+
 ### Backup
 
 ```bash
