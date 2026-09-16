@@ -303,6 +303,17 @@ Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
 `widthRight`): a plain number keeps the record's existing unit, `--set
 <field>_unit=vw` changes it.
 
+The same pattern holds for **every `inputUnit` field**, including the headline of
+content elements: `--set headline="Title" --set headline_unit=h1`. The value is
+checked against the field's `rgxp`, the unit against its option list — **a unit
+that is not listed is refused** (`headline_unit=h9`), not replaced.
+
+> 🔴 **Requires core-bundle v0.11.0.** From v0.2.28 (units) and v0.9.0 (headlines)
+> up to v0.10.0 these writes failed on the server — `content create --type
+> headline` and `content update … --set headline=` exited 1 with *"Not an allowed
+> value … (allowed: h1, …, h6)"*, and `layout update --set width=90 --set
+> width_unit=vw` with *"expected: digit"*. Check `health` before relying on it.
+
 **`theme delete` cascades to modules, layouts, image sizes and their variants.**
 Restorable as one entry, but check what you are deleting first.
 
