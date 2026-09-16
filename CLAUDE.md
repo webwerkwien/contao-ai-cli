@@ -357,6 +357,17 @@ whose palette wants fields you did not supply and names them. Neither guesses.
 pages=2,3`. They are stored as serialized arrays, and passing a bare value used
 to write a string that Contao then read as nothing at all.
 
+**A rule on such a field applies to each entry** (core-bundle v0.14.0): `--set
+playerSize=640,360`, `--set size=4,40` on a textarea form field. An image size is
+Contao's triple, width, height and size ID or mode:
+`--set 'size=a:3:{i:0;s:0:"";i:1;s:0:"";i:2;s:1:"6";}'` for image size 6. Up to v0.13.0
+none of these could be written — the rule was held against the whole value.
+
+**New records go behind their last sibling** (core-bundle v0.14.0) — pages, articles,
+content elements, FAQs, form fields, image size items. `--set sorting=64` places one
+explicitly. Up to v0.13.0 pages, articles, content elements and FAQs got `sorting` 0,
+which left their order to the database.
+
 ### Image sizes
 
 ```bash
