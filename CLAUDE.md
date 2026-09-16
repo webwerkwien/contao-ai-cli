@@ -638,8 +638,15 @@ contao-ai-cli --json file delete --path files/conpai/alt --force --yes   # a fol
 - Not searched: templates and style sheets on disk, values an extension keeps outside its
   DCA, and `tl_version`/`tl_undo` (history, not use). No usages means nothing was found in
   the database, not that nothing refers to the file.
-- `files/` itself, paths outside it and `..` are refused. `--yes` skips the prompt, which only
-  appears on a terminal.
+- `files/` itself, paths outside it and `..` are refused. From core-bundle v0.19.0 the path is
+  canonicalised (`files/a//b.png` is `files/a/b.png`), a symbolic link is deleted as a link
+  (`type: link`) and a path through a linked folder is refused. `skippedTables` names tables
+  that could not be searched; `records` counts the `tl_files` rows really removed.
+- **Needs `--yes` unless a person types yes** (CLI v0.20.0). Unlike every record `delete`,
+  silence at the prompt — no terminal, EOF — is a **no**: the answer is an error saying so,
+  exit 1, nothing is sent to the server. Record deletes can be undone, files cannot.
+- An old core bundle (before v0.18.0) is named with its version instead of a bare
+  *Command "contao:file:delete" is not defined*.
 
 `record list tl_files` shows `uuid` and `pid` as UUID strings from v0.13.0; before, the raw
 bytes often came out as `null`, which looked like a missing reference.

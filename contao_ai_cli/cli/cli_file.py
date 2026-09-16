@@ -4,7 +4,7 @@ file group — Manage Contao files (DBAFS / tl_files).
 import click
 
 from contao_ai_cli.core import session as session_mod, file as file_mod
-from .helpers import _get_backend, _output, _require_core_bundle, confirm_delete
+from .helpers import _get_backend, _output, _require_core_bundle, confirm_escalation
 
 
 @click.group()
@@ -51,18 +51,28 @@ def file_folder_create_cmd(ctx, path, as_json):
 @file.command("delete")
 @click.option("--path", required=True, help="File or folder below files/, e.g. files/conpai/bild.png")
 @click.option("--force", is_flag=True, help="Delete even while the file is still used")
-@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--yes", is_flag=True, help="Delete without the prompt — required when no one can answer it")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_delete_cmd(ctx, path, force, yes, as_json):
     """Delete a file or folder with its DBAFS records, as the back end does.
 
     Refused while the file is still used (image elements, insert tags, paths in
-    text) unless --force; the answer lists where. A deleted file cannot be restored.
+    text) unless --force; the answer lists where. A deleted file cannot be restored,
+    so without a terminal it needs --yes — silence at the prompt is a no here.
     """
     _require_core_bundle(ctx, "file delete")
-    if not confirm_delete(f"{path} (no undo for files)", yes):
-        raise click.Abort()
+    # Not confirm_delete: that one proceeds when nobody answers, which is right where
+    # tl_undo holds the record. Files have no undo, and the review of 2026-09-16 showed
+    # how much one wrong path can take — so only --yes or a typed yes deletes.
+    if not yes and not confirm_escalation(f"Delete {path}? Files cannot be restored."):
+        _output({
+            "status": "error",
+            "message": f"Nothing was deleted: {path}. Files cannot be restored, so file delete "
+                       "needs --yes when no one answers yes at the prompt.",
+            "code": 1,
+        }, as_json or ctx.obj.get("as_json"))
+        ctx.exit(1)
     b = _get_backend(ctx.obj.get("session"))
     result = file_mod.file_delete(b, path, force)
     _output(result, as_json or ctx.obj.get("as_json"))

@@ -13,6 +13,7 @@ from click.testing import CliRunner
 
 from contao_ai_cli.cli.cli_file import file_delete_cmd
 from contao_ai_cli.core.file import file_delete
+from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 REFUSED = {
     "status": "error",
@@ -25,6 +26,7 @@ REFUSED = {
 def _backend(payload: dict, returncode: int) -> MagicMock:
     backend = MagicMock()
     backend.run.return_value = {"stdout": json.dumps(payload), "returncode": returncode, "stderr": ""}
+    backend.undefined_command_hint.return_value = ""
     return backend
 
 
@@ -64,10 +66,56 @@ def test_a_deletion_exits_zero():
 def test_output_that_is_no_json_still_fails_loudly():
     backend = MagicMock()
     backend.run.return_value = {"stdout": "PHP Fatal error", "returncode": 255, "stderr": "boom"}
+    backend.undefined_command_hint.return_value = ""
 
     try:
         file_delete(backend, "files/conpai/a.png")
-    except Exception as e:  # noqa: BLE001 - the type is the backend's own error
+    except ContaoBackendError as e:
         assert "255" in str(e)
     else:
         raise AssertionError("a failed run without JSON must raise")
+
+
+def test_without_yes_and_without_an_answer_nothing_is_deleted():
+    """v0.20.0: silence at the prompt is a no for files — unlike every record delete.
+
+    Record deletes proceed when nobody answers (tl_undo holds the record). Files have
+    no undo, and the review of 2026-09-16 showed one wrong path emptying a whole folder.
+    """
+    backend = _backend(REFUSED, 1)
+    with patch("contao_ai_cli.cli.cli_file._require_core_bundle"), \
+         patch("contao_ai_cli.cli.cli_file._get_backend", return_value=backend), \
+         patch("contao_ai_cli.cli.cli_file.confirm_escalation", return_value=False):
+        result = CliRunner().invoke(file_delete_cmd, ["--path", "files/conpai/a.png", "--json"], obj={})
+
+    assert result.exit_code == 1
+    assert "--yes" in json.loads(result.stdout)["message"]
+    backend.run.assert_not_called()
+
+
+def test_a_typed_yes_at_the_prompt_deletes():
+    ok = {"status": "ok", "path": "files/conpai/a.png", "type": "file", "deleted": True}
+    backend = _backend(ok, 0)
+    with patch("contao_ai_cli.cli.cli_file._require_core_bundle"), \
+         patch("contao_ai_cli.cli.cli_file._get_backend", return_value=backend), \
+         patch("contao_ai_cli.cli.cli_file.confirm_escalation", return_value=True):
+        result = CliRunner().invoke(file_delete_cmd, ["--path", "files/conpai/a.png", "--json"], obj={})
+
+    assert result.exit_code == 0
+    backend.run.assert_called_once()
+
+
+def test_a_missing_command_names_the_core_bundle_version():
+    """Review 2026-09-16: check=False skipped the hint of run(), so an old core bundle
+    only said *Command "contao:file:delete" is not defined*."""
+    backend = MagicMock()
+    backend.run.return_value = {"stdout": "", "returncode": 1,
+                                "stderr": 'Command "contao:file:delete" is not defined.'}
+    backend.undefined_command_hint.return_value = "\nInstalled core bundle v0.17.0, latest v0.19.0."
+
+    try:
+        file_delete(backend, "files/conpai/a.png")
+    except ContaoBackendError as e:
+        assert "v0.19.0" in str(e)
+    else:
+        raise AssertionError("a missing command must raise")

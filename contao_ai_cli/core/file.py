@@ -156,9 +156,12 @@ def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
         return json.loads(result["stdout"])
     except json.JSONDecodeError:
         if result.get("returncode", 0) != 0:
+            # check=False bypasses run()'s own failure path, and with it the hint that
+            # names the core-bundle version a missing command needs (review 2026-09-16).
             raise ContaoBackendError(
                 f"file delete failed (exit {result['returncode']}): "
                 f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
             ) from None
         return {"raw": result["stdout"]}
 

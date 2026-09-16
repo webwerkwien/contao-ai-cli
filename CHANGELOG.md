@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.20.0 - 2026-09-16
+
+Works with contao-ai-core-bundle v0.18.0; **v0.19.0** fixes path, symlink and usage-search
+defects of `contao:file:delete` found in review.
+
+### Changed
+
+- **`file delete` needs `--yes` unless a person types yes.** Silence at the prompt — no
+  terminal, EOF — was a yes, as for every record delete; for files it is now a no: the answer
+  is an error that names `--yes`, exit 1, nothing reaches the server. Record deletes can be
+  undone from `tl_undo`, files cannot. **Callers without a terminal that relied on the old
+  behaviour must pass `--yes`.**
+
+### Fixed
+
+- **`file delete` against a core bundle older than v0.18.0** said only *Command
+  "contao:file:delete" is not defined*; the error now adds the installed and the latest
+  core-bundle version, as other commands do.
+
 ## v0.19.0 - 2026-09-16
 
 Requires **contao-ai-core-bundle v0.18.0** for `file delete`.
