@@ -619,6 +619,28 @@ no UUID, it assigns one, corrects the `pid` and re-attaches direct children; `re
 lists what changed. Before core-bundle v0.13.0 it created every folder that way — a file
 written into it hung under no parent, and `file sync` reported "No changes".
 
+**`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
+CLI v0.19.0) — as the back end does: the resource, a folder's symlink in the web dir, then
+the DBAFS, and a `tl_log` entry.
+
+```bash
+contao-ai-cli --json file delete --path files/conpai/alt.png --yes
+contao-ai-cli --json file delete --path files/conpai/alt --force --yes   # a folder, even while used
+```
+
+- **Refused while the file is still used**, with `usages` in the answer: `fileTree` fields of
+  every table with a DCA (image elements, galleries, downloads, extensions) and text fields
+  containing its UUID — insert tags like `{{picture::…}}` — or its path. For a folder, every
+  file below counts. **Contao's back end checks none of this.**
+- `--force` deletes anyway and still lists `usages`, so the references can be cleaned up.
+- **There is no undo for files** (`undoable: false`) — no `tl_undo`, no version. Check the
+  answer of a run without `--force` first.
+- Not searched: templates and style sheets on disk, values an extension keeps outside its
+  DCA, and `tl_version`/`tl_undo` (history, not use). No usages means nothing was found in
+  the database, not that nothing refers to the file.
+- `files/` itself, paths outside it and `..` are refused. `--yes` skips the prompt, which only
+  appears on a terminal.
+
 `record list tl_files` shows `uuid` and `pid` as UUID strings from v0.13.0; before, the raw
 bytes often came out as `null`, which looked like a missing reference.
 

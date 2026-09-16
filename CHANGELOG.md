@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.19.0 - 2026-09-16
+
+Requires **contao-ai-core-bundle v0.18.0** for `file delete`.
+
+### Added
+
+- **`file delete --path files/… [--force] [--yes]`** — delete a file or folder with its DBAFS
+  records, as the back end does. Refused while the file is still used (image elements,
+  galleries, insert tags, paths in text); the answer lists where. `--force` deletes anyway.
+  There is no undo for files.
+- A refused delete prints the server's whole answer, `usages` included, and exits 1. Measured
+  before release: the usual error path kept only the message, so a caller learned *that* the
+  file was used but not *where*.
+
 ## v0.18.1 - 2026-09-16
 
 Works with every core-bundle version; the behaviour described in `CLAUDE.md` for new aliases,

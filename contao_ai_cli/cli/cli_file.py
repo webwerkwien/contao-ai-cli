@@ -4,7 +4,7 @@ file group — Manage Contao files (DBAFS / tl_files).
 import click
 
 from contao_ai_cli.core import session as session_mod, file as file_mod
-from .helpers import _get_backend, _output, _require_core_bundle
+from .helpers import _get_backend, _output, _require_core_bundle, confirm_delete
 
 
 @click.group()
@@ -46,6 +46,30 @@ def file_folder_create_cmd(ctx, path, as_json):
     _require_core_bundle(ctx, "file folder-create")
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.folder_create(b, path), as_json or ctx.obj.get("as_json"))
+
+
+@file.command("delete")
+@click.option("--path", required=True, help="File or folder below files/, e.g. files/conpai/bild.png")
+@click.option("--force", is_flag=True, help="Delete even while the file is still used")
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_delete_cmd(ctx, path, force, yes, as_json):
+    """Delete a file or folder with its DBAFS records, as the back end does.
+
+    Refused while the file is still used (image elements, insert tags, paths in
+    text) unless --force; the answer lists where. A deleted file cannot be restored.
+    """
+    _require_core_bundle(ctx, "file delete")
+    if not confirm_delete(f"{path} (no undo for files)", yes):
+        raise click.Abort()
+    b = _get_backend(ctx.obj.get("session"))
+    result = file_mod.file_delete(b, path, force)
+    _output(result, as_json or ctx.obj.get("as_json"))
+    # The whole answer is printed — a refusal names its usages — and $? still says
+    # that nothing was deleted.
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
 
 
 @file.command("folder-publish")

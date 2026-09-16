@@ -3,9 +3,10 @@
 tl_files is the Database-Assisted File System (DBAFS) table.
 It stores metadata for files and folders under the configured upload path.
 """
+import json
 import shlex
 
-from contao_ai_cli.utils.contao_backend import ContaoBackend
+from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, build_set_args, join_args
 
 
@@ -135,6 +136,31 @@ def folder_publish(backend: ContaoBackend, path: str, unpublish: bool = False) -
     if unpublish:
         cmd += ' --unpublish'
     return run_json_or_raw(backend, cmd)
+
+
+def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
+    """Delete a file or folder below files/ with its DBAFS records (core-bundle v0.18.0).
+
+    Refused while the file is still used — fileTree fields, insert tags or paths in text —
+    unless force is set; the answer lists the usages either way. There is no undo.
+    """
+    cmd = f'contao:file:delete --path {shlex.quote(path)}'
+    if force:
+        cmd += ' --force'
+
+    # check=False: a refusal exits 1 and carries `usages` — where the file is still
+    # used. Letting run() raise kept only the message (measured on c5, 2026-09-16), so
+    # the answer is returned as it came and the command sets the exit code.
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"file delete failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+            ) from None
+        return {"raw": result["stdout"]}
 
 
 def file_read(backend: ContaoBackend, path: str) -> dict:

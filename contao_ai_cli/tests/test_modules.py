@@ -14,7 +14,7 @@ from contao_ai_cli.core.event import calendar_list, event_list, event_read, even
 from contao_ai_cli.core.faq import faq_category_list, faq_list, faq_read, faq_create
 from contao_ai_cli.core.file import (
     file_list, file_sync, file_process, file_write, file_read, file_meta_update,
-    file_upload, folder_publish,
+    file_upload, folder_publish, file_delete,
 )
 from contao_ai_cli.core.form import form_list, form_fields
 from contao_ai_cli.core.layout import layout_read, layout_module
@@ -464,6 +464,19 @@ class TestFile:
         backend = json_backend('{"status":"ok","public":false}')
         folder_publish(backend, "files/conpai", unpublish=True)
         assert sent_cmd(backend) == "contao:folder:publish --path files/conpai --unpublish"
+
+    # --- file delete (v0.19.0) ---
+
+    def test_file_delete(self):
+        backend = json_backend('{"status":"ok","path":"files/conpai/a.png","type":"file","deleted":true}')
+        result = file_delete(backend, "files/conpai/a.png")
+        assert result["deleted"] is True
+        assert sent_cmd(backend) == "contao:file:delete --path files/conpai/a.png"
+
+    def test_file_delete_force_and_quoting(self):
+        backend = json_backend('{"status":"ok"}')
+        file_delete(backend, "files/mit leerzeichen/b.png", force=True)
+        assert sent_cmd(backend) == "contao:file:delete --path 'files/mit leerzeichen/b.png' --force"
 
 
 class TestForm:
