@@ -283,7 +283,28 @@ contao-ai-cli --json backup list
 contao-ai-cli --json schema show tl_content
 contao-ai-cli --json schema mandatory tl_news
 contao-ai-cli --json schema resolve tl_content type
+contao-ai-cli --json schema mandatory tl_page --set type=root --set enableCsp=1   # one kind of record
+contao-ai-cli --json schema resolve tl_content customTpl --set type=text          # templates of a text element
 ```
+
+**Ask for one kind of record, not the whole table** (core-bundle v0.16.0). `schema
+mandatory tl_page` alone lists every field that is mandatory in *some* palette — 13 for
+tl_page, from `url` (redirects only) to `csp` (only with CSP enabled). With `--set` the
+server builds Contao's own palette for that record and answers only what applies: a root
+page needs `title` and `language`; with `enableCsp=1` also `csp`; a redirect `title` and
+`url`. The answer also lists the palette's `fields`.
+
+**`schema resolve` asks the installation first**, which calls the field's own options
+callback — page types a bundle registers (`consho_product`) and template variants are
+there. Up to CLI v0.17.0 page types came from a built-in list that could not know them;
+that list is now only the fallback for an older core-bundle. Callbacks that need a
+back-end user cannot run on the console: image sizes (`size`) come back empty, which
+means "not known here", not "none".
+
+**`customTpl` is checked on write** (core-bundle v0.16.0): a template Contao does not
+offer for that element type is refused, and the answer lists the ones it does — or
+"only the default template". Before, `--set customTpl=…/gibtesnicht` was stored and the
+element silently rendered its default.
 
 ### Theme layer
 
@@ -299,20 +320,43 @@ list depends on whether the layout is legacy (`fe_page`) or Twig, and only a
 live DataContainer can resolve it. The layout arrives with no sections and no
 modules; a layout without modules renders nothing.
 
-**Modules go in as Contao's serialized form** — there is no short form for the
-`moduleWizard`. One entry per module: `mod` (module ID, `0` for the articles),
-`col` (`header`, `left`, `main`, `right`, `footer` or a custom section) and
-`enable`. Build the string with PHP rather than by hand, so the lengths are right:
+**Put modules into a layout with `layout module-add`** (core-bundle v0.16.0):
 
 ```bash
-MODS=$(php -r 'echo serialize([["mod"=>"66","col"=>"header","enable"=>"1"],["mod"=>"0","col"=>"main","enable"=>"1"]]);')
-contao-ai-cli --json layout update 25 --set "modules=$MODS"
+contao-ai-cli --json layout module-add --layout 25 --module 66 --col header
+contao-ai-cli --json layout module-add --layout 25 --module 0 --col main      # 0 = the articles
+contao-ai-cli --json layout module-remove --layout 25 --module 66             # from every column
 ```
 
-> 🔴 **Requires core-bundle v0.12.0.** Up to v0.11.0 `--set modules=66` answered
-> `ok`, stored the bare `66` and left the layout rendering nothing. From v0.12.0 a
-> value that is not a serialized array is refused for every wizard-type field
-> (`modules`, `sections`, `imageSize`, …).
+The server checks that the module exists and belongs to the layout's theme and, for a
+classic `fe_page` layout, that the column exists (`main` always; `header`, `left`, `right`,
+`footer` depending on the layout's rows and columns; custom section ids). A Twig layout's
+slots come from its template and are not checked — the answer says `column_checked:
+false`. Adding what is already there changes nothing (`changed: false`).
+
+The whole list can also be written at once, as JSON — the same shape `layout read`
+answers: `--set 'modules=[{"mod":"66","col":"header","enable":"1"}]'`.
+
+> 🔴 Up to core-bundle v0.11.0 `--set modules=66` answered `ok`, stored the bare `66`
+> and left the layout rendering nothing; since v0.12.0 a value that is not an array is
+> refused. Before v0.16.0 the list had to be PHP-serialized by hand.
+
+### Structured fields are read and written as arrays (core-bundle v0.16.0)
+
+Fields Contao stores as a serialized array — `modules`, `sections`, image sizes,
+`headline` and other unit fields, multi-value fields without `eval.csv`, file metadata —
+come back from **every** read (`… read`, `record list`) as JSON arrays or objects:
+
+```json
+"width": {"value": "90", "unit": "vw"},
+"modules": [{"mod": "70", "col": "header", "enable": "1"}],
+"framework": ["layout.css", "responsive.css"]
+```
+
+**What was read can be written back unchanged, as JSON:** `--set 'size=["","","6"]'`,
+`--set 'modules=[…]'`. The comma list for multi-value fields and Contao's serialized form
+still work. Before v0.16.0 only `content read` unpacked `headline`; every other read
+answered the raw PHP serialization.
 
 Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
 `widthRight`): a plain number keeps the record's existing unit, `--set
@@ -415,6 +459,37 @@ command applies that rule from the DCA the same way the back end does.
 
 Deleting a group cascades to nothing, but Contao leaves the dead ID in `tl_user.groups`
 and in the `groups` field of protected content. Members lose access; nothing is cleaned up.
+
+### Versions of a record that had its ID before (core-bundle v0.16.0)
+
+A database can hand out the ID of a deleted record again — on c5 this happens routinely —
+and `tl_version` keeps the old record's versions under that ID. `version restore` of such
+a version would write the deleted record's data onto the new one.
+
+- A create answers `earlierVersions: {"tl_image_size.7": 1}` when versions of an earlier
+  record were already there.
+- `version list` marks them `before_creation: true`.
+- `version restore` refuses them.
+
+Only records created through this CLI carry the marker (the first version's description
+is `created`); for a record created in the back end nothing is known and nothing is
+flagged. `version restore` works for every table the CLI writes versions for — before
+v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, …) with
+"Table not allowed".
+
+### What the protocol and the answers contain
+
+- **A created page is unpublished** (`published: false`), like every created content:
+  publish it deliberately with `page publish`.
+- **The operator in `tl_version` and `tl_log` is the SSH user** (e.g. `c155929_C5`), with
+  `source = CLI` in the log — not a Contao back-end user. The back-end bundle passes the
+  Contao user through `--operator`.
+- **`tl_log.text` is HTML-encoded** (`&quot;`) — Contao encodes log input. Decode before
+  parsing the JSON in it.
+- **A refused create can still use up an ID.** The insert is rolled back, but the database
+  counter does not go back; the next record skips a number. Nothing was written.
+- **Prompts go to stderr** (CLI v0.18.0). With `--json`, stdout carries only the answer —
+  before, `settings update --json` printed its confirmation question ahead of the JSON.
 
 ### Deleted by mistake — `undo`
 

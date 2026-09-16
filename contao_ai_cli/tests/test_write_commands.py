@@ -187,6 +187,18 @@ class TestAskYesNo:
             with pytest.raises(click.Abort):
                 ask_yes_no("q?")
 
+    def test_the_question_goes_to_stderr_so_stdout_stays_json(self, capsys):
+        """Measured on 2026-09-16: `settings update --json` printed the prompt and
+        then the JSON on stdout, so a caller reading stdout as JSON failed. A prompt
+        is talk to a person; stdout is the answer."""
+        for side_effect in ("y", EOFError):
+            kwargs = {"return_value": side_effect} if isinstance(side_effect, str) else {"side_effect": side_effect}
+            with patch("builtins.input", **kwargs):
+                ask_yes_no("Change imageWidth in localconfig.php?")
+            out, err = capsys.readouterr()
+            assert out == ""
+            assert "Change imageWidth in localconfig.php?" in err
+
 
 class TestDeleteCommandWiring:
     def _run(self, args, confirmed):

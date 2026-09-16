@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.18.0 - 2026-09-16
+
+Requires **contao-ai-core-bundle v0.16.0** for the new commands and options; everything
+else keeps working with older versions.
+
+### Added
+
+- **`layout module-add --layout --module --col`** and **`layout module-remove`** — put a
+  module into a layout or take it out, checked by the server. Before, the module list had
+  to be PHP-serialized by hand.
+- **`schema mandatory <table> --set type=root`** — the mandatory fields of that one kind of
+  record, from Contao's own palette. Without `--set`, every field mandatory in some palette,
+  as before.
+- **`schema resolve … --set type=text`** — options that depend on the record, e.g. the
+  templates of a text element.
+
+### Changed
+
+- **`schema resolve` asks the installation first** and uses the built-in lists only as a
+  fallback for an older core-bundle. `tl_page.type` missed every page type a bundle
+  registers (`consho_product` on c5).
+- **Prompts go to stderr.** `settings update --json` printed its confirmation question
+  before the JSON on stdout, so a caller parsing stdout failed.
+- `content list` reads the headline in both the serialized and the array form (core-bundle
+  v0.16.0 answers arrays).
+- `CLAUDE.md`: structured fields as arrays and JSON, layout modules, one kind of record in
+  `schema`, versions of reused IDs, and what the protocol contains — unpublished pages, the
+  SSH user as operator, HTML-encoded log text, a refused create using up an ID.
+
 ## v0.17.0 - 2026-09-16
 
 Requires **contao-ai-core-bundle v0.13.0** for the two new commands and for the

@@ -84,6 +84,37 @@ def layout_update_cmd(ctx, layout_id, ids, ids_from_file, fields, as_json):
             as_json or ctx.obj.get("as_json"))
 
 
+@layout.command("module-add")
+@click.option("--layout", "layout_id", type=int, required=True, help="Layout ID (tl_layout)")
+@click.option("--module", "module_id", type=int, required=True, help="Module ID (tl_module), 0 for the articles")
+@click.option("--col", required=True, help="Column: main, header, left, right, footer or a custom section id")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def layout_module_add_cmd(ctx, layout_id, module_id, col, as_json):
+    """Put a module into a layout column.
+
+    The server checks that the module belongs to the layout's theme and, for a
+    classic fe_page layout, that the column exists. Adding what is already there
+    changes nothing. Needs core-bundle v0.16.0.
+    """
+    _require_core_bundle(ctx, "layout module-add")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(layout_mod.layout_module(b, layout_id, module_id, col), as_json or ctx.obj.get("as_json"))
+
+
+@layout.command("module-remove")
+@click.option("--layout", "layout_id", type=int, required=True, help="Layout ID (tl_layout)")
+@click.option("--module", "module_id", type=int, required=True, help="Module ID (tl_module), 0 for the articles")
+@click.option("--col", default=None, help="Only from this column (default: from every column)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def layout_module_remove_cmd(ctx, layout_id, module_id, col, as_json):
+    """Take a module out of a layout — from one column or from all. Needs core-bundle v0.16.0."""
+    _require_core_bundle(ctx, "layout module-remove")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(layout_mod.layout_module(b, layout_id, module_id, col, remove=True), as_json or ctx.obj.get("as_json"))
+
+
 @layout.command("delete")
 @click.argument("layout_id", type=int)
 @click.option("--yes", is_flag=True, help="Skip the confirmation prompt")

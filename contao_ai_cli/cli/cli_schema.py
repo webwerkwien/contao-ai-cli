@@ -75,11 +75,28 @@ def schema_show(ctx, table, mandatory_only, as_json):
 
 @schema.command("mandatory")
 @click.argument("table")
+@click.option("--set", "set_fields", multiple=True, metavar="FIELD=VALUE",
+              help="The record whose palette counts, e.g. --set type=root --set enableCsp=1")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def schema_mandatory(ctx, table, as_json):
-    """List mandatory fields for TABLE."""
+def schema_mandatory(ctx, table, set_fields, as_json):
+    """List mandatory fields for TABLE.
+
+    With --set, the server builds Contao's own palette for that record and answers
+    only its mandatory fields — `--set type=root` for a root page (core-bundle
+    v0.16.0). Without, every field of the table that is mandatory in some palette.
+    """
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    if set_fields:
+        record = {}
+        for pair in set_fields:
+            if "=" not in pair:
+                raise click.UsageError(f"--set expects FIELD=VALUE, got {pair!r}")
+            k, v = pair.split("=", 1)
+            record[k.strip()] = v
+        b = _get_backend(session_path)
+        _output(dca_schema.palette(b, table, record), as_json or ctx.obj.get("as_json"))
+        return
     fields = dca_schema.mandatory_fields(table, session_path)
     if not fields:
         schema_data = dca_schema.load_schema(table, session_path)
@@ -93,24 +110,34 @@ def schema_mandatory(ctx, table, as_json):
 @schema.command("resolve")
 @click.argument("table", default="")
 @click.argument("field", default="")
+@click.option("--set", "set_fields", multiple=True, metavar="FIELD=VALUE",
+              help="Record values the options depend on, e.g. --set type=text for the templates of a text element")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def schema_resolve(ctx, table, field, as_json):
+def schema_resolve(ctx, table, field, set_fields, as_json):
     """Resolve __callback__ options in cached schemas.
 
     With TABLE: resolves all __callback__ fields in that table.
     With TABLE FIELD: resolves only that specific field.
     Without arguments: resolves all synced tables.
 
+    Asks the installation first (core-bundle v0.16.0), so page types and templates
+    a bundle adds are included; falls back to built-in lists on an older core-bundle.
     Updates the local schema cache in-place.
     """
+    record = {}
+    for pair in set_fields:
+        if "=" not in pair:
+            raise click.UsageError(f"--set expects FIELD=VALUE, got {pair!r}")
+        k, v = pair.split("=", 1)
+        record[k.strip()] = v
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
 
     if table:
         try:
             results = dca_schema.resolve_callback_options(b, table, session_path,
-                                                          field or None)
+                                                          field or None, record=record or None)
         except ValueError as e:
             raise click.ClickException(str(e))
         _output({table: results}, as_json or ctx.obj.get("as_json"))

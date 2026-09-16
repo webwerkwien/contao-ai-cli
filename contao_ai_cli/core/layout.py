@@ -68,6 +68,21 @@ def layout_update(backend: ContaoBackend, layout_id: int, fields: dict) -> dict:
     return run_update(backend, "contao:layout:update", layout_id, fields)
 
 
+def layout_module(backend: ContaoBackend, layout_id: int, module_id: int,
+                  col: str | None, remove: bool = False) -> dict:
+    """Add a module to a layout column, or remove it (core-bundle v0.16.0).
+
+    The server checks that the module exists and belongs to the layout's theme
+    (0 is the articles) and, for a classic layout, that the column exists.
+    """
+    cmd = f'contao:layout:module --layout {int(layout_id)} --module {int(module_id)}'
+    if col:
+        cmd += f' --col {shlex.quote(col)}'
+    if remove:
+        cmd += ' --remove'
+    return run_json_or_raw(backend, cmd)
+
+
 def layout_delete(backend: ContaoBackend, layout_id: int) -> dict:
     """Delete a page layout.
 

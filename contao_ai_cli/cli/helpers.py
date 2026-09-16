@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.17.0"
+__version__ = "0.18.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -531,12 +531,15 @@ def ask_yes_no(question: str, default: bool = False) -> bool | None:
     """
     suffix = " [Y/n]: " if default else " [y/N]: "
 
+    # On stderr: a prompt is talk to a person, stdout is the answer. Until v0.18.0
+    # `settings update --json` printed the question before its JSON on stdout, and a
+    # caller parsing stdout failed (measured 2026-09-16).
     while True:
         try:
-            click.echo(question + suffix, nl=False)
+            click.echo(question + suffix, nl=False, err=True)
             value = input().strip().lower()
         except EOFError:
-            click.echo("")
+            click.echo("", err=True)
             return None
         except KeyboardInterrupt:
             raise click.Abort() from None
@@ -547,7 +550,7 @@ def ask_yes_no(question: str, default: bool = False) -> bool | None:
             return False
         if value == "":
             return default
-        click.echo("Error: invalid input")
+        click.echo("Error: invalid input", err=True)
 
 
 def confirm_delete(what: str, assume_yes: bool = False) -> bool:

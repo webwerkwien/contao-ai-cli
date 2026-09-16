@@ -361,20 +361,82 @@ def _write_schema(path, table, fields):
     with open(path, 'w') as f:
         json.dump({'table': table, 'fetched': '2026-01-01T00:00:00', 'fields': fields}, f)
 
+class TestPalette:
+    """`schema mandatory tl_page` listed 13 fields for all page types together
+    (measured on c5, 2026-09-16). With a record, the server builds Contao's own
+    palette and answers the mandatory fields of that one (core-bundle v0.16.0)."""
+
+    def test_the_record_selects_the_palette(self):
+        backend = MagicMock()
+        backend.run.return_value = {
+            'stdout': json.dumps({'status': 'ok', 'table': 'tl_page', 'record': {'type': 'root'},
+                                  'fields': ['title', 'type', 'language', 'dns'], 'mandatory': ['title', 'language']}),
+            'returncode': 0,
+        }
+        result = dca_schema.palette(backend, 'tl_page', {'type': 'root', 'enableCsp': '1'})
+        assert result['mandatory'] == ['title', 'language']
+        assert backend.run.call_args[0][0] == 'contao:dca:palette tl_page --set type=root --set enableCsp=1'
+
+    def test_an_older_core_bundle_says_so(self):
+        backend = MagicMock()
+        backend.run.return_value = {'stdout': 'Command "contao:dca:palette" is not defined.', 'returncode': 1}
+        result = dca_schema.palette(backend, 'tl_page', {'type': 'root'})
+        assert result['status'] == 'error'
+        assert 'v0.16.0' in result['message']
+
+
 class TestResolveCallbackOptions:
-    def test_static_language_resolved(self, tmp_dir):
+    def test_static_language_resolved_when_the_server_cannot_answer(self, tmp_dir):
+        """The hard-coded lists are the fallback for a core-bundle before v0.16.0,
+        which has no contao:dca:options. Until CLI v0.18.0 they were asked first
+        and the server never — so `tl_page.type` missed every page type a bundle
+        registers (measured on c5 on 2026-09-16: `consho_product`)."""
         session_path = os.path.join(tmp_dir, 'c5.json')
         schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
         })
         backend = MagicMock()
+        backend.run.return_value = {'stdout': 'Command "contao:dca:options" is not defined.', 'returncode': 1}
         result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
-        assert 'language' in result
         assert isinstance(result['language'], dict)
         assert result['language']['de'] == 'German'
         assert result['language']['en'] == 'English'
-        backend.run.assert_not_called()
+
+    def test_the_server_answer_wins_over_the_hard_coded_list(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_page.json')
+        _write_schema(schema_path, 'tl_page', {
+            'type': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        backend.run.return_value = {
+            'stdout': json.dumps({'status': 'ok', 'options': ['regular', 'root', 'consho_product'],
+                                  'values': ['regular', 'root', 'consho_product']}),
+            'returncode': 0,
+        }
+        result = dca_schema.resolve_callback_options(backend, 'tl_page', session_path, 'type')
+        assert list(result['type']) == ['regular', 'root', 'consho_product']
+        assert backend.run.call_args[0][0] == 'contao:dca:options tl_page type'
+
+    def test_record_values_are_passed_for_options_that_depend_on_them(self, tmp_dir):
+        session_path = os.path.join(tmp_dir, 'c5.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_content.json')
+        _write_schema(schema_path, 'tl_content', {
+            'customTpl': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
+        })
+        backend = MagicMock()
+        backend.run.return_value = {
+            'stdout': json.dumps({'status': 'ok',
+                                  'options': {'': 'content_element/text [ContaoCore]',
+                                              'content_element/text/conpai_hero': 'content_element/text/conpai_hero [Global]'},
+                                  'values': ['', 'content_element/text/conpai_hero']}),
+            'returncode': 0,
+        }
+        result = dca_schema.resolve_callback_options(backend, 'tl_content', session_path, 'customTpl',
+                                                     record={'type': 'text'})
+        assert 'content_element/text/conpai_hero' in result['customTpl']
+        assert backend.run.call_args[0][0] == 'contao:dca:options tl_content customTpl --set type=text'
 
     def test_table_based_groups_resolved(self, tmp_dir):
         session_path = os.path.join(tmp_dir, 'c5.json')

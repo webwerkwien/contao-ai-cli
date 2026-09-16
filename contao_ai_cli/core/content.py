@@ -8,8 +8,14 @@ from contao_ai_cli.core.contao_ops import (
 )
 
 
-def _parse_headline(value: str) -> str:
-    """Extract plain text from Contao's serialized headline field."""
+def _parse_headline(value) -> str:
+    """Extract plain text from Contao's headline field.
+
+    From core-bundle v0.16.0 it arrives as {value, unit}; older servers send the
+    PHP-serialized string, which is still read here.
+    """
+    if isinstance(value, dict):
+        return str(value.get("value") or "")
     if not value or not value.startswith("a:"):
         return value or ""
     match = re.search(r's:5:"value";s:\d+:"([^"]*)"', value)

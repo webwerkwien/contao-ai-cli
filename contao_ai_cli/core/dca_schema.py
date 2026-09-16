@@ -264,11 +264,55 @@ def validate_fields(table: str, provided: dict, session_path: str) -> list[str]:
     return missing
 
 
+def palette(backend: ContaoBackend, table: str, record: dict) -> dict:
+    """The fields and mandatory fields of the palette a record gets (core-bundle v0.16.0).
+
+    The server builds Contao's own palette from the record — `type=root`,
+    `enableCsp=1` — so only what applies to that kind of record is mandatory. The
+    cached `schema mandatory` lists every field of the table at once.
+    """
+    cmd = f'contao:dca:palette {shlex.quote(table)}'
+    for k, v in record.items():
+        cmd += f' --set {shlex.quote(f"{k}={v}")}'
+    res = backend.run(cmd)
+    try:
+        data = json.loads(res['stdout'])
+    except (ValueError, KeyError, TypeError):
+        return {'status': 'error',
+                'message': 'The server cannot build palettes — it needs contao-ai-core-bundle v0.16.0. '
+                           f"Server said: {str(res.get('stdout', ''))[:200] if isinstance(res, dict) else res}"}
+    return data
+
+
+def _server_options(backend: ContaoBackend, table: str, field: str, record: dict | None) -> dict | None:
+    """Ask `contao:dca:options` for a field's options; None when it cannot answer.
+
+    List-form options come back as {value: value}, so every caller sees one shape.
+    """
+    cmd = f'contao:dca:options {shlex.quote(table)} {shlex.quote(field)}'
+    for k, v in (record or {}).items():
+        cmd += f' --set {shlex.quote(f"{k}={v}")}'
+    try:
+        res = backend.run(cmd)
+        data = json.loads(res['stdout']) if isinstance(res, dict) else None
+    except (ValueError, KeyError, TypeError):
+        return None
+    if not isinstance(data, dict) or data.get('status') != 'ok':
+        return None
+    options = data.get('options')
+    if isinstance(options, list):
+        return {str(v): str(v) for v in options}
+    if isinstance(options, dict):
+        return options
+    return None
+
+
 def resolve_callback_options(
     backend: ContaoBackend,
     table: str,
     session_path: str,
     field: str | None = None,
+    record: dict | None = None,
 ) -> dict:
     """
     Resolve __callback__ options in the cached schema for *table*.
@@ -299,6 +343,18 @@ def resolve_callback_options(
 
     for fname, fdef in candidates:
         key = (table, fname)
+
+        # The installation first (core-bundle v0.16.0): it calls the field's own
+        # options callback, so page types and templates a bundle adds are there.
+        # The lists below are the fallback for an older core-bundle. Until CLI
+        # v0.18.0 they were the only source, and `tl_page.type` missed
+        # `consho_product` on c5 (measured 2026-09-16).
+        server_options = _server_options(backend, table, fname, record)
+        if server_options is not None:
+            schema['fields'][fname]['options'] = server_options
+            results[fname] = server_options
+            changed = True
+            continue
 
         if key in STATIC_OPTIONS:
             schema['fields'][fname]['options'] = STATIC_OPTIONS[key]

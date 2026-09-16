@@ -17,7 +17,7 @@ from contao_ai_cli.core.file import (
     file_upload, folder_publish,
 )
 from contao_ai_cli.core.form import form_list, form_fields
-from contao_ai_cli.core.layout import layout_read
+from contao_ai_cli.core.layout import layout_read, layout_module
 from contao_ai_cli.core.listing import listing_module_list, listing_data
 from contao_ai_cli.core.mailer import mailer_test
 from contao_ai_cli.core.messenger import (
@@ -174,6 +174,22 @@ class TestContent:
         }))
         result = content_list(backend)
         assert result["results"][0]["headline"] == "Hallo"
+
+    def test_content_list_unpacks_the_headline_in_the_array_form_too(self):
+        """From core-bundle v0.16.0 `record list` answers structured fields as arrays,
+        so the headline arrives as {value, unit}. Both forms give the same text —
+        older servers still send the serialized string."""
+        backend = json_backend(json.dumps({
+            "status": "ok",
+            "results": [{
+                "id": 1, "pid": 2, "type": "text",
+                "headline": {"value": "Hallo", "unit": "h2"},
+                "invisible": 0, "ptable": "tl_article",
+            }],
+        }))
+        result = content_list(backend)
+        assert result["results"][0]["headline"] == "Hallo"
+
     def test_content_list_filters_by_article(self):
         backend = json_backend()
         content_list(backend, article_id=7)
@@ -495,6 +511,25 @@ class TestLayout:
         backend.run.return_value = {"stdout": "plain text", "returncode": 0}
         result = layout_read(backend, 1)
         assert result == {"raw": "plain text"}
+
+    # --- module-add / module-remove (v0.18.0, core-bundle v0.16.0) ---
+    # Putting a module into a layout needed a hand-built PHP-serialized list
+    # (found 2026-09-16); the server now checks module, theme and column.
+
+    def test_module_add(self):
+        backend = json_backend('{"status":"ok","layout":25,"changed":true,"modules":[]}')
+        layout_module(backend, 25, 66, "header")
+        assert sent_cmd(backend) == "contao:layout:module --layout 25 --module 66 --col header"
+
+    def test_module_remove_from_every_column(self):
+        backend = json_backend('{"status":"ok","changed":true}')
+        layout_module(backend, 25, 66, None, remove=True)
+        assert sent_cmd(backend) == "contao:layout:module --layout 25 --module 66 --remove"
+
+    def test_module_remove_from_one_column(self):
+        backend = json_backend('{"status":"ok","changed":true}')
+        layout_module(backend, 25, 66, "left", remove=True)
+        assert sent_cmd(backend) == "contao:layout:module --layout 25 --module 66 --col left --remove"
 
 
 class TestListing:
