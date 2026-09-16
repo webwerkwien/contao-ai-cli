@@ -66,7 +66,7 @@ def _install_core_bundle(b, manager, action: str) -> bool:
                 fg="yellow",
             ))
             if not click.confirm("Modify composer.json on the server to allow these plugins?",
-                                 default=False):
+                                 default=False, err=True):
                 click.echo(f"Skipped — contao-ai-core-bundle was not {done}.")
                 return False
             try:
@@ -107,7 +107,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         "   Always ensure you have a current backup before proceeding.\n",
         fg="yellow"
     ))
-    click.confirm("I understand and have a backup. Continue?", abort=True)
+    click.confirm("I understand and have a backup. Continue?", abort=True, err=True)
 
     session_path = session_mod.get_session_path(name)
     config = {
@@ -153,7 +153,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
                 fg="yellow",
             ), err=True)
 
-        if click.confirm("Create a database backup now?", default=True):
+        if click.confirm("Create a database backup now?", default=True, err=True):
             click.echo("Creating backup...")
             backup_result = backup_mod.backup_create(backend)
             click.echo(click.style("[OK] Backup created.", fg="green"))
@@ -174,7 +174,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             f"[!] contao-ai-cli update available: v{cli_update['current']} -> v{cli_update['latest']}",
             fg="yellow"
         ))
-        if click.confirm("Install CLI update now?", default=True):
+        if click.confirm("Install CLI update now?", default=True, err=True):
             click.echo("Updating contao-ai-cli...")
             outcome = install_cli_update(cli_update["latest"])
             if outcome["updated"]:
@@ -202,7 +202,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     if installed_version is None:
         click.echo("\ncontao-ai-core-bundle: not installed — enables full CRUD support.")
         # default=False: this writes to the project's composer.json.
-        if click.confirm("Install contao-ai-core-bundle now?", default=False):
+        if click.confirm("Install contao-ai-core-bundle now?", default=False, err=True):
             core_bundle = _install_core_bundle(b, manager, "require")
     else:
         if installed_version.startswith("dev-"):
@@ -216,7 +216,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
                     fg="yellow"
                 ))
                 # default=False: this writes to the project's composer.json.
-                if click.confirm("Update contao-ai-core-bundle now?", default=False):
+                if click.confirm("Update contao-ai-core-bundle now?", default=False, err=True):
                     _install_core_bundle(b, manager, "update")
             else:
                 click.echo(f"contao-ai-core-bundle {installed_version}: up to date.")

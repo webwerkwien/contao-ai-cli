@@ -367,6 +367,15 @@ content elements: `--set headline="Title" --set headline_unit=h1`. The value is
 checked against the field's `rgxp`, the unit against its option list — **a unit
 that is not listed is refused** (`headline_unit=h9`), not replaced.
 
+**The unit alone changes only the unit** (core-bundle v0.17.0): `content update 5 --set
+headline_unit=h1` keeps the text. Before, it wrote nothing and answered `ok` with
+`updated: []`.
+
+**Resizing on upload** (`file upload` with `imageWidth`/`imageHeight` set): with core-bundle
+v0.17.0 a single limit works — `imageWidth=100`, `imageHeight=0` scales width only. Up to
+v0.16.0 that combination stored an **empty file** and answered `resized: true`; Contao's
+back end does the same, so do not rely on one limit on an older installation.
+
 > **Module headlines** (`module create --set headline=…`) and the other create
 > commands only store a proper pair from **core-bundle v0.12.0** — before, they
 > wrote the bare string and answered `ok`.
@@ -630,7 +639,8 @@ written — no version, no log entry:
 - a second page at the same URL, e.g. `--set alias=packages` next to a page that has it.
 
 **A second language is a second root on the same domain with its own prefix.** Clone the
-existing tree in one step:
+existing tree, then translate the pages below (the clone sets the root's language in one
+step, not the titles and aliases of its children):
 
 ```bash
 contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
@@ -644,6 +654,13 @@ Everything below is copied — articles, content, layout, CSP — and **stays un
 Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
 " (Kopie)"; translate both afterwards with `page update`. The cloned root goes behind the
 last root.
+
+**A create without an alias gets Contao's alias** (core-bundle v0.17.0) — pages, articles,
+news, events, newsletters: from the title, with the language and allowed characters of the
+root. `page create --title "Über uns"` under a German root answers `"alias": "ueber-uns"`;
+up to core-bundle v0.16.0 it was `über-uns`. Read the alias from the answer instead of
+predicting it. If Contao's rule cannot run, the old slug is used and the answer carries
+`aliasWarning`.
 
 Aliases may repeat **across** roots — `index` under `conpai.eu` and under `conpai.eu/en`
 are different URLs. For a shared layout, use a `navigation` module (it follows the current

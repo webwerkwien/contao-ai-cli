@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.18.1 - 2026-09-16
+
+Works with every core-bundle version; the behaviour described in `CLAUDE.md` for new aliases,
+a unit on its own and resizing with one limit needs **contao-ai-core-bundle v0.17.0**.
+
+### Fixed
+
+- **The six confirmation questions of `connect` still went to stdout.** v0.18.0
+  said "Prompts go to stderr"; it held for `ask_yes_no()` only. `click.confirm()` now writes
+  to stderr as well, and `test_prompts_on_stderr.py` fails on any click prompt that does not.
+
+### Documentation
+
+- `CLAUDE.md`: aliases of new records come from Contao (read them from the answer,
+  `aliasWarning`), `headline_unit` alone, resizing with a single limit, and a clone sets the
+  root's language in one step but not the titles of the pages below.
+
 ## v0.18.0 - 2026-09-16
 
 Requires **contao-ai-core-bundle v0.16.0** for the new commands and options; everything
