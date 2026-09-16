@@ -299,6 +299,21 @@ list depends on whether the layout is legacy (`fe_page`) or Twig, and only a
 live DataContainer can resolve it. The layout arrives with no sections and no
 modules; a layout without modules renders nothing.
 
+**Modules go in as Contao's serialized form** — there is no short form for the
+`moduleWizard`. One entry per module: `mod` (module ID, `0` for the articles),
+`col` (`header`, `left`, `main`, `right`, `footer` or a custom section) and
+`enable`. Build the string with PHP rather than by hand, so the lengths are right:
+
+```bash
+MODS=$(php -r 'echo serialize([["mod"=>"66","col"=>"header","enable"=>"1"],["mod"=>"0","col"=>"main","enable"=>"1"]]);')
+contao-ai-cli --json layout update 25 --set "modules=$MODS"
+```
+
+> 🔴 **Requires core-bundle v0.12.0.** Up to v0.11.0 `--set modules=66` answered
+> `ok`, stored the bare `66` and left the layout rendering nothing. From v0.12.0 a
+> value that is not a serialized array is refused for every wizard-type field
+> (`modules`, `sections`, `imageSize`, …).
+
 Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
 `widthRight`): a plain number keeps the record's existing unit, `--set
 <field>_unit=vw` changes it.
@@ -308,6 +323,10 @@ content elements: `--set headline="Title" --set headline_unit=h1`. The value is
 checked against the field's `rgxp`, the unit against its option list — **a unit
 that is not listed is refused** (`headline_unit=h9`), not replaced.
 
+> **Module headlines** (`module create --set headline=…`) and the other create
+> commands only store a proper pair from **core-bundle v0.12.0** — before, they
+> wrote the bare string and answered `ok`.
+>
 > 🔴 **Requires core-bundle v0.11.0.** From v0.2.28 (units) and v0.9.0 (headlines)
 > up to v0.10.0 these writes failed on the server — `content create --type
 > headline` and `content update … --set headline=` exited 1 with *"Not an allowed
