@@ -544,6 +544,37 @@ wienerwandern.at has 283 pages. Two levels by default; `truncated` says whether 
 exist below the cut, so a depth-limited tree cannot be mistaken for a complete one. Use
 `--root` to descend into one branch, `--depth` for more levels.
 
+### Page URLs, second languages, cloning (core-bundle v0.15.0)
+
+**A page write is refused when Contao's back end would refuse it**, and nothing is
+written — no version, no log entry:
+
+- a second root with the same domain (`dns`) and URL prefix (`urlPrefix`) — an empty prefix
+  counts. Domain and prefix decide which root, and so which language, 404 page and sitemap,
+  answers a request.
+- a second page at the same URL, e.g. `--set alias=packages` next to a page that has it.
+
+**A second language is a second root on the same domain with its own prefix.** Clone the
+existing tree in one step:
+
+```bash
+contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
+  --modifications '{"title":"conpai.eu EN","language":"en","urlPrefix":"en","fallback":""}'
+```
+
+For a root, `language`, `urlPrefix`, `urlSuffix`, `fallback` and `dns` are accepted; for any
+other page only `title`, `pageTitle`, `description`, `published`, `hide`. Anything else comes
+back in `ignored_modifications`. A root cloned without its own prefix or domain is refused.
+Everything below is copied — articles, content, layout, CSP — and **stays unpublished**.
+Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
+" (Kopie)"; translate both afterwards with `page update`. The cloned root goes behind the
+last root.
+
+Aliases may repeat **across** roots — `index` under `conpai.eu` and under `conpai.eu/en`
+are different URLs. For a shared layout, use a `navigation` module (it follows the current
+root) rather than a `customnav` with fixed page IDs, and switch languages with
+`{{iflng::de}}…{{iflng}}` in an HTML module.
+
 **One exception, on purpose:** `listing data` still writes its own SQL. `list_where` is a
 free SQL fragment stored in the listing module, so the query is configured in the site
 rather than by the caller — it cannot be expressed as checked equality filters, and
