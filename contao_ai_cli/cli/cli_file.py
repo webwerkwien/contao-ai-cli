@@ -48,9 +48,43 @@ def file_folder_create_cmd(ctx, path, as_json):
     _output(file_mod.folder_create(b, path), as_json or ctx.obj.get("as_json"))
 
 
+@file.command("folder-publish")
+@click.option("--path", required=True, help="Folder path relative to Contao root, e.g. files/conpai")
+@click.option("--unpublish", is_flag=True, help="Protect the folder again instead of publishing it")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_folder_publish_cmd(ctx, path, unpublish, as_json):
+    """Make a folder public (served by the front end), or protect it with --unpublish.
+
+    Does what the back end does: .public, symlinks, log entry. A folder that is
+    public through a parent is refused with the reason. Needs core-bundle v0.13.0.
+    """
+    _require_core_bundle(ctx, "file folder-publish")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(file_mod.folder_publish(b, path, unpublish), as_json or ctx.obj.get("as_json"))
+
+
+@file.command("upload")
+@click.option("--path",   required=True, help="Destination path relative to Contao root, e.g. files/images/photo.jpg")
+@click.option("--source", required=True, type=click.Path(exists=True, dir_okay=False),
+              help="Local file to upload — any type the installation's uploadTypes allows")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_upload_cmd(ctx, path, source, as_json):
+    """Upload a local file (images, PDFs, fonts, …) to files/.
+
+    Held to the installation's own upload rules: uploadTypes, maxFileSize,
+    imageWidth/imageHeight and SVG sanitising. An existing file is versioned
+    first. Needs core-bundle v0.13.0.
+    """
+    _require_core_bundle(ctx, "file upload")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(file_mod.file_upload(b, path, source), as_json or ctx.obj.get("as_json"))
+
+
 @file.command("process")
 @click.option("--path", required=True, help="File path relative to Contao root, e.g. files/images/photo.jpg")
-@click.option("--allowed-types", default="", help="Comma-separated allowed extensions (overrides Contao config)")
+@click.option("--allowed-types", default="", help="Comma-separated extensions to narrow Contao's uploadTypes to (cannot widen it)")
 @click.option("--max-width",     type=int, default=0, help="Max image width in pixels (0 = use Contao config)")
 @click.option("--max-height",    type=int, default=0, help="Max image height in pixels (0 = use Contao config)")
 @click.option("--max-file-size", type=int, default=0, help="Max file size in bytes (0 = use Contao config)")
@@ -70,7 +104,11 @@ def file_process_cmd(ctx, path, allowed_types, max_width, max_height, max_file_s
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_write_cmd(ctx, path, content, as_json):
-    """Write a text file to files/ on the server and create a version snapshot."""
+    """Write text to a file under files/ — an existing file is versioned first.
+
+    Held to uploadTypes and maxFileSize like any upload. For binary files
+    (images, PDFs, fonts) use `file upload`.
+    """
     _require_core_bundle(ctx, "file write")
     if content.startswith("@"):
         local = content[1:]

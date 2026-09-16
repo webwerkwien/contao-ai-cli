@@ -492,6 +492,41 @@ The rows are in `results`. Three things follow, and all three matter more than t
 `--limit`/`--offset` exist on every listing. `file list --path` matches a path prefix
 through `--filter-prefix`, bound as a parameter, so a `%` in the value stays literal.
 
+### Files: what the installation allows, and making it reachable (core-bundle v0.13.0)
+
+```bash
+contao-ai-cli --json file folder-create --path files/conpai
+contao-ai-cli --json file upload --path files/conpai/bot.png --source ./bot.png
+contao-ai-cli --json file write --path files/conpai/style.css --content @style.css
+contao-ai-cli --json file folder-publish --path files/conpai          # --unpublish to protect again
+```
+
+**`file upload` takes any file the installation accepts** — images, PDFs, fonts — and sends
+the local file unchanged. `file write` is for text. Both are held to the **installation's
+own upload rules**, the ones a back-end upload goes through:
+
+| rule | from | answer when broken |
+|---|---|---|
+| extension | `uploadTypes` | refused — `.php`, `.htaccess`, a file without extension |
+| size | `maxFileSize` | refused (the old fixed 10 MB limit is gone) |
+| image dimensions | `imageWidth` × `imageHeight` | resized after writing (`"resized": true`), or refused when `contao.image.reject_large_uploads` is set |
+| SVG | Contao's sanitiser | scripts and event handlers removed; an unreadable SVG is refused |
+
+`file process --allowed-types` **narrows** `uploadTypes` for one check; naming a type the
+installation does not allow is refused.
+
+**A folder is not served until it is public.** `file folder-publish` does what the back end's
+checkbox does: `.public`, symlinks, a log entry. A folder that is public because a parent is
+cannot be changed on its own — the command says so instead of answering `ok`.
+
+**`file folder-create` also repairs.** Run on an existing folder whose `tl_files` record has
+no UUID, it assigns one, corrects the `pid` and re-attaches direct children; `repaired`
+lists what changed. Before core-bundle v0.13.0 it created every folder that way — a file
+written into it hung under no parent, and `file sync` reported "No changes".
+
+`record list tl_files` shows `uuid` and `pid` as UUID strings from v0.13.0; before, the raw
+bytes often came out as `null`, which looked like a missing reference.
+
 **`page tree` is its own command** (`contao:page:tree`): the tree is built server-side,
 level by level, because `record:list` caps at 100 rows and a real site passes that —
 wienerwandern.at has 283 pages. Two levels by default; `truncated` says whether pages

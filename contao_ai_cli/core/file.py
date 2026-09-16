@@ -93,6 +93,50 @@ def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
             pass
 
 
+def file_upload(backend: ContaoBackend, path: str, local_file: str) -> dict:
+    """Upload any local file to files/ via contao-ai-core-bundle.
+
+    The server holds it to the installation's own rules — uploadTypes,
+    maxFileSize, image dimensions, SVG sanitising — the same ones a back-end
+    upload goes through (core-bundle v0.13.0).
+
+    Measured on 2026-09-16: `file write` could not carry a PNG. The transport
+    was binary-safe all along — SCP, and the server reads bytes — only the
+    local temp file was opened in text mode. So the local file is sent as it
+    is, without a copy in between.
+    """
+    import os
+    import uuid
+
+    if not os.path.isfile(local_file):
+        return {'status': 'error', 'message': f'Local file not found: {local_file}'}
+
+    upload_dir = f'{backend.contao_root}/var/bridge-uploads'
+    remote_tmp = f'{upload_dir}/contao_upload_{uuid.uuid4().hex}'
+    backend.run_raw(f'mkdir -p {shlex.quote(upload_dir)}')
+
+    try:
+        scp_result = backend.scp_upload(local_file, remote_tmp)
+        if scp_result.get('returncode', 0) != 0:
+            return {'status': 'error', 'message': f"SCP upload failed: {scp_result.get('stderr', '')}"}
+
+        cmd = f'contao:file:write --path {shlex.quote(path)} --source {shlex.quote(remote_tmp)}'
+        return run_json_or_raw(backend, cmd)
+    finally:
+        try:
+            backend.run_raw(f'rm -f {shlex.quote(remote_tmp)}')
+        except Exception:
+            pass
+
+
+def folder_publish(backend: ContaoBackend, path: str, unpublish: bool = False) -> dict:
+    """Make a folder public — or protect it again — as the back end does (core-bundle v0.13.0)."""
+    cmd = f'contao:folder:publish --path {shlex.quote(path)}'
+    if unpublish:
+        cmd += ' --unpublish'
+    return run_json_or_raw(backend, cmd)
+
+
 def file_read(backend: ContaoBackend, path: str) -> dict:
     """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
     return run_json_or_raw(backend, f'contao:file:read --path {shlex.quote(path)}')

@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.17.0 - 2026-09-16
+
+Requires **contao-ai-core-bundle v0.13.0** for the two new commands and for the
+upload rules.
+
+### Added
+
+- **`file upload --path files/… --source <local file>`** — any file the installation
+  accepts: images, PDFs, fonts. `file write` could not carry a binary: the transport
+  was binary-safe all along (SCP, and the server reads bytes), but the local temp file
+  was opened in text mode. `file upload` sends the local file itself, without a copy
+  in between. Found in the ConpAI 1.0 acceptance test on 2026-09-16.
+- **`file folder-publish --path files/… [--unpublish]`** — makes a folder public so the
+  front end serves it, or protects it again, the way the back end's checkbox does.
+  There was no way to do this before: `folder create --public` was removed on
+  2026-04-19 because it wrote to a column that does not exist, and nothing replaced it.
+
+### Changed
+
+- **Uploads and writes follow the installation's own rules** (server side,
+  core-bundle v0.13.0): `uploadTypes`, `maxFileSize` instead of a fixed 10 MB, image
+  dimensions, SVG sanitising. `file write --path files/x.php` is refused now.
+- **`file process --allowed-types` narrows the system list** and can no longer widen
+  it — `--allowed-types png,php` is refused.
+- Help texts of `file write` and `file process` say what the commands do; `file write`
+  claimed to "create a version snapshot" also for a new file.
+- `CLAUDE.md`: a section on files — upload rules, publishing folders, the repair that
+  `file folder-create` does on a folder without a UUID.
+
 ## v0.16.1 - 2026-09-05
 
 Documentation only — no behaviour change in the CLI itself. The behaviour it

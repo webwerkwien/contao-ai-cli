@@ -12,7 +12,10 @@ from contao_ai_cli.core.contao_ops import migrate, maintenance_status, run_sql_t
 from contao_ai_cli.core.debug_ops import debug_dca, debug_router, debug_plugins
 from contao_ai_cli.core.event import calendar_list, event_list, event_read, event_create
 from contao_ai_cli.core.faq import faq_category_list, faq_list, faq_read, faq_create
-from contao_ai_cli.core.file import file_list, file_sync, file_process, file_write, file_read, file_meta_update
+from contao_ai_cli.core.file import (
+    file_list, file_sync, file_process, file_write, file_read, file_meta_update,
+    file_upload, folder_publish,
+)
 from contao_ai_cli.core.form import form_list, form_fields
 from contao_ai_cli.core.layout import layout_read
 from contao_ai_cli.core.listing import listing_module_list, listing_data
@@ -375,6 +378,76 @@ class TestFile:
         backend.scp_upload.assert_called_once_with("C:/tmp/write.tmp", expected_remote)
         assert f"contao:file:write --path files/demo.txt --source {expected_remote}" in backend.run.call_args[0][0]
         unlink.assert_called_once_with("C:/tmp/write.tmp")
+
+    # --- file upload (v0.17.0) ---
+    #
+    # Measured on 2026-09-16: `file write` could not carry a PNG. The transport
+    # was binary-safe all along (SCP, server reads bytes); only the local temp
+    # file was opened in text mode. `file upload` sends the local file itself.
+
+    def test_file_upload_sends_the_local_file_unchanged(self, tmp_path):
+        local = tmp_path / "bot.png"
+        payload = b"\x89PNG\r\n\x1a\n\x00\xff\xfe binary"
+        local.write_bytes(payload)
+        backend = MagicMock()
+        backend.contao_root = "/var/www/contao"
+        backend.scp_upload.return_value = {"returncode": 0}
+        backend.run.return_value = {"stdout": json.dumps({"status": "ok", "bytes": len(payload)}), "returncode": 0}
+
+        result = file_upload(backend, "files/conpai/bot.png", str(local))
+
+        assert result["status"] == "ok"
+        # The local file goes as it is — no temp copy, no text mode in between.
+        sent_local, remote = backend.scp_upload.call_args[0]
+        assert sent_local == str(local)
+        assert remote.startswith("/var/www/contao/var/bridge-uploads/")
+        assert local.read_bytes() == payload
+        assert f"contao:file:write --path files/conpai/bot.png --source {remote}" in sent_cmd(backend)
+
+    def test_file_upload_cleans_the_remote_temp_file(self, tmp_path):
+        local = tmp_path / "doc.pdf"
+        local.write_bytes(b"%PDF-1.7")
+        backend = MagicMock()
+        backend.contao_root = "/srv"
+        backend.scp_upload.return_value = {"returncode": 0}
+        backend.run.return_value = {"stdout": json.dumps({"status": "ok"}), "returncode": 0}
+
+        file_upload(backend, "files/doc.pdf", str(local))
+
+        remote = backend.scp_upload.call_args[0][1]
+        assert any(f"rm -f {remote}" in c[0][0] for c in backend.run_raw.call_args_list)
+
+    def test_file_upload_refuses_a_missing_local_file(self, tmp_path):
+        backend = MagicMock()
+        result = file_upload(backend, "files/x.png", str(tmp_path / "gibt-es-nicht.png"))
+
+        assert result["status"] == "error"
+        backend.scp_upload.assert_not_called()
+
+    def test_file_upload_reports_a_failed_transfer(self, tmp_path):
+        local = tmp_path / "bot.png"
+        local.write_bytes(b"x")
+        backend = MagicMock()
+        backend.contao_root = "/srv"
+        backend.scp_upload.return_value = {"returncode": 1, "stderr": "Permission denied"}
+
+        result = file_upload(backend, "files/bot.png", str(local))
+
+        assert result["status"] == "error"
+        assert "Permission denied" in result["message"]
+
+    # --- folder publish (v0.17.0) ---
+
+    def test_folder_publish(self):
+        backend = json_backend('{"status":"ok","path":"files/conpai","public":true,"changed":true}')
+        result = folder_publish(backend, "files/conpai")
+        assert result["public"] is True
+        assert sent_cmd(backend) == "contao:folder:publish --path files/conpai"
+
+    def test_folder_unpublish(self):
+        backend = json_backend('{"status":"ok","public":false}')
+        folder_publish(backend, "files/conpai", unpublish=True)
+        assert sent_cmd(backend) == "contao:folder:publish --path files/conpai --unpublish"
 
 
 class TestForm:
