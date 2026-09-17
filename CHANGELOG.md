@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.22.0 - 2026-09-17
+
+Requires **contao-ai-core-bundle v0.21.0** for `template delete` and a logged `cache clear`.
+
+### Added
+
+- **`template delete --path templates/… [--yes]`** — delete a Twig template as Contao's
+  Template Studio does; records using a deleted variant fall back to the default template
+  (`migratedUsages`). Needs `--yes` unless a person types yes, like `file delete`.
+
+### Changed
+
+- **`cache clear` is logged in `tl_log`** ("Purged the internal cache") through
+  `contao:cache:clear`. The answer gains `logged`; against an older core bundle the plain
+  `cache:clear` runs as before and answers `logged: false` (#43). A failing clear now
+  reports the core bundle's message instead of the first 500 characters of its answer.
+
 ## v0.21.2 - 2026-09-17
 
 ### Fixed

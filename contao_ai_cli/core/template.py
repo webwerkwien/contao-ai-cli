@@ -4,7 +4,7 @@ import os
 import shlex
 import tempfile
 
-from contao_ai_cli.utils.contao_backend import ContaoBackend
+from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 
 
 def template_list(backend: ContaoBackend, prefix: str = "") -> dict:
@@ -26,6 +26,26 @@ def template_read(backend: ContaoBackend, path: str) -> dict:
     try:
         return json.loads(result["stdout"])
     except json.JSONDecodeError:
+        return {"raw": result["stdout"]}
+
+
+def template_delete(backend: ContaoBackend, path: str) -> dict:
+    """Delete a Twig template below templates/ (core-bundle v0.21.0).
+
+    As Contao's Template Studio: records whose customTpl named a deleted content-element or
+    front-end-module variant fall back to the default template (`migratedUsages`).
+    check=False: a refusal is a JSON answer with exit 1 and is returned as it came.
+    """
+    result = backend.run(f"contao:template:delete --path {shlex.quote(path)}", check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"template delete failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
+            ) from None
         return {"raw": result["stdout"]}
 
 

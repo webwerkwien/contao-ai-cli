@@ -408,6 +408,12 @@ days. The answer names what went out:
 no write invalidated anything. It rebuilds the whole container, so it is not a
 reflex after every write any more.
 
+**`cache clear` is logged** (core-bundle v0.21.0, CLI v0.22.0): it runs
+`contao:cache:clear`, which calls Symfony's `cache:clear` and writes *"Purged the internal
+cache"* to `tl_log` (cron action, `source = CLI`, the operator) — as Contao's back end does.
+The answer is `{status: "cleared", output, logged}`; `logged: false` means an older core
+bundle ran the plain `cache:clear` without a trace.
+
 ### Backup
 
 ```bash
@@ -443,6 +449,14 @@ means "not known here", not "none".
 offer for that element type is refused, and the answer lists the ones it does — or
 "only the default template". Before, `--set customTpl=…/gibtesnicht` was stored and the
 element silently rendered its default.
+
+**`template delete --path templates/… --yes`** (core-bundle v0.21.0, CLI v0.22.0) deletes a
+`.html.twig` below `templates/` as Contao's Template Studio does: the file, then compiled
+templates and hierarchy; for a variant of a content element or front-end module
+(`templates/content_element/<type>/<name>.html.twig`, `frontend_module/…`) every record
+whose `customTpl` named it falls back to the default template — `migratedUsages: {table,
+field, ids}`, each with a version. `undoable: false`. Like `file delete`, it needs `--yes`
+unless a person types yes. Symbolic links and paths through linked folders are refused.
 
 **A template written with `template write` is usable at once** (core-bundle v0.20.0): the
 answer carries `templateCacheRefreshed: true` — Contao's template hierarchy and compiled

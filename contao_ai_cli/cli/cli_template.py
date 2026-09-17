@@ -4,7 +4,7 @@ template group — Manage Contao Twig templates (templates/ directory).
 import click
 
 from contao_ai_cli.core import template as template_mod
-from .helpers import _get_backend, _output, _require_core_bundle
+from .helpers import _get_backend, _output, _require_core_bundle, confirm_escalation
 
 
 @click.group()
@@ -33,6 +33,36 @@ def template_read_cmd(ctx, path, as_json):
     _require_core_bundle(ctx, "template read")
     b = _get_backend(ctx.obj.get("session"))
     _output(template_mod.template_read(b, path), as_json or ctx.obj.get("as_json"))
+
+
+@template.command("delete")
+@click.option("--path", required=True, help="Template path, e.g. templates/content_element/text/hero.html.twig")
+@click.option("--yes", is_flag=True, help="Delete without the prompt -- required when no one can answer it")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def template_delete_cmd(ctx, path, yes, as_json):
+    """Delete a Twig template, as Contao's Template Studio does.
+
+    Records whose customTpl named a deleted variant fall back to the default template;
+    the answer lists them. A deleted template cannot be restored, so without a terminal
+    it needs --yes -- silence at the prompt is a no. Needs core-bundle v0.21.0.
+    """
+    _require_core_bundle(ctx, "template delete")
+    as_json = as_json or ctx.obj.get("as_json")
+    # As file delete (v0.20.0): no tl_undo for files, so only --yes or a typed yes deletes.
+    if not yes and not confirm_escalation(f"Delete {path}? Templates cannot be restored."):
+        _output({
+            "status": "error",
+            "message": f"Nothing was deleted: {path}. Templates cannot be restored, so template "
+                       "delete needs --yes when no one answers yes at the prompt.",
+            "code": 1,
+        }, as_json)
+        ctx.exit(1)
+    b = _get_backend(ctx.obj.get("session"))
+    result = template_mod.template_delete(b, path)
+    _output(result, as_json)
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
 
 
 @template.command("write")
