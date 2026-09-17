@@ -436,6 +436,15 @@ offer for that element type is refused, and the answer lists the ones it does �
 "only the default template". Before, `--set customTpl=…/gibtesnicht` was stored and the
 element silently rendered its default.
 
+**A template written with `template write` is usable at once** (core-bundle v0.20.0): the
+answer carries `templateCacheRefreshed: true` — Contao's template hierarchy and compiled
+templates were refreshed, as the Template Studio does after saving. Up to v0.19.0 a new
+variant was refused as `customTpl` and an edited override kept rendering the old version
+until `cache clear`. If the refresh fails or cannot reach everything from the console
+(Contao 5.3 with APCu on the web server; Twig before 3.15), the file is still written,
+`templateCacheRefreshed` is `false` and `cacheWarning` says what — run `cache clear` if the
+template is refused or renders the old version.
+
 ### Theme layer
 
 ```bash
@@ -820,6 +829,14 @@ root. `page create --title "Über uns"` under a German root answers `"alias": "u
 up to core-bundle v0.16.0 it was `über-uns`. Read the alias from the answer instead of
 predicting it. If Contao's rule cannot run, the old slug is used and the answer carries
 `aliasWarning`.
+
+**`routeConflicts` in the answer of `page create`/`page update`** (core-bundle v0.20.0): pages
+on the same domain whose URL may collide with this one, `[{id, title, alias, path}]` — the
+hint Contao's back end shows under the alias field ("the following pages have a similar
+alias that may conflict"). **A hint, not a refusal:** Contao saves such a page too, e.g. a
+second `index` under the same root. Tell the user; usually one alias should change. A
+taken URL like a second `packages` is still refused. With `--ids` the bulk answer reports
+them per record: `routeConflicts: {"176": [...]}`.
 
 Aliases may repeat **across** roots — `index` under `conpai.eu` and under `conpai.eu/en`
 are different URLs. For a shared layout, use a `navigation` module (it follows the current

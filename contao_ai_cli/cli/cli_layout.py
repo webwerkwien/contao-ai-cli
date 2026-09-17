@@ -52,9 +52,9 @@ def layout_create_cmd(ctx, theme_id, name, template, fields, as_json):
     """Create a page layout under a theme.
 
     \b
-    The layout arrives without sections and without modules — both are wizard
-    columns holding serialized structures, and a layout with no modules renders
-    nothing. Fill them in afterwards, in the back end or via --set.
+    The layout arrives without sections and without modules, and a layout with no
+    modules renders nothing. Add them afterwards with `layout module-add` (module 0
+    is the articles); sections via --set as structured JSON.
     """
     _require_core_bundle(ctx, "layout create")
     b = _get_backend(ctx.obj.get("session"))

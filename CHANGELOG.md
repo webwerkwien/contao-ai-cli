@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.21.1 - 2026-09-17
+
+Documents what contao-ai-core-bundle **v0.20.0** adds to the answers.
+
+### Fixed
+
+- `layout create --help` still said to fill in modules "in the back end or via --set";
+  it now names `layout module-add` (available since core-bundle v0.16.0).
+
+### Documentation
+
+- `CLAUDE.md`: `routeConflicts` in the answer of `page create`/`page update` (a hint, not a
+  refusal — as in Contao's back end), and `templateCacheRefreshed`/`cacheWarning` from
+  `template write`.
+
 ## v0.21.0 - 2026-09-17
 
 Agent-driven onboarding. Core and backend bundles: no change.
