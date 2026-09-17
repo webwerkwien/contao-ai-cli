@@ -1,6 +1,8 @@
 """
 layout group — Manage Contao layouts (tl_layout).
 """
+import re
+
 import click
 
 from contao_ai_cli.core import layout as layout_mod
@@ -84,9 +86,17 @@ def layout_update_cmd(ctx, layout_id, ids, ids_from_file, fields, as_json):
             as_json or ctx.obj.get("as_json"))
 
 
+def _module_ref(ctx, param, value):
+    """A module ID, or `content-<id>`: how a layout holds a theme's content element since Contao 5.7."""
+    if re.fullmatch(r"[0-9]+|content-[1-9][0-9]*", value or ""):
+        return value
+    raise click.BadParameter("a module ID (0 for the articles) or content-<id>")
+
+
 @layout.command("module-add")
 @click.option("--layout", "layout_id", type=int, required=True, help="Layout ID (tl_layout)")
-@click.option("--module", "module_id", type=int, required=True, help="Module ID (tl_module), 0 for the articles")
+@click.option("--module", "module_id", required=True, callback=_module_ref,
+              help="Module ID (tl_module), 0 for the articles, or content-<id> for a content element of the theme (Contao 5.7, core-bundle v0.24.0)")
 @click.option("--col", required=True, help="Column: main, header, left, right, footer or a custom section id")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
@@ -104,7 +114,8 @@ def layout_module_add_cmd(ctx, layout_id, module_id, col, as_json):
 
 @layout.command("module-remove")
 @click.option("--layout", "layout_id", type=int, required=True, help="Layout ID (tl_layout)")
-@click.option("--module", "module_id", type=int, required=True, help="Module ID (tl_module), 0 for the articles")
+@click.option("--module", "module_id", required=True, callback=_module_ref,
+              help="Module ID (tl_module), 0 for the articles, or content-<id> for a content element of the theme (Contao 5.7, core-bundle v0.24.0)")
 @click.option("--col", default=None, help="Only from this column (default: from every column)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context

@@ -70,7 +70,7 @@ def file_write(backend: ContaoBackend, path: str, content: str) -> dict:
     import tempfile
 
     # Write content to a local temp file, then SCP it to the server
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tmp', delete=False, encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.tmp', delete=False, encoding='utf-8', newline='') as f:
         f.write(content)
         local_tmp = f.name
 

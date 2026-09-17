@@ -58,7 +58,7 @@ def template_write(backend: ContaoBackend, mode: str, base: str,
     name: variant name (required for mode='variant')
     content: template source as string
     """
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.twig', delete=False, encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.twig', delete=False, encoding='utf-8', newline='') as f:
         f.write(content)
         local_tmp = f.name
 

@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.25.0 - 2026-09-17
+
+Requires **contao-ai-core-bundle v0.24.0** for `content-<id>` in `layout module-add`.
+
+### Added
+
+- **`layout module-add` / `module-remove --module content-<id>`** — a theme's content
+  element in a layout column (Contao 5.7). Anything that is neither a module ID nor
+  `content-<id>` is refused before the server is contacted (Nr. 68).
+
+### Fixed
+
+- **`file write` and `template write` changed line endings on Windows.** The content went
+  through a temp file in text mode, so LF arrived as CRLF; and `@file` was read in text mode,
+  which turned a file's own CRLF into LF. Both now pass the bytes unchanged (Nr. 65).
+
 ## v0.24.0 - 2026-09-17
 
 Requires **contao-ai-core-bundle v0.23.0** for `file move`.

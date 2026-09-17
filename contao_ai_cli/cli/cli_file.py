@@ -167,7 +167,7 @@ def file_write_cmd(ctx, path, content, as_json):
     if content.startswith("@"):
         local = content[1:]
         try:
-            with open(local, encoding="utf-8") as f:
+            with open(local, encoding="utf-8", newline="") as f:
                 content = f.read()
         except OSError as e:
             raise click.UsageError(f"Cannot read local file {local!r}: {e}")

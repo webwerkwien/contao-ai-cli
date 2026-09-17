@@ -68,14 +68,16 @@ def layout_update(backend: ContaoBackend, layout_id: int, fields: dict) -> dict:
     return run_update(backend, "contao:layout:update", layout_id, fields)
 
 
-def layout_module(backend: ContaoBackend, layout_id: int, module_id: int,
+def layout_module(backend: ContaoBackend, layout_id: int, module_id: int | str,
                   col: str | None, remove: bool = False) -> dict:
     """Add a module to a layout column, or remove it (core-bundle v0.16.0).
 
     The server checks that the module exists and belongs to the layout's theme
     (0 is the articles) and, for a classic layout, that the column exists.
+    `content-<id>` is a content element of the theme (Contao 5.7, core-bundle v0.24.0).
     """
-    cmd = f'contao:layout:module --layout {int(layout_id)} --module {int(module_id)}'
+    module = str(int(module_id)) if str(module_id).isdigit() else str(module_id)
+    cmd = f'contao:layout:module --layout {int(layout_id)} --module {shlex.quote(module)}'
     if col:
         cmd += f' --col {shlex.quote(col)}'
     if remove:

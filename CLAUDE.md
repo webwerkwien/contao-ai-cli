@@ -493,7 +493,11 @@ modules; a layout without modules renders nothing.
 contao-ai-cli --json layout module-add --layout 25 --module 66 --col header
 contao-ai-cli --json layout module-add --layout 25 --module 0 --col main      # 0 = the articles
 contao-ai-cli --json layout module-remove --layout 25 --module 66             # from every column
+contao-ai-cli --json layout module-add --layout 2 --module content-317 --col header   # a theme's content element
 ```
+
+`content-<id>` is a content element of the layout's theme (Contao 5.7, Themes → Content
+elements; core-bundle v0.24.0) — the way to a header or footer without a module.
 
 The server checks that the module exists and belongs to the layout's theme and, for a
 classic `fe_page` layout, that the column exists (`main` always; `header`, `left`, `right`,
@@ -769,7 +773,8 @@ contao-ai-cli --json file folder-publish --path files/conpai          # --unpubl
 ```
 
 **`file upload` takes any file the installation accepts** — images, PDFs, fonts — and sends
-the local file unchanged. `file write` is for text. Both are held to the **installation's
+the local file unchanged. `file write` is for text and, since v0.25.0, sends its line endings
+unchanged too (before, on Windows, LF arrived as CRLF). Both are held to the **installation's
 own upload rules**, the ones a back-end upload goes through:
 
 | rule | from | answer when broken |
