@@ -157,12 +157,13 @@ Contao Manager, plain `composer` is used, and a missing `allow-plugins` entry is
 at `--allow-plugins`. Writing `allow-plugins` into the project's `composer.json` is
 consent the agent asks the user for before passing that flag.
 
-**`update` always runs `composer require "<pkg>:^<latest>"`, not `composer update`**
-(fixed 2026-09-17): a plain `composer require` with no constraint writes `^<next-minor>`
-into `composer.json`, and a later `composer update` never leaves that constraint — the
-update could never cross a 0.x minor. `bundle update backend` keeps its own permanent
-`>=0.1 <1.0` range instead of chasing `latest`. The answer is `status: error` unless the
-version read back afterwards equals `latest` exactly; if Packagist cannot be reached,
+**`install` and `update` both run `composer require "<pkg>:<range>"`, not `composer update`**
+— a `composer update` never leaves the constraint already on disk. The range is the one each
+bundle's README recommends: core `>=0.2 <1.0`, backend `>=0.1 <1.0` (v0.21.2, see below). The
+answer is `status: error` unless the version read back afterwards equals `latest` exactly;
+if something else holds the newest back (a PHP requirement, a locked dependency), Composer
+still exits 0 with an older version — the error then names the installed and the newest
+version and says that `composer.json` and the lock were rewritten. If Packagist cannot be reached,
 `update` answers `status: error` too (never "up to date" for a version it could not
 check). `install_bundle` also probes the server first (`--version`) and answers `status:
 error, message: "server not reachable: …"` before touching Composer or allow-plugins at
@@ -177,6 +178,13 @@ all — a probe failure used to fall through and be misreported as a missing
 | `previous` / `via` | **only when Composer actually ran** — absent for "already installed" and "already up to date" answers | version before the run / `contao-manager` or `composer` |
 | `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
 | `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
+| `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `>=0.2 <1.0`, backend `>=0.1 <1.0` |
+
+**Both commands write that range into `composer.json`** (v0.21.2) — the form each bundle's
+README recommends, so later updates through the Contao Manager or `composer update` cross
+0.x minors. A differing constraint is replaced by it, even a deliberately stricter one. Up to v0.21.1 `bundle update core`
+wrote `^<latest>` (on web.werk.wien it turned `>=0.2 <1.0` into `^0.20.0`) and `bundle install
+core` Composer's own `^0.x` — both cap the next minor.
 
 Success is reported only once the new version has been **read back** from the server —
 a Composer run finishing without error is not, on its own, taken as proof.

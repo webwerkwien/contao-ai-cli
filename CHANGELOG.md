@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.21.2 - 2026-09-17
+
+### Fixed
+
+- **`bundle update core` overwrote the constraint in `composer.json`** with `^<latest>` — on
+  web.werk.wien `>=0.2 <1.0` became `^0.20.0`, so the next minor was out of reach for the
+  Contao Manager and `composer update` again. `bundle install core` had the same effect
+  through Composer's own `^0.x`. Both commands now write the range each bundle's README
+  recommends — core `>=0.2 <1.0`, backend `>=0.1 <1.0` — and name it in the answer
+  (`constraint`). A differing constraint, even a stricter one, is replaced. Found while
+  updating the live installations; the constraint was restored there by hand.
+- **An update held back below the newest version claimed "Nothing else was changed"** —
+  Composer exits 0 with an older version when e.g. the PHP version rules the newest out, and
+  has rewritten `composer.json` and the lock by then. The error now names both versions and
+  says what was rewritten.
+
 ## v0.21.1 - 2026-09-17
 
 Documents what contao-ai-core-bundle **v0.20.0** adds to the answers.

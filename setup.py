@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="contao-ai-cli",
-    version="0.21.1",
+    version="0.21.2",
     description="Agent-native CLI for Contao 5 CMS via SSH",
     author="web.werk.wien",
     license="MIT",

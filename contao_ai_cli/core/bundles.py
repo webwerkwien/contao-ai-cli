@@ -12,9 +12,12 @@ from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 
-# Composer package argument per bundle. The backend bundle is pre-1.0 and pinned as
-# the README documents it; the core bundle takes Composer's default constraint.
-REQUIREMENTS = {"core": CORE_BUNDLE, "backend": f"{BACKEND_BUNDLE}:>=0.1 <1.0"}
+# The constraint written into composer.json -- per bundle, the range its README recommends.
+# A plain `composer require <pkg>` would write `^0.x`, and `^<latest>` (v0.21.0-v0.21.1)
+# overwrote `>=0.2 <1.0` on web.werk.wien: either caps the next minor for the Contao Manager
+# and `composer update` (Nr. 52, 2026-09-17).
+CONSTRAINTS = {"core": ">=0.2 <1.0", "backend": ">=0.1 <1.0"}
+REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES}
 
 
 def get_bundle_latest_version(package: str) -> str | None:
@@ -42,23 +45,6 @@ def composer_bundle(backend, requirement: str, action: str, phar_path: str | Non
         composer = "composer"
     target = requirement if action == "require" else requirement.split(":", 1)[0]
     return backend.run_raw(f"{composer} {action} {shlex.quote(target)} --no-interaction", timeout=timeout)
-
-
-def _update_requirement(name: str, package: str, latest: str) -> str:
-    """
-    The requirement `bundle update` passes to `composer require`.
-
-    A plain `composer require <pkg>` with no constraint writes `^<next-minor>`
-    into composer.json (README), and every later `composer update <pkg>` stays
-    inside whatever constraint is already on disk -- it is the constraint, not
-    the installed version, that decides how far an update can go. Pinning it to
-    the version just read from Packagist is what actually crosses a 0.x minor
-    (review 2026-09-17). The backend bundle keeps its own permanent range
-    instead of chasing latest one release at a time.
-    """
-    if name == "backend":
-        return REQUIREMENTS["backend"]
-    return f"{package}:^{latest}"
 
 
 def install_bundle(backend, name: str, action: str, allow_plugins: bool = False) -> dict:
@@ -99,7 +85,7 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
             return {**base, "status": "ok", "changed": False, "installed": before,
                     "message": f"{package} {before} is up to date."}
 
-    requirement = REQUIREMENTS[name] if action == "install" else _update_requirement(name, package, latest)
+    requirement = REQUIREMENTS[name]
     manager = detect_contao_manager(backend)
     written: list[str] = []
     try:
@@ -113,10 +99,9 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
             if missing:
                 set_allow_plugins(backend, missing)
                 written = missing
-        # Both install and update run `require` with an explicit constraint --
-        # `composer update` never leaves the constraint already on disk, which
-        # is exactly the boundary an update needs to cross (see
-        # _update_requirement).
+        # Both install and update run `require` with the range -- `composer update`
+        # never leaves the constraint already on disk, which is exactly the boundary
+        # an update needs to cross (see CONSTRAINTS).
         composer_bundle(backend, requirement, "require",
                         manager["phar_path"] if manager["available"] else None)
         backend.run("cache:warmup --env=prod")
@@ -130,11 +115,19 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
                 "message": f"Composer finished, but {package} is not installed afterwards."}
 
     if action == "update" and str(after).lstrip("v") != str(latest).lstrip("v"):
-        return {**base, "status": "error", "code": 1, "allowPluginsWritten": written, "installed": after,
-                "message": f"Composer installed {after}, expected {latest}. Nothing else was changed."}
+        # Composer exits 0 with an older version when something else holds the newest back
+        # (a PHP requirement, a locked dependency) -- and has rewritten composer.json and the
+        # lock by then. Say so (pre-release review 2026-09-17: "nothing else was changed").
+        return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
+                "installed": after, "previous": before, "changed": after != before,
+                "constraint": CONSTRAINTS[name],
+                "message": f"Composer resolved {package} to {after}, not the newest {latest} -- another "
+                           f"requirement (e.g. the PHP version or a locked dependency) holds it back. "
+                           f"composer.json now requires {CONSTRAINTS[name]} and the lock file was updated."}
 
     result = {**base, "status": "ok", "changed": after != before, "installed": after,
-              "previous": before, "via": "contao-manager" if manager["available"] else "composer"}
+              "previous": before, "via": "contao-manager" if manager["available"] else "composer",
+              "constraint": CONSTRAINTS[name]}
     if written:
         result["allowPluginsWritten"] = written
     return result
