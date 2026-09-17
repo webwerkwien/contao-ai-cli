@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.22.1 - 2026-09-17
+
+Pairs with **contao-ai-core-bundle v0.21.1**, which accepts `--set useSSL=1`.
+
+### Fixed
+
+- **`schema show` listed the labels of an `eval.isAssociative` list as its values.**
+  `tl_page.useSSL` came back as `["http://", "https://"]`, none of which can be set; it now
+  answers `{"0": "http://", "1": "https://"}`, the same value-to-label shape as a resolved
+  callback. Found live on web.werk.wien in the ConpAI 1.0 acceptance test (Nr. 53).
+- **Integer option keys that are not 0..n-1 were read as positions.** `array(6 => 'Hero')`
+  came back as `["Hero"]`; it now answers `{"6": "Hero"}` (review before this release).
+
 ## v0.22.0 - 2026-09-17
 
 Requires **contao-ai-core-bundle v0.21.0** for `template delete` and a logged `cache clear`.

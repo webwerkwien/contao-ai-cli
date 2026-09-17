@@ -438,6 +438,11 @@ server builds Contao's own palette for that record and answers only what applies
 page needs `title` and `language`; with `enableCsp=1` also `csp`; a redirect `title` and
 `url`. The answer also lists the palette's `fields`.
 
+**`options` in `schema show` is a list of values or a `{value: label}` map** — never a
+list of labels. A select declared `isAssociative` stores its index, so `tl_page.useSSL`
+answers `{"0": "http://", "1": "https://"}` and https is `--set useSSL=1` (v0.22.1 with
+core-bundle v0.21.1; before, the labels came back and `useSSL=1` was refused, Nr. 53).
+
 **`schema resolve` asks the installation first**, which calls the field's own options
 callback — page types a bundle registers (`consho_product`) and template variants are
 there. Up to CLI v0.17.0 page types came from a built-in list that could not know them;

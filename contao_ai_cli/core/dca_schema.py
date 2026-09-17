@@ -121,9 +121,17 @@ def _extract_options(fdef: dict) -> object | None:
         return '__callback__'
 
     if isinstance(opts, dict):
-        # Convert integer keys back to a list if sequential
+        ev = fdef.get('eval')
         if all(isinstance(k, int) for k in opts):
-            return [opts[k] for k in sorted(opts)]
+            # A PHP list only when the keys are exactly 0..n-1 and isAssociative is
+            # not set. Otherwise the key is the stored value, the text the label:
+            # tl_page.useSSL (isAssociative, stores 0/1, Nr. 53) and image sizes
+            # like array(6 => 'ConpAI Hero'). Same {value: label} shape as
+            # _server_options().
+            associative = isinstance(ev, dict) and ev.get('isAssociative')
+            if not associative and sorted(opts) == list(range(len(opts))):
+                return [opts[k] for k in sorted(opts)]
+            return {str(k): opts[k] for k in sorted(opts)}
         return opts
     return opts
 
