@@ -2,8 +2,12 @@
 self-update -- reinstall contao-ai-cli at the newest tag via pipx.
 
 Measured on Windows 2026-09-17: works while another contao-ai-cli process is
-running (pipx reuses the venv and overwrites the launcher). Until v0.20.0 it
-was a question inside `connect`; an agent could not reach it.
+running (pipx reuses the venv and overwrites the launcher). But pipx moves a
+running launcher into its trash, and while that file stays locked every later
+pipx call fails emptying the trash — so the result is read back from the new
+launcher (Nr. 54), and a second self-update while an older contao-ai-cli window
+is still open fails until that window is closed. Until v0.20.0 it was a
+question inside `connect`; an agent could not reach it.
 """
 import shutil
 
@@ -36,7 +40,8 @@ def self_update(ctx, as_json):
     outcome = install_cli_update(check["latest"])
     if not outcome["updated"]:
         reason = f" pipx said: {outcome['reason']}" if outcome.get("reason") else ""
-        fail(f"The update did not take effect (pipx reports {outcome['installed'] or 'nothing'}).{reason} "
+        fail(f"The update did not take effect (installed version reads {outcome['installed'] or 'nothing'}).{reason} "
+             "On Windows, close other contao-ai-cli windows first. "
              f"Install it manually: pipx install --force git+{CLI_INSTALL_URL}@v{check['latest']}")
     _output({"status": "ok", "changed": True, "previous": check["current"], "installed": outcome["installed"],
              "message": "Updated. A running `contao-ai-cli repl` keeps the old code until it is restarted."}, as_json)

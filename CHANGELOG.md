@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.23.1 - 2026-09-17
+
+### Fixed
+
+- **`self-update` on Windows reported a working update as failed — now with the cause.**
+  Measured with an instrumented build: the reinstall moves the running
+  `contao-ai-cli.exe` into pipx's trash, the running process keeps it locked, and every
+  later pipx call fails emptying that trash (`PermissionError: [WinError 5]`). So
+  `pipx list --json` answered nothing for as long as `self-update` ran; the retry added in
+  v0.23.0 could never help and is gone. The update is now read back from the launcher
+  pipx has just written (`contao-ai-cli --version`, a new process). Verified end to end:
+  0.22.9 → 0.23.0 answered `changed: true` (Nr. 54).
+
 ## v0.23.0 - 2026-09-17
 
 Pairs with **contao-ai-core-bundle v0.22.0**: cloned content keeps its visibility, only

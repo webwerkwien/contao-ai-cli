@@ -11,7 +11,7 @@ import pytest
 
 from contao_ai_cli.cli.helpers import (
     CORE_BUNDLE, detect_contao_manager, get_missing_allow_plugins,
-    install_cli_update, set_allow_plugins,
+    get_launcher_version, install_cli_update, set_allow_plugins,
 )
 from contao_ai_cli.core.bundles import composer_bundle
 from contao_ai_cli.utils.contao_backend import ContaoBackendError
@@ -158,24 +158,47 @@ class TestInstallCliUpdate:
         assert outcome["updated"] is False
         assert "unable to access github.com" in outcome["reason"]
 
-    def test_a_version_pipx_cannot_report_yet_is_asked_again(self):
-        """Nr. 54, 2026-09-17: self-update 0.22.0 -> 0.22.1 answered "did not take effect
-        (pipx reports nothing)", and `pipx list` showed 0.22.1 a moment later. Not
-        reproducible afterwards, so the read-back retries instead of guessing a cause."""
+    def test_when_pipx_cannot_answer_the_new_launcher_is_asked(self):
+        """Nr. 54, measured 2026-09-17 with an instrumented 0.22.9 updating to 0.23.0 on
+        Windows: pipx moves the running `contao-ai-cli.exe` into its trash, the running
+        self-update keeps it locked, and every later pipx call fails emptying that trash
+        (`PermissionError: [WinError 5] … pipx\\trash\\….contao-ai-cli.exe`) — so
+        `pipx list --json` answers nothing for as long as this process lives. Retrying
+        (v0.23.0) could never help. The launcher pipx just wrote is not locked."""
         with patch("contao_ai_cli.cli.helpers.subprocess.run"), \
-             patch("contao_ai_cli.cli.helpers.time.sleep") as sleep, \
-             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
-                   side_effect=[None, "0.4.3"]):
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value=None), \
+             patch("contao_ai_cli.cli.helpers.get_launcher_version", return_value="0.4.3"):
             assert install_cli_update("0.4.3") == {"installed": "0.4.3", "updated": True}
-        sleep.assert_called_once()
 
-    def test_a_version_that_never_appears_still_fails(self):
+    def test_the_launcher_is_not_asked_when_pipx_answers(self):
         with patch("contao_ai_cli.cli.helpers.subprocess.run"), \
-             patch("contao_ai_cli.cli.helpers.time.sleep"), \
-             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
-                   return_value=None) as read:
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value="0.4.3"), \
+             patch("contao_ai_cli.cli.helpers.get_launcher_version") as launcher:
+            assert install_cli_update("0.4.3")["updated"] is True
+        launcher.assert_not_called()
+
+    def test_a_failing_launcher_is_no_version(self):
+        broken = MagicMock(returncode=1, stdout="")
+        with patch("contao_ai_cli.cli.helpers.shutil.which", return_value="contao-ai-cli"), \
+             patch("contao_ai_cli.cli.helpers.subprocess.run", return_value=broken):
+            assert get_launcher_version() is None
+
+    def test_a_version_nobody_can_report_still_fails(self):
+        with patch("contao_ai_cli.cli.helpers.subprocess.run"), \
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value=None), \
+             patch("contao_ai_cli.cli.helpers.get_launcher_version", return_value=None):
             assert install_cli_update("0.4.3")["updated"] is False
-        assert read.call_count == 3
+
+    def test_the_launcher_version_is_read_from_its_version_line(self):
+        answer = MagicMock(returncode=0, stdout="contao-ai-cli, version 0.23.0\n")
+        with patch("contao_ai_cli.cli.helpers.shutil.which", return_value=r"C:\bin\contao-ai-cli.exe"), \
+             patch("contao_ai_cli.cli.helpers.subprocess.run", return_value=answer) as run:
+            assert get_launcher_version() == "0.23.0"
+        assert run.call_args[0][0] == [r"C:\bin\contao-ai-cli.exe", "--version"]
+
+    def test_no_launcher_on_the_path_is_no_version(self):
+        with patch("contao_ai_cli.cli.helpers.shutil.which", return_value=None):
+            assert get_launcher_version() is None
 
     def test_missing_pipx_is_not_a_crash(self):
         with patch("contao_ai_cli.cli.helpers.subprocess.run",

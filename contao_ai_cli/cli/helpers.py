@@ -3,10 +3,11 @@ Shared helpers for the contao-ai-cli CLI modules.
 """
 import json
 import pathlib
+import re
 import shlex
+import shutil
 import subprocess
 import sys
-import time
 import urllib.request
 import urllib.error
 import click
@@ -15,7 +16,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.23.0"
+__version__ = "0.23.1"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -145,6 +146,23 @@ def get_pipx_installed_version() -> str | None:
         return None
 
 
+def get_launcher_version() -> str | None:
+    """The version the `contao-ai-cli` on PATH reports, or None.
+
+    A new process, so it runs the code pipx has just installed — not this one's.
+    """
+    launcher = shutil.which("contao-ai-cli")
+    if launcher is None:
+        return None
+    try:
+        result = subprocess.run([launcher, "--version"], capture_output=True,
+                                encoding="utf-8", errors="replace", timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    match = re.search(r"version\s+(\S+)", result.stdout or "")
+    return match.group(1) if result.returncode == 0 and match else None
+
+
 def install_cli_update(latest_version: str) -> dict:
     """
     Reinstall contao-ai-cli at latest_version via pipx.
@@ -167,16 +185,12 @@ def install_cli_update(latest_version: str) -> dict:
             capture_output=True,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-        return {"installed": get_pipx_installed_version(), "updated": False}
-    # pipx may not report the fresh venv at once: on 2026-09-17 (0.22.0 -> 0.22.1,
-    # Nr. 54) it answered nothing right after the install and 0.22.1 a moment later.
-    # Not reproducible since, so ask again rather than guess a cause.
-    installed = get_pipx_installed_version()
-    for _ in range(2):
-        if installed is not None:
-            break
-        time.sleep(2)
-        installed = get_pipx_installed_version()
+        return {"installed": get_pipx_installed_version() or get_launcher_version(), "updated": False}
+    # On Windows pipx cannot answer while this process runs: the reinstall moves the
+    # running contao-ai-cli.exe into pipx's trash, the file stays locked, and every
+    # later pipx call fails emptying the trash (measured 2026-09-17, Nr. 54). The
+    # launcher pipx just wrote is not locked, and it is what the caller gets next.
+    installed = get_pipx_installed_version() or get_launcher_version()
     result = {"installed": installed, "updated": installed == wanted}
     # Captured output must not swallow why a failed install failed.
     reason = run.stderr if isinstance(run.stderr, str) else ""
