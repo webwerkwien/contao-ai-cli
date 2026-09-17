@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.24.0 - 2026-09-17
+
+Requires **contao-ai-core-bundle v0.23.0** for `file move`.
+
+### Added
+
+- **`file move --path <file|folder> --to <folder>`** — move into another folder as cut and
+  paste in the back end, keeping the UUIDs, so image elements and file pickers keep working.
+  The answer lists `pathUsages`, texts that name the old path (Nr. 64).
+
 ## v0.23.1 - 2026-09-17
 
 ### Fixed

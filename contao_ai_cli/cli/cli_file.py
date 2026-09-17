@@ -82,6 +82,26 @@ def file_delete_cmd(ctx, path, force, yes, as_json):
         ctx.exit(1)
 
 
+@file.command("move")
+@click.option("--path", required=True, help="File or folder below files/, e.g. files/conpai/bot.svg")
+@click.option("--to", "to", required=True, help="Folder to move it into, e.g. files/conpai-consho/layout — files for the root")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_move_cmd(ctx, path, to, as_json):
+    """Move a file or folder into another folder, as cut and paste in the back end.
+
+    The name and the UUIDs stay, so image elements and file pickers keep working; an
+    existing target is not overwritten. Texts that name the old path break — the
+    answer lists them as pathUsages. Needs core-bundle v0.23.0.
+    """
+    _require_core_bundle(ctx, "file move")
+    b = _get_backend(ctx.obj.get("session"))
+    result = file_mod.file_move(b, path, to)
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
+
+
 @file.command("folder-publish")
 @click.option("--path", required=True, help="Folder path relative to Contao root, e.g. files/conpai")
 @click.option("--unpublish", is_flag=True, help="Protect the folder again instead of publishing it")

@@ -791,6 +791,30 @@ no UUID, it assigns one, corrects the `pid` and re-attaches direct children; `re
 lists what changed. Before core-bundle v0.13.0 it created every folder that way — a file
 written into it hung under no parent, and `file sync` reported "No changes".
 
+**`file move` moves a file or folder into another folder, keeping its UUIDs** (core-bundle
+v0.23.0, CLI v0.24.0) — as cut and paste in the back end: `--to` is the folder, the name
+stays, an existing target is not overwritten, a folder cannot go into itself.
+
+```bash
+contao-ai-cli --json file move --path files/conpai/bot.svg --to files/conpai-consho/layout
+contao-ai-cli --json file move --path files/conpai/icons --to files   # into the root
+```
+
+- **Delete and write anew is not a substitute:** it gives a new UUID, and every image element
+  or file picker pointing at the old one renders nothing. A move keeps them working —
+  `uuidsKept: true` in the answer, checked against `tl_files` before and after.
+- **`pathUsages`** lists text fields that name the old **path** (e.g. `<img src="files/…">`
+  written into a text element). Those do break; fix them with `content update`. References by
+  UUID (`{{file::…}}`, `{{picture::…}}`) do not. Templates and style sheets on disk are not
+  searched. The list stops at 50 (`pathUsagesCapped: true`); tables whose DCA could not be
+  loaded are named in `skippedTables`.
+- `uuidsKept` compares the `tl_files` rows before and after — with no rows before (a file
+  never synced) it is trivially `true`. Give the path in the case it has on disk.
+- Refused: a path starting with a dot directly below `files/` (Contao's file sync rejects
+  those), and a `.public` file — use `file folder-publish`.
+- A moved folder gets its web-dir symlinks regenerated; the log has *File or folder "…" has
+  been moved to "…"* with the operator. No version, no undo — as in the back end.
+
 **`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
 CLI v0.19.0) — as the back end does: the resource, a folder's symlink in the web dir, then
 the DBAFS, and a `tl_log` entry.

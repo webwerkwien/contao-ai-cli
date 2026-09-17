@@ -166,6 +166,27 @@ def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
         return {"raw": result["stdout"]}
 
 
+def file_move(backend: ContaoBackend, path: str, to: str) -> dict:
+    """Move a file or folder into another folder below files/ (core-bundle v0.23.0).
+
+    As cut and paste in the back end: the name stays, the UUIDs stay, nothing is
+    overwritten. `pathUsages` lists texts that name the old path — those break.
+    """
+    cmd = f'contao:file:move --path {shlex.quote(path)} --to {shlex.quote(to)}'
+    # As file_delete: a refusal exits 1 with a message worth keeping as it came.
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"file move failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
+            ) from None
+        return {"raw": result["stdout"]}
+
+
 def file_read(backend: ContaoBackend, path: str) -> dict:
     """Read a text file from files/ on the server (UTF-8, max 512 KB)."""
     return run_json_or_raw(backend, f'contao:file:read --path {shlex.quote(path)}')
