@@ -44,8 +44,8 @@ pipx install git+https://github.com/webwerkwien/contao-ai-cli.git
 ## Quick start
 
 ```bash
-# Connect to a Contao installation and save the session
-contao-ai-cli connect --host example.com --user deploy --root /var/www/html --name my-site
+# Connect to a Contao installation and save the session (no prompts, since v0.21.0)
+contao-ai-cli connect --host example.com --user deploy --root /var/www/html --name my-site --json
 
 # List saved sessions
 contao-ai-cli session-list
@@ -53,6 +53,54 @@ contao-ai-cli session-list
 # Start interactive mode against a session
 contao-ai-cli --session my-site repl
 ```
+
+`connect` no longer asks anything — it tests the connection, saves the session only on
+success, and answers with a `warning` (data can change or be deleted irreversibly; keep a
+backup) and a `nextSteps` list of what to do next (`backup create`, `bundle install core`,
+`self-update`, …). See "Set up with an agent" below for the full walkthrough, including
+updates.
+
+## Set up with an agent
+
+This section is written for the AI agent doing the setup. A person only has to give SSH
+access and answer questions in the chat.
+
+1. **Prerequisites.** `python --version` (3.10+) and `pipx --version`. Without pipx, ask the
+   user, then `python -m pip install --user pipx` and `python -m pipx ensurepath`.
+2. **Install.** Use `python -m pipx install …`, not a bare `pipx install …` — right after
+   `pipx ensurepath`, the current shell does not see pipx's new PATH entry yet, and `pipx`
+   alone can resolve to nothing. Install the newest tagged release rather than hardcoding
+   a version that will drift from this doc:
+   `python -m pipx install git+https://github.com/webwerkwien/contao-ai-cli.git@<newest tag>`
+   (find it on the [releases page](https://github.com/webwerkwien/contao-ai-cli/releases),
+   or drop the `@<tag>` entirely to install `main`).
+3. **SSH key.** If `~/.ssh/id_ed25519.pub` does not exist, create one non-interactively:
+   `ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519`. This CLI drives SSH in batch mode
+   (`BatchMode=yes`), which cannot prompt for a passphrase — the key needs no passphrase, or
+   must already be loaded in `ssh-agent`. **Never ask the user for a passphrase.**
+   Show the user the public key and tell them to add it at their host (hosting panel → SSH keys).
+   **Never type a password for the user.**
+4. **Ask** for host, SSH user and the Contao root path.
+5. **Connect.** `contao-ai-cli connect --host … --user … --root … --name <site> --json`.
+   Relay `warning` word for word. Go through `nextSteps` one at a time and ask before each —
+   `optional: true` steps only if the user wants them.
+6. **Backend bundle (optional, bulk jobs).** After `bundle install backend`, the user generates a
+   token in the Contao back end (User profile → AI agent → CLI bridge token). Let them choose:
+   type it themselves at the hidden prompt of `contao-ai-cli --session <site> bridge configure --url https://…`,
+   or paste it in the chat and you pipe it: `… bridge configure --url https://… --token-stdin --test`.
+7. **Finish** with `contao-ai-cli --session <site> health`.
+
+Without a Contao Manager, `bundle install` refuses until the needed `allow-plugins` are in
+`composer.json`; ask the user before passing `--allow-plugins`.
+
+### Staying up to date
+
+`contao-ai-cli` prints one line on stderr — `Updates: … - contao-ai-cli health` — the first
+time a session is used after a pause, without touching stdout or any JSON answer. Run
+`contao-ai-cli health` (or `--session <site> health`) to see what changed, then update with
+`contao-ai-cli self-update` (the CLI itself) and `bundle update core`/`bundle update backend`
+(the bundles on the server). Set `CONTAO_AI_CLI_NO_UPDATE_CHECK=1` to turn the check off
+(CI, cron).
 
 ## Available command groups
 
@@ -65,6 +113,7 @@ so it cannot drift from what the CLI actually offers.
 | `article` | `create` `delete` `list` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
+| `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
 | `comment` | `delete` `list` `publish` | Comment moderation |
 | `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
@@ -97,6 +146,8 @@ so it cannot drift from what the CLI actually offers.
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
 | `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |
 | `version` | `create` `list` `read` `restore` | Contao's version history |
+
+Standalone commands: `connect`, `health`, `repl`, `self-update`, `session-delete`, `session-list`.
 
 Record IDs are positional arguments, changed fields are repeated `--set FIELD=VALUE`:
 
@@ -249,11 +300,13 @@ The `bridge` group calls macro tools in [contao-ai-backend-bundle](https://githu
 **One-time setup** (the backend bundle must be installed on the target site):
 
 1. In the Contao backend → User profile → AI agent → CLI bridge token → **Generate** → copy the cleartext token (shown once).
-2. On the workstation:
+2. On the workstation — prefer `--token-stdin` (or the hidden prompt with neither flag given)
+   over `--token`, which stays visible in the process list on this machine for as long as
+   the command runs:
    ```bash
-   contao-ai-cli --session my-site bridge configure \
+   echo "5.abc123..." | contao-ai-cli --session my-site bridge configure \
        --url https://example.com \
-       --token 5.abc123...  --test
+       --token-stdin --test
    ```
 
 **Usage:**

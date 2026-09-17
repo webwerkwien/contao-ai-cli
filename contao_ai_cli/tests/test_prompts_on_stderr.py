@@ -5,6 +5,12 @@ v0.18.0 said "Prompts go to stderr", and it held for ``ask_yes_no()`` only. The 
 review of 2026-09-16. They are interactive flows without ``--json``, so nothing broke,
 but the release note promised more than the code did.
 
+2026-09-17: the agent-onboarding rework deleted the whole ``connect`` wizard those
+six calls lived in - ``connect`` no longer asks anything. What is left is the hidden
+``click.prompt()`` for the bridge token in ``helpers.resolve_token()``, so the minimum
+below tracks that, not the historical six. Fewer prompts is the point of the change;
+what still has to hold is that every prompt that does exist writes to stderr.
+
 Checked on the syntax tree rather than by running the flows: each needs SSH and a
 server. A call without ``err=True`` fails here by file and line.
 """
@@ -27,7 +33,9 @@ def _confirm_calls():
 
 
 def test_the_scan_finds_the_confirm_calls():
-    assert len(list(_confirm_calls())) >= 6
+    # A sanity check that the scan itself still works, not a target to defend -
+    # see the module docstring for why this dropped from 6.
+    assert len(list(_confirm_calls())) >= 1
 
 
 def test_every_click_prompt_writes_to_stderr():

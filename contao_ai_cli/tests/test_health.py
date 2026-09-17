@@ -78,13 +78,13 @@ def run_health(tmp_path, session, installed_versions):
     session_path = tmp_path / "s.json"
     session_path.write_text(json.dumps(session), encoding="utf-8")
 
-    with patch("contao_ai_cli.cli.cli_health.ContaoBackend.from_session",
+    with patch("contao_ai_cli.core.status.ContaoBackend.from_session",
                return_value=MagicMock(php_path="php")), \
-         patch("contao_ai_cli.cli.cli_health.get_installed_package_versions",
+         patch("contao_ai_cli.core.status.get_installed_package_versions",
                return_value=installed_versions), \
-         patch("contao_ai_cli.cli.cli_health.get_core_bundle_latest_version",
+         patch("contao_ai_cli.core.status.get_bundle_latest_version",
                return_value="0.2.13"), \
-         patch("contao_ai_cli.cli.cli_health.check_cli_update",
+         patch("contao_ai_cli.core.status.check_cli_update",
                return_value={"current": "0.5.1", "latest": "0.5.1",
                              "update_available": False}):
         result = CliRunner().invoke(
@@ -133,13 +133,13 @@ class TestHealthOutput:
             ("absent",  {CORE_BUNDLE: "v0.2.13", BACKEND_BUNDLE: None}),
             ("present", {CORE_BUNDLE: "v0.2.13", BACKEND_BUNDLE: "v0.1.4"}),
         ):
-            with patch("contao_ai_cli.cli.cli_health.ContaoBackend.from_session",
+            with patch("contao_ai_cli.core.status.ContaoBackend.from_session",
                        return_value=MagicMock(php_path="php")), \
-                 patch("contao_ai_cli.cli.cli_health.get_installed_package_versions",
+                 patch("contao_ai_cli.core.status.get_installed_package_versions",
                        return_value=versions), \
-                 patch("contao_ai_cli.cli.cli_health.get_core_bundle_latest_version",
+                 patch("contao_ai_cli.core.status.get_bundle_latest_version",
                        return_value="0.2.13"), \
-                 patch("contao_ai_cli.cli.cli_health.check_cli_update",
+                 patch("contao_ai_cli.core.status.check_cli_update",
                        return_value={"current": "0.5.1", "latest": "0.5.1",
                                      "update_available": False}):
                 result = CliRunner().invoke(

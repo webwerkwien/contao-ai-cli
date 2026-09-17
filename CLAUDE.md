@@ -80,27 +80,157 @@ contao-ai-cli connect \
   --user ssh-username \              # SSH login user
   --root /path/to/contao \          # absolute path to the Contao root on the server
   --key ~/.ssh/id_ed25519 \         # path to your SSH private key (adjust if different)
-  --name my-site                    # local session name (your choice)
+  --name my-site \                  # local session name (your choice)
+  --json
 ```
 
-The connect command is interactive — it will prompt for confirmation at several points:
-1. A warning that data can be irreversibly modified → confirm to proceed
-2. Offer to create a database backup → recommended: confirm
-3. Check for CLI updates → confirm to install if available
-4. Check whether contao-ai-core-bundle is installed → confirm to install/update if needed
-   (defaults to **no**, because installing writes to the project's `composer.json`)
+**Since v0.21.0 `connect` does not ask anything.** It tests the connection first
+(`--version`) and saves the session only on success — on failure it exits 1 with a
+message and nothing is written. Everything that used to be a prompt is now in the
+`--json` answer: a `warning` to relay verbatim, the same `state` block `health` reports,
+and an ordered `nextSteps` list (backup, bundle install/update, self-update, bridge
+configure) for you to confirm with the user one at a time. Full field-by-field
+description below, under "Setup and updates (v0.21.0)".
 
-On a **Managed Edition** the install/update runs through the Contao Manager's Composer
-passthrough (`php public/contao-manager.phar.php composer …`), which uses the manager's
-own `allow-plugins` config — the project `composer.json` config block is left untouched.
-Only installations without a Contao Manager fall back to plain `composer`, and that path
-asks separately before writing `allow-plugins` into `composer.json`.
-
-> ⚠️ `connect` requires a human operator. Do not attempt to run it autonomously.
-> For automated workflows, use an existing session (`session-list`) instead.
+This also means `connect` is no longer a step that needs a human at a terminal — an
+agent runs it directly, once it has host, user and root path from the person.
 
 > ⚠️ Never hardcode real hostnames, usernames, passwords, or key paths
 > in any committed file. Always ask the user for connection details.
+
+## Setup and updates (v0.21.0)
+
+Everything a calling agent needs to drive setup end to end, and to keep a site current
+afterwards, without a wizard. `README.md` has the step-by-step guide ("Set up with an
+agent"); this is the shape of what each command answers.
+
+### `connect`'s answer
+
+```json
+{
+  "status": "connected",
+  "session": "/home/user/.contao-ai-cli/my-site.json",
+  "replaced": false,
+  "version": "Contao 5.7.0",
+  "warning": "contao-ai-cli can change or delete data on this site irreversibly. Make sure a current backup exists before anything is written.",
+  "state": { "cli": {}, "contao": {}, "core": {}, "backend": {}, "bridge": {} },
+  "nextSteps": [
+    { "command": "contao-ai-cli --session my-site backup create", "optional": false, "reason": "A database backup before anything is written." },
+    { "command": "contao-ai-cli --session my-site bundle install core", "optional": false, "reason": "contao-ai-core-bundle is missing; without it only Contao's own console commands work." }
+  ]
+}
+```
+
+- **Relay `warning` to the user, word for word**, before doing anything else.
+- **Go through `nextSteps` in order and confirm each one in chat before running it.**
+  An entry with `optional: true` (currently only `bundle install backend`, for bulk
+  jobs) is offered, not assumed — skip it unless the user wants it.
+- `host_key_accepted` is present only on a first contact with the host — information, not
+  a failure, and it appears only that once. **Relay it to the user**; if they did not
+  expect a first contact with this host, they should verify the fingerprint with the
+  server themselves before trusting it further (trust-on-first-use, audit H-10).
+- `replaced: true` means an existing session file at that name was overwritten.
+  **Reconnecting keeps `bridge_url`/`bridge_token` from the existing session** — only the
+  SSH fields are replaced. Fixed in v0.21.0: up to v0.20.0 a re-`connect` silently
+  dropped a configured bridge, because saving a session used to rewrite the whole file.
+- Exit code `0` and the object above on success; exit code `1` and
+  `{"status": "error", "code": 1, "message": "..."}` on a failed connection test, with
+  nothing saved.
+
+### `bundle install|update core|backend [--allow-plugins]`
+
+Moved out of the old wizard (2026-09-17), so these two operations — installing or
+updating either contao-ai bundle — are reachable at any time, not only during setup:
+
+```bash
+contao-ai-cli --session my-site bundle install core
+contao-ai-cli --session my-site bundle install backend  # refused: missingAllowPlugins
+contao-ai-cli --session my-site bundle install backend --allow-plugins  # only after the user agreed to write composer.json
+contao-ai-cli --session my-site bundle update core
+```
+
+On a **Managed Edition** it goes through the Contao Manager's Composer passthrough
+(`php public/contao-manager.phar.php composer …`), which uses the manager's own
+`allow-plugins` config — the project `composer.json` is left untouched. Without a
+Contao Manager, plain `composer` is used, and a missing `allow-plugins` entry is
+**refused**: the answer names the missing plugins in `missingAllowPlugins` and points
+at `--allow-plugins`. Writing `allow-plugins` into the project's `composer.json` is
+consent the agent asks the user for before passing that flag.
+
+**`update` always runs `composer require "<pkg>:^<latest>"`, not `composer update`**
+(fixed 2026-09-17): a plain `composer require` with no constraint writes `^<next-minor>`
+into `composer.json`, and a later `composer update` never leaves that constraint — the
+update could never cross a 0.x minor. `bundle update backend` keeps its own permanent
+`>=0.1 <1.0` range instead of chasing `latest`. The answer is `status: error` unless the
+version read back afterwards equals `latest` exactly; if Packagist cannot be reached,
+`update` answers `status: error` too (never "up to date" for a version it could not
+check). `install_bundle` also probes the server first (`--version`) and answers `status:
+error, message: "server not reachable: …"` before touching Composer or allow-plugins at
+all — a probe failure used to fall through and be misreported as a missing
+`allow-plugins` entry.
+
+| key | present | meaning |
+|---|---|---|
+| `status` | always | `ok` or `error` |
+| `changed` | on success | whether the installed version actually changed |
+| `installed` | on success, and on an update whose read-back version is not the newest | version read back after the operation, or the already-installed/up-to-date version |
+| `previous` / `via` | **only when Composer actually ran** — absent for "already installed" and "already up to date" answers | version before the run / `contao-manager` or `composer` |
+| `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
+| `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
+
+Success is reported only once the new version has been **read back** from the server —
+a Composer run finishing without error is not, on its own, taken as proof.
+
+### `self-update`
+
+Reinstalls contao-ai-cli itself at the newest tag via pipx:
+
+```bash
+contao-ai-cli self-update --json
+```
+
+Answers `{"status": "ok", "changed": true, "previous": "0.20.0", "installed": "0.21.0", "message": "..."}`,
+or `changed: false` with `message` saying it is already up to date. Fails naming how to
+install pipx if it is missing. A running `repl` keeps the old code in memory until it is
+restarted.
+
+### The update notice — one line, on stderr, never in a JSON answer
+
+```
+Updates: CLI 0.20.0 -> 0.21.0, core-bundle v0.18.0 -> v0.19.0 - contao-ai-cli health
+```
+
+Printed on the first command of a session after a pause of more than 12 hours, and at
+least every 24 hours regardless, so continuous use (cron, monitoring) still gets
+checked eventually. Skipped for `health`, `self-update`, `bundle`, `connect`, `repl`,
+`session-list`, `session-delete` (purely local — nothing remote to check) and any
+`--help` — they report or do not need version information themselves. Also skipped
+when the command itself failed (fixed 2026-09-17): a failing command has nothing to say
+about whether the CLI or the bundles are current. Off entirely with
+`CONTAO_AI_CLI_NO_UPDATE_CHECK=1` (CI, cron).
+
+**When this line appears: tell the user and ask whether to update — do not update on
+your own.** stdout and every JSON contract are unaffected; nothing about parsing
+output changes because of this line.
+
+### Bridge token — the user chooses
+
+- **Hidden prompt.** `bridge configure --url https://…` with neither `--token` nor
+  `--token-stdin`, run on a terminal, asks for the token with hidden input. It never
+  reaches the chat.
+- **Through you.** The user pastes the token in chat and you pipe it in:
+  `bridge configure --url https://… --token-stdin --test`. No terminal step for the
+  user, but the token then sits in the conversation history.
+- `--token` on the command line still works and is documented as visible in the
+  process list on both ends of the connection — prefer one of the two above when
+  either is possible.
+
+### `health --json` has a `backend` key (new in v0.21.0)
+
+The backend-bundle counterpart of `core`: `installed`, `latest`, `update_available`.
+`bridge.state` (`not_installed` / `not_configured` / `ready`) still says what to do
+about the bridge itself; `backend` is about whether contao-ai-backend-bundle is on the
+server at all and current, independent of whether this session has a token for it.
 
 ## Step 3: Use JSON output for machine-readable results
 
@@ -708,7 +838,7 @@ ignoring it would answer with different rows than the module shows in the front 
 
 `article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `settings`, `template`, `undo`, `user`, `user-group`, `version`
 
-Standalone commands: `connect`, `health`, `repl`, `session-delete`, `session-list`
+Standalone commands: `connect`, `health`, `repl`, `self-update`, `session-delete`, `session-list`
 
 Run `contao-ai-cli <group> --help` for the subcommands of a group; the full table is in
 [README.md](README.md) and is generated from the command tree, so it cannot go stale.

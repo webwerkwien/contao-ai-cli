@@ -2,8 +2,9 @@
 health command — show update status for the CLI itself, the core-bundle on
 the connected server, and the bridge. Read-only; reports only.
 
-Use `contao-ai-cli connect` (re-connect) when you actually want to install
-updates — `health` is a passive view to decide whether you need to.
+To install updates use `contao-ai-cli self-update` and `contao-ai-cli bundle update`
+(since v0.21.0; before, a re-connect ran a wizard) — `health` is a passive view to
+decide whether you need to.
 
 The bridge line reports three states rather than two, because "not configured"
 used to cover both a missing contao-ai-backend-bundle and a present one without
@@ -11,41 +12,9 @@ a token, and the two need opposite next steps.
 """
 import click
 
-from contao_ai_cli.core import (
-    backend_bridge as bridge_mod,
-    session as session_mod,
-)
-from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
-from .helpers import (
-    BACKEND_BUNDLE,
-    CONTAO_CORE_BUNDLE,
-    CORE_BUNDLE,
-    check_cli_update,
-    get_core_bundle_latest_version,
-    get_installed_package_versions,
-    is_newer_version,
-    _output,
-)
-
-
-def _bridge_state(installed: bool | None, configured: bool) -> str:
-    """
-    Boil "is the bundle there" and "does the session have a token" down to one word.
-
-    Two separate conditions used to collapse into one message: `health` reported
-    "not configured" whether the bundle was missing or merely keyless. That reads
-    like "installed, needs a key" and sends you off to set a key that has nothing
-    to install it into. So a missing bundle outranks everything, including a
-    session that does carry a token - that combination is a real misconfiguration
-    and worth saying out loud rather than hiding behind "ready".
-    """
-    if installed is False:
-        return "not_installed"
-    if configured:
-        return "ready"
-    if installed is True:
-        return "not_configured"
-    return "unknown"
+from contao_ai_cli.core import session as session_mod
+from contao_ai_cli.core.status import _bridge_state, collect_status  # noqa: F401 - _bridge_state kept importable here for test_health.py
+from .helpers import BACKEND_BUNDLE, _output
 
 
 @click.command()
@@ -54,74 +23,10 @@ def health(ctx):
     """Show CLI, core-bundle and bridge status (read-only)."""
     as_json = ctx.obj.get("as_json")
 
-    # ── CLI self-update check ────────────────────────────────────────────────
-    cli_update = check_cli_update()
-    cli_status = {
-        "installed": cli_update["current"],
-        "latest":    cli_update["latest"],
-        "up_to_date": not cli_update["update_available"],
-    }
-
-    # ── Core-bundle check (needs an active session) ──────────────────────────
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
-    core_status: dict = {"reachable": False}
-    # Always present, never omitted: a missing key would read as "no Contao here",
-    # which is never the case — only "could not look".
-    contao_status: dict = {"installed": None}
-    # None = could not look, which is not the same as "not installed".
-    backend_bundle_installed: bool | None = None
-    # Use ContaoBackend.from_session directly instead of _get_backend so a
-    # missing/incomplete session doesn't sys.exit() — health should report
-    # CLI + bridge status even without an active SSH session.
-    try:
-        backend = ContaoBackend.from_session(session_path)
-        # Both bundles in one round-trip; they live in the same installed.json.
-        versions  = get_installed_package_versions(
-            backend, [CORE_BUNDLE, BACKEND_BUNDLE, CONTAO_CORE_BUNDLE]
-        )
-        installed = versions[CORE_BUNDLE]
-        backend_bundle_installed = versions[BACKEND_BUNDLE] is not None
-        # No comparison against "latest": that needs a maintained minimum per
-        # branch (5.3.x LTS vs 5.7.x), and a guessed traffic light is worse than
-        # none. The version is what the question actually needs.
-        contao_status = {"installed": versions[CONTAO_CORE_BUNDLE]}
-        latest    = get_core_bundle_latest_version()
-        core_status = {
-            "reachable":  True,
-            "installed":  installed,
-            "latest":     latest,
-            # Not `installed != latest`: a working copy ahead of Packagist is not
-            # behind it, and saying so sends the reader off to "update" downwards.
-            "update_available": is_newer_version(latest, installed),
-            "up_to_date": (
-                installed is not None
-                and latest is not None
-                and not is_newer_version(latest, installed)
-            ),
-        }
-    except ContaoBackendError as e:
-        core_status = {"reachable": False, "reason": f"no active session ({e})"}
-    except Exception as e:
-        core_status = {"reachable": False, "reason": str(e)}
-
-    # ── Bridge: installed on the server, and configured in the session ───────
-    cfg = session_mod.load_session(session_path)
-    configured = bool(cfg.get("bridge_url") and cfg.get("bridge_token"))
-    bridge_status = {
-        "state":      _bridge_state(backend_bundle_installed, configured),
-        "installed":  backend_bundle_installed,
-        "configured": configured,
-    }
-    if configured:
-        bridge_status["url"]   = cfg["bridge_url"]
-        bridge_status["token"] = bridge_mod.mask_token(cfg["bridge_token"])
-
-    result = {
-        "cli":    cli_status,
-        "contao": contao_status,
-        "core":   core_status,
-        "bridge": bridge_status,
-    }
+    result = collect_status(session_path)
+    cli_status, contao_status = result["cli"], result["contao"]
+    core_status, bridge_status = result["core"], result["bridge"]
 
     if as_json:
         _output(result, True)
@@ -205,6 +110,6 @@ def health(ctx):
     ):
         # ASCII only — non-ASCII chars get mangled into ? on Windows cp1252 stdout.
         click.echo(click.style(
-            "  Tip: re-run 'contao-ai-cli connect ...' to install available updates.",
+            "  Tip: 'contao-ai-cli self-update' / 'contao-ai-cli bundle update core' install updates.",
             fg="cyan",
         ))

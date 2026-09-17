@@ -24,7 +24,7 @@ from contao_ai_cli.core import (
     backend_bridge as bridge_mod,
     session as session_mod,
 )
-from .helpers import _output, resolve_password
+from .helpers import _output, resolve_token
 
 
 @click.group()
@@ -49,7 +49,7 @@ def bridge_configure(ctx, url, token, token_stdin, test):
     read it — the same defect as the passwords fixed in v0.14.0, and the
     mechanism built for those was simply never applied here.
     """
-    token = resolve_password(token, token_stdin, what="--token")
+    token = resolve_token(token, token_stdin)
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     cfg = session_mod.load_session(session_path)
     if not cfg:

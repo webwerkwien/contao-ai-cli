@@ -5,17 +5,15 @@ Managed Editions must go through the Contao Manager's composer passthrough so th
 project composer.json is never touched behind the user's back; only the plain-composer
 fallback may write allow-plugins, and only after an explicit yes.
 """
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner
 
-from contao_ai_cli.cli.cli_connect import _install_core_bundle, connect
 from contao_ai_cli.cli.helpers import (
-    composer_core_bundle, detect_contao_manager, get_missing_allow_plugins,
+    CORE_BUNDLE, detect_contao_manager, get_missing_allow_plugins,
     install_cli_update, set_allow_plugins,
 )
+from contao_ai_cli.core.bundles import composer_bundle
 from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 
@@ -25,12 +23,6 @@ def make_backend(stdout="", php_path="php"):
     backend.run_raw.return_value = {"returncode": 0, "stdout": stdout, "stderr": ""}
     backend.run.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
     return backend
-
-
-MANAGED = {"phar_path": "public/contao-manager.phar.php", "config_dir": True,
-           "manager_bundle": True, "available": True}
-STANDALONE = {"phar_path": None, "config_dir": False,
-              "manager_bundle": False, "available": False}
 
 
 class TestDetectContaoManager:
@@ -80,7 +72,7 @@ class TestComposerCoreBundle:
     def test_manager_path_uses_phar_and_session_php_binary(self):
         """The phar must be invoked with the PHP binary from the session, not a bare 'php'."""
         backend = make_backend(php_path="/opt/php-8.3/bin/php")
-        composer_core_bundle(backend, "require", "public/contao-manager.phar.php")
+        composer_bundle(backend, CORE_BUNDLE, "require", "public/contao-manager.phar.php")
         cmd = backend.run_raw.call_args[0][0]
         assert cmd.startswith("/opt/php-8.3/bin/php public/contao-manager.phar.php composer require")
         assert "webwerkwien/contao-ai-core-bundle" in cmd
@@ -89,19 +81,19 @@ class TestComposerCoreBundle:
     def test_manager_path_never_configures_allow_plugins(self):
         """The whole point: the project composer.json config is left alone."""
         backend = make_backend()
-        composer_core_bundle(backend, "update", "public/contao-manager.phar.php")
+        composer_bundle(backend, CORE_BUNDLE, "update", "public/contao-manager.phar.php")
         assert "composer config" not in backend.run_raw.call_args[0][0]
 
     def test_fallback_uses_plain_composer(self):
         backend = make_backend()
-        composer_core_bundle(backend, "require")
+        composer_bundle(backend, CORE_BUNDLE, "require")
         assert backend.run_raw.call_args[0][0].startswith(
             "composer require webwerkwien/contao-ai-core-bundle"
         )
 
     def test_rejects_unknown_action(self):
         with pytest.raises(ValueError):
-            composer_core_bundle(make_backend(), "remove")
+            composer_bundle(make_backend(), CORE_BUNDLE, "remove")
 
 
 class TestAllowPlugins:
@@ -127,87 +119,6 @@ class TestAllowPlugins:
         set_allow_plugins(backend, ["contao/manager-plugin"])
         cmds = [c[0][0] for c in backend.run_raw.call_args_list]
         assert cmds == ["composer config allow-plugins.contao/manager-plugin true"]
-
-
-class TestInstallCoreBundle:
-    def test_managed_edition_installs_without_asking_or_writing(self):
-        """No extra prompt, no allow-plugins write — the phar carries the config."""
-        backend = make_backend()
-        with patch("contao_ai_cli.cli.cli_connect.click.confirm") as confirm, \
-             patch("contao_ai_cli.cli.cli_connect.set_allow_plugins") as setter, \
-             patch("contao_ai_cli.cli.cli_connect.composer_core_bundle") as composer:
-            assert _install_core_bundle(backend, MANAGED, "require") is True
-        confirm.assert_not_called()
-        setter.assert_not_called()
-        composer.assert_called_once_with(backend, "require", "public/contao-manager.phar.php")
-
-    def test_fallback_asks_before_writing_composer_json(self):
-        backend = make_backend()
-        with patch("contao_ai_cli.cli.cli_connect.get_missing_allow_plugins",
-                   return_value=["contao/manager-plugin"]), \
-             patch("contao_ai_cli.cli.cli_connect.click.confirm", return_value=True) as confirm, \
-             patch("contao_ai_cli.cli.cli_connect.set_allow_plugins") as setter, \
-             patch("contao_ai_cli.cli.cli_connect.composer_core_bundle") as composer:
-            assert _install_core_bundle(backend, STANDALONE, "require") is True
-        assert confirm.call_args.kwargs["default"] is False
-        setter.assert_called_once_with(backend, ["contao/manager-plugin"])
-        composer.assert_called_once_with(backend, "require", None)
-
-    def test_declining_aborts_before_any_composer_call(self):
-        backend = make_backend()
-        with patch("contao_ai_cli.cli.cli_connect.get_missing_allow_plugins",
-                   return_value=["contao/manager-plugin"]), \
-             patch("contao_ai_cli.cli.cli_connect.click.confirm", return_value=False), \
-             patch("contao_ai_cli.cli.cli_connect.set_allow_plugins") as setter, \
-             patch("contao_ai_cli.cli.cli_connect.composer_core_bundle") as composer:
-            assert _install_core_bundle(backend, STANDALONE, "require") is False
-        setter.assert_not_called()
-        composer.assert_not_called()
-
-    def test_fallback_skips_the_question_when_plugins_already_allowed(self):
-        backend = make_backend()
-        with patch("contao_ai_cli.cli.cli_connect.get_missing_allow_plugins", return_value=[]), \
-             patch("contao_ai_cli.cli.cli_connect.click.confirm") as confirm, \
-             patch("contao_ai_cli.cli.cli_connect.set_allow_plugins") as setter, \
-             patch("contao_ai_cli.cli.cli_connect.composer_core_bundle"):
-            assert _install_core_bundle(backend, STANDALONE, "require") is True
-        confirm.assert_not_called()
-        setter.assert_not_called()
-
-    def test_composer_failure_is_reported_not_raised(self):
-        backend = make_backend()
-        with patch("contao_ai_cli.cli.cli_connect.composer_core_bundle",
-                   side_effect=ContaoBackendError("network down")):
-            assert _install_core_bundle(backend, MANAGED, "update") is False
-
-
-class TestConnectDefaults:
-    def test_pressing_enter_does_not_install_the_bundle(self, tmp_path):
-        """The install prompt defaults to no — an absent-minded Enter must be a no-op."""
-        session_path = tmp_path / "session.json"
-        session_path.write_text(json.dumps({"host": "h", "user": "u", "contao_root": "/r"}),
-                                encoding="utf-8")
-        with patch("contao_ai_cli.cli.cli_connect.ContaoBackend") as backend_cls, \
-             patch("contao_ai_cli.cli.cli_connect.session_mod") as sessions, \
-             patch("contao_ai_cli.cli.cli_connect.check_cli_update",
-                   return_value={"current": "0.0.0", "latest": None, "update_available": False}), \
-             patch("contao_ai_cli.cli.cli_connect.get_core_bundle_installed_version",
-                   return_value=None), \
-             patch("contao_ai_cli.cli.cli_connect.detect_contao_manager", return_value=MANAGED), \
-             patch("contao_ai_cli.cli.cli_connect.composer_core_bundle") as composer:
-            sessions.get_session_path.return_value = str(session_path)
-            sessions.save_session.return_value = str(session_path)
-            backend_cls.return_value.run.return_value = {"stdout": "Contao 5.7"}
-            result = CliRunner().invoke(
-                connect,
-                ["--host", "h", "--user", "u", "--root", "/r"],
-                # continue -> yes, database backup -> no, install bundle -> just Enter
-                input="y\nn\n\n",
-                obj={},
-            )
-        assert result.exit_code == 0, result.output
-        composer.assert_not_called()
-        assert json.loads(session_path.read_text(encoding="utf-8"))["core_bundle_available"] is False
 
 
 class TestInstallCliUpdate:
@@ -238,8 +149,24 @@ class TestInstallCliUpdate:
                    return_value="0.4.2"):
             assert install_cli_update("0.4.3") == {"installed": "0.4.2", "updated": False}
 
+    def test_a_failed_install_keeps_the_reason_pipx_gave(self):
+        """Review 2026-09-17: capturing pipx's output hid why an install failed."""
+        failed = MagicMock(stderr="fatal: unable to access github.com\n")
+        with patch("contao_ai_cli.cli.helpers.subprocess.run", return_value=failed), \
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value="0.4.2"):
+            outcome = install_cli_update("0.4.3")
+        assert outcome["updated"] is False
+        assert "unable to access github.com" in outcome["reason"]
+
     def test_missing_pipx_is_not_a_crash(self):
         with patch("contao_ai_cli.cli.helpers.subprocess.run",
                    side_effect=FileNotFoundError),              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
                    return_value="0.4.2"):
             assert install_cli_update("0.4.3")["updated"] is False
+
+    def test_pipx_output_is_captured_not_printed(self):
+        """review 2026-09-17: pipx writing to stdout broke `self-update --json`."""
+        with patch("contao_ai_cli.cli.helpers.subprocess.run") as run, \
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value="0.4.3"):
+            install_cli_update("0.4.3")
+        assert run.call_args.kwargs.get("capture_output") is True

@@ -6,6 +6,7 @@ that agents can use over SSH. The real Contao installation is a
 hard dependency — this CLI does not reimplement Contao functionality.
 """
 import os
+import sys
 
 import click
 
@@ -49,6 +50,9 @@ from contao_ai_cli.cli.cli_repl import repl
 from contao_ai_cli.cli.cli_bridge import bridge
 from contao_ai_cli.cli.cli_ext import ext
 from contao_ai_cli.cli.cli_health import health
+from contao_ai_cli.cli.cli_self_update import self_update
+from contao_ai_cli.cli.cli_bundle import bundle
+from contao_ai_cli.core import update_notice
 
 
 # ─── Root group ───────────────────────────────────────────────────────────────
@@ -77,6 +81,23 @@ def cli(ctx, session, as_json):
         session = session_mod.get_session_path(session)
     ctx.obj["session"] = session
     ctx.obj["as_json"] = as_json
+
+    # Update notice (v0.21.0): one stderr line on the first command after a pause,
+    # after the command's own output. See core/update_notice.py.
+    notice_session = session or session_mod.DEFAULT_SESSION_FILE
+    subcommand = ctx.invoked_subcommand
+
+    def _notice_unless_failed():
+        # call_on_close runs while the command's own exception (if any) is still
+        # in flight, so sys.exc_info() names it here (review 2026-09-17). A
+        # failing command has nothing to say about whether the CLI or the
+        # bundles are current.
+        if update_notice.command_failed(sys.exc_info()[1]):
+            return
+        update_notice.after_command(notice_session, subcommand)
+
+    ctx.call_on_close(_notice_unless_failed)
+
     if ctx.invoked_subcommand is None:
         ctx.invoke(repl)
 
@@ -123,6 +144,8 @@ cli.add_command(schema)
 cli.add_command(bridge)
 cli.add_command(ext)
 cli.add_command(health)
+cli.add_command(self_update)
+cli.add_command(bundle)
 
 
 def main() -> None:

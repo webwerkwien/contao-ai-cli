@@ -4,6 +4,76 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.21.0 - 2026-09-17
+
+Agent-driven onboarding. Core and backend bundles: no change.
+
+### Changed
+
+- **`connect` no longer prompts.** It tests the connection first and saves the session
+  only on success; on failure it exits 1 with a message and nothing is written. Every
+  question the old wizard asked is now in the `--json` answer instead: `warning` (relay
+  it verbatim), the same `state` block `health` reports, and an ordered `nextSteps` list
+  (`backup create`, `bundle install/update core`, `self-update`, `bundle install
+  backend`, `bridge configure`) for the caller to confirm one at a time. **Breaking for
+  any script that answered the old prompts** — there is nothing left to answer, and
+  installing or updating a bundle, or the CLI itself, has to be asked for explicitly
+  through the commands below.
+- **`health`'s tip now names `self-update` and `bundle update core`** instead of
+  pointing back at `connect`, which no longer does either.
+
+### Added
+
+- **`bundle install|update core|backend [--allow-plugins]`** — installing and updating
+  either contao-ai bundle, moved out of the `connect` wizard into its own command group
+  so an agent can reach both at any time, not only during setup. `update` runs `composer
+  require "<pkg>:^<latest>"` (the backend bundle keeps its own `>=0.1 <1.0` range) rather
+  than `composer update`, because a plain `require` with no constraint caps future
+  updates at the next minor and `composer update` never leaves that constraint — an
+  update could otherwise never cross a 0.x minor. `update` answers `status: error` unless
+  the version read back afterwards matches `latest` exactly, and also errors (rather than
+  reporting "up to date") when Packagist cannot be reached at all. Both `install` and
+  `update` probe the server first and answer `status: error, message: "server not
+  reachable: …"` before touching Composer or `allow-plugins` if it is unreachable, instead
+  of misreporting that as a missing `allow-plugins` entry. A successful answer reports
+  `changed` and `installed`, and `previous`/`via` (`contao-manager` or `composer`) only when Composer
+  actually ran — not for an already-installed or already-up-to-date answer. Without a
+  Contao Manager, a missing `allow-plugins` entry is refused and named in
+  `missingAllowPlugins`; `--allow-plugins` writes it into the project's `composer.json`
+  and is meant to be asked for first.
+- **`self-update`** — reinstalls contao-ai-cli at the newest tag via pipx, the second
+  operation that used to live only inside the `connect` wizard. A running `repl` keeps
+  the old code until it is restarted.
+- **An update notice on stderr.** One line — `Updates: … - contao-ai-cli health` —
+  printed on the first command of a session after a pause of more than 12 hours, and at
+  least every 24 hours regardless, so continuous use (cron, monitoring) is still
+  checked. stdout and every JSON answer are unaffected. Skipped for `health`,
+  `self-update`, `bundle`, `connect`, `repl`, `session-list`, `session-delete` (purely
+  local commands), any `--help`, and any command that itself failed — a failing command
+  has nothing to say about whether the CLI or the bundles are current. Off entirely with
+  `CONTAO_AI_CLI_NO_UPDATE_CHECK=1`.
+- **A hidden prompt for the bridge token.** `bridge configure --url …` with neither
+  `--token` nor `--token-stdin`, run on a terminal, now asks for the token with hidden
+  input, so it never has to reach a chat at all. `--token-stdin` still exists for an
+  agent piping a token the user pasted; `--token` still works and stays documented as
+  visible in the process list.
+- **`health --json` gains a `backend` key** — the backend-bundle counterpart of `core`:
+  `installed`, `latest`, `update_available`. `bridge.state` is unchanged and still
+  answers what to do about the bridge itself.
+- **README and CLAUDE.md: a setup guide addressed to the agent doing the installation**
+  ("Set up with an agent" / "Setup and updates (v0.21.0)") — prerequisites, the SSH key
+  step, `connect`, the bundle/self-update/bridge-token choices, and the update notice.
+
+### Fixed
+
+- **Re-`connect` dropped a configured bridge.** `save_session` truncates the file it
+  writes, so up to v0.20.0 reconnecting to an existing session silently lost
+  `bridge_url`/`bridge_token` — a defect of every released version, found while
+  planning this change. Reconnecting now keeps both; only the SSH fields are replaced.
+- **`resolve_password`'s errors always named `--password-stdin`**, even for the bridge
+  token, whose actual flag is `--token-stdin`. The message now names whichever flag the
+  caller is actually being pointed at.
+
 ## v0.20.0 - 2026-09-16
 
 Works with contao-ai-core-bundle v0.18.0; **v0.19.0** fixes path, symlink and usage-search

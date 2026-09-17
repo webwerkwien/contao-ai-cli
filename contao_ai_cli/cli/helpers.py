@@ -14,7 +14,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.20.0"
+__version__ = "0.21.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -157,14 +157,23 @@ def install_cli_update(latest_version: str) -> dict:
     """
     wanted = latest_version.lstrip("v")
     try:
-        subprocess.run(
+        run = subprocess.run(
             ["pipx", "install", "--force", f"git+{CLI_INSTALL_URL}@v{wanted}"],
             check=False, encoding="utf-8", errors="replace", timeout=CLI_UPDATE_TIMEOUT,
+            # pipx's own progress output landed on this process's stdout and broke
+            # `self-update --json`, whose only output is meant to be the answer
+            # (review 2026-09-17).
+            capture_output=True,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return {"installed": get_pipx_installed_version(), "updated": False}
     installed = get_pipx_installed_version()
-    return {"installed": installed, "updated": installed == wanted}
+    result = {"installed": installed, "updated": installed == wanted}
+    # Captured output must not swallow why a failed install failed.
+    reason = run.stderr if isinstance(run.stderr, str) else ""
+    if not result["updated"] and reason.strip():
+        result["reason"] = reason.strip()[-500:]
+    return result
 
 
 def get_installed_package_versions(backend, packages) -> dict:
@@ -208,21 +217,16 @@ def get_core_bundle_installed_version(backend) -> str | None:
 
 
 def get_core_bundle_latest_version() -> str | None:
-    """Return the latest stable version of contao-ai-core-bundle from Packagist."""
-    try:
-        req = urllib.request.Request(PACKAGIST_API, headers={"User-Agent": "contao-ai-cli"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read())
-        # /p2/ returns {"packages": {"<name>": [{"version": "v0.2.9", ...}, ...]}},
-        # newest first.
-        releases = data["packages"][CORE_BUNDLE]
-        stable = [
-            r["version"] for r in releases
-            if "version" in r and not r["version"].startswith("dev-") and "dev" not in r["version"]
-        ]
-        return stable[0].lstrip("v") if stable else None
-    except Exception:
-        return None
+    """
+    Return the latest stable version of contao-ai-core-bundle from Packagist.
+
+    Delegates to `core.bundles.get_bundle_latest_version` so there is one
+    implementation (2026-09-17, agent-driven onboarding). Local import: that
+    module imports this one for `CORE_BUNDLE`/`BACKEND_BUNDLE`, and a top-level
+    import here would make the two modules import each other.
+    """
+    from contao_ai_cli.core.bundles import get_bundle_latest_version
+    return get_bundle_latest_version(CORE_BUNDLE)
 
 
 def detect_contao_manager(backend) -> dict:
@@ -289,26 +293,6 @@ def set_allow_plugins(backend, plugins) -> None:
     """Write allow-plugins entries into the project composer.json. Never call unprompted."""
     for plugin in plugins:
         backend.run_raw(f"composer config {shlex.quote('allow-plugins.' + plugin)} true")
-
-
-def composer_core_bundle(backend, action: str, phar_path: str | None = None,
-                         timeout: int = COMPOSER_TIMEOUT) -> dict:
-    """
-    Run 'composer require|update' for the core bundle on the target server.
-
-    With phar_path set the call goes through the Contao Manager's composer
-    passthrough, which uses the manager's own COMPOSER_HOME — the project
-    composer.json keeps its own config. Without it, plain composer is used.
-    """
-    if action not in ("require", "update"):
-        raise ValueError(f"Unsupported composer action: {action!r}")
-    if phar_path:
-        composer = f"{shlex.quote(backend.php_path)} {shlex.quote(phar_path)} composer"
-    else:
-        composer = "composer"
-    return backend.run_raw(
-        f"{composer} {action} {CORE_BUNDLE} --no-interaction", timeout=timeout
-    )
 
 
 skin = ReplSkin("contao", version=__version__)
@@ -411,9 +395,15 @@ def dispatch_update(backend, command: str, record_id, ids, ids_from_file, fields
     return run_bulk_update(backend, command, targets, fields)
 
 
-def resolve_password(password: str | None, password_stdin: bool, what: str = "--password") -> str:
+def resolve_password(password: str | None, password_stdin: bool, what: str = "--password",
+                     stdin_flag: str = "--password-stdin") -> str:
     """
-    Take a password from an option or from this process's stdin.
+    Take a password or another secret from an option or from this process's stdin.
+
+    `what` is how the value is named in messages, `stdin_flag` the option that reads it
+    from stdin. Separate on purpose: `hash-password` names its value "the PASSWORD
+    argument", and deriving the flag from that produced "the PASSWORD argument-stdin"
+    (review 2026-09-17).
 
     Audit 2026-09-02 (H-1/M-10). `--password Geheim` is an argument of *this*
     process, and on both Linux and Windows any other user of the machine can read
@@ -429,18 +419,66 @@ def resolve_password(password: str | None, password_stdin: bool, what: str = "--
     """
     if password_stdin:
         if password is not None:
-            raise click.UsageError(f"Use either {what} or --password-stdin, not both.")
+            raise click.UsageError(f"Use either {what} or {stdin_flag}, not both.")
         data = sys.stdin.readline()
         if not data:
-            raise click.UsageError("--password-stdin was given but stdin was empty.")
+            raise click.UsageError(f"{stdin_flag} was given but stdin was empty.")
         return data.rstrip("\r\n")
 
     if password is None:
         raise click.UsageError(
-            f"A password is required: pass {what}, or pipe it in with --password-stdin "
+            f"A value is required: pass {what}, or pipe it in with {stdin_flag} "
             f"(which keeps it out of the process list)."
         )
     return password
+
+
+def stdin_is_console() -> bool:
+    """
+    Whether a person can type into stdin — stricter than `isatty()`.
+
+    Measured 2026-09-17 in Git Bash: `< /dev/null` reports `isatty() == True` (the NUL
+    device is a character device), and the hidden token prompt then waited forever,
+    because getpass reads the Windows console directly, not stdin. On Windows only a
+    handle that `GetConsoleMode` accepts is a console; elsewhere `isatty()` is reliable.
+    """
+    try:
+        if not sys.stdin.isatty():
+            return False
+    except Exception:  # noqa: BLE001
+        return False
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+        import msvcrt
+
+        handle = msvcrt.get_osfhandle(sys.stdin.fileno())
+        mode = ctypes.c_uint32()
+        # HANDLE is 64-bit; without this, ctypes assumes the default (32-bit
+        # int) signature for the first argument and can truncate the handle on
+        # 64-bit Python (review 2026-09-17).
+        ctypes.windll.kernel32.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+        return bool(ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def resolve_token(token: str | None, token_stdin: bool) -> str:
+    """
+    The bridge token from --token, --token-stdin, or a hidden prompt on a terminal.
+
+    2026-09-17: the user chooses. Typed at a hidden prompt it never reaches a chat;
+    handed to an agent it is piped in with --token-stdin and stays out of the process list.
+    """
+    if token is None and not token_stdin:
+        if not stdin_is_console():
+            raise click.UsageError(
+                "No token given. Either run this in a terminal and type it at the hidden prompt, "
+                "or pipe it in with --token-stdin."
+            )
+        return click.prompt("Bridge token", hide_input=True, err=True)
+    return resolve_password(token, token_stdin, what="--token", stdin_flag="--token-stdin")
 
 
 def configure_output_encoding(*streams) -> None:
