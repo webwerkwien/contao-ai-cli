@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.23.0 - 2026-09-17
+
+Pairs with **contao-ai-core-bundle v0.22.0**: cloned content keeps its visibility, only
+root pages store a language, and `folder publish` logs every line with the operator.
+
+### Added
+
+- **`content update --text`**, the shortcut `content create` already had. `--set text=`
+  given as well wins, as on create. Live, translating four elements failed with *"No such
+  option '--text'"* (Nr. 60).
+
+### Fixed
+
+- **`self-update` reported a working update as failed.** Right after the reinstall pipx
+  reported no version, and a moment later the new one (0.22.0 → 0.22.1, Nr. 54). The
+  read-back now asks up to three times before it calls the update ineffective.
+- `page create --language` says it applies to root pages; `CLAUDE.md` no longer claims
+  every created record is unpublished — content elements are created visible (Nr. 58).
+- The bundled skill (`skills/SKILL.md`) showed `page read --id 1` and `content update --id 12`;
+  neither command has `--id`, the ID is an argument (review before this release).
+
 ## v0.22.1 - 2026-09-17
 
 Pairs with **contao-ai-core-bundle v0.21.1**, which accepts `--set useSSL=1`.

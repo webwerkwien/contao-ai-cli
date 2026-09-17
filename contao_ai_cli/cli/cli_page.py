@@ -65,7 +65,8 @@ def page_read_cmd(ctx, page_id, as_json):
 @click.option("--pid", type=int, default=0, show_default=True, help="Parent page ID")
 @click.option("--type", "page_type", default="regular", show_default=True, help="Page type (regular, root, …)")
 @click.option("--alias", default="", help="Page alias (auto-generated if omitted)")
-@click.option("--language", default="de", show_default=True, help="Page language")
+@click.option("--language", default="de", show_default=True,
+              help="Language of a root page; other pages take their root's (core-bundle v0.22.0)")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE", help="Extra fields, e.g. --set robots=noindex")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context

@@ -158,6 +158,25 @@ class TestInstallCliUpdate:
         assert outcome["updated"] is False
         assert "unable to access github.com" in outcome["reason"]
 
+    def test_a_version_pipx_cannot_report_yet_is_asked_again(self):
+        """Nr. 54, 2026-09-17: self-update 0.22.0 -> 0.22.1 answered "did not take effect
+        (pipx reports nothing)", and `pipx list` showed 0.22.1 a moment later. Not
+        reproducible afterwards, so the read-back retries instead of guessing a cause."""
+        with patch("contao_ai_cli.cli.helpers.subprocess.run"), \
+             patch("contao_ai_cli.cli.helpers.time.sleep") as sleep, \
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   side_effect=[None, "0.4.3"]):
+            assert install_cli_update("0.4.3") == {"installed": "0.4.3", "updated": True}
+        sleep.assert_called_once()
+
+    def test_a_version_that_never_appears_still_fails(self):
+        with patch("contao_ai_cli.cli.helpers.subprocess.run"), \
+             patch("contao_ai_cli.cli.helpers.time.sleep"), \
+             patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",
+                   return_value=None) as read:
+            assert install_cli_update("0.4.3")["updated"] is False
+        assert read.call_count == 3
+
     def test_missing_pipx_is_not_a_crash(self):
         with patch("contao_ai_cli.cli.helpers.subprocess.run",
                    side_effect=FileNotFoundError),              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version",

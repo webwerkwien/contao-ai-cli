@@ -1,2 +1,2 @@
 """contao-ai-cli: Agent-native CLI for Contao 5 via SSH."""
-__version__ = "0.22.1"
+__version__ = "0.23.0"

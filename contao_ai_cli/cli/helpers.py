@@ -6,6 +6,7 @@ import pathlib
 import shlex
 import subprocess
 import sys
+import time
 import urllib.request
 import urllib.error
 import click
@@ -14,7 +15,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.22.1"
+__version__ = "0.23.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -167,7 +168,15 @@ def install_cli_update(latest_version: str) -> dict:
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return {"installed": get_pipx_installed_version(), "updated": False}
+    # pipx may not report the fresh venv at once: on 2026-09-17 (0.22.0 -> 0.22.1,
+    # Nr. 54) it answered nothing right after the install and 0.22.1 a moment later.
+    # Not reproducible since, so ask again rather than guess a cause.
     installed = get_pipx_installed_version()
+    for _ in range(2):
+        if installed is not None:
+            break
+        time.sleep(2)
+        installed = get_pipx_installed_version()
     result = {"installed": installed, "updated": installed == wanted}
     # Captured output must not swallow why a failed install failed.
     reason = run.stderr if isinstance(run.stderr, str) else ""

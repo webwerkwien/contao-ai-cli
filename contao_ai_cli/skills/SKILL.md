@@ -93,12 +93,12 @@ contao-ai-cli cache warmup
 
 # Pages
 contao-ai-cli --json page list
-contao-ai-cli --json page read --id 1
+contao-ai-cli --json page read 1
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
 
 # Content
 contao-ai-cli --json content list --pid 5
-contao-ai-cli --json content update --id 12 --set headline="Updated"
+contao-ai-cli --json content update 12 --set headline="Updated"
 
 # Users
 contao-ai-cli --json user list

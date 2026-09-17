@@ -63,20 +63,25 @@ def content_create_cmd(ctx, el_type, pid, ptable, text, fields, as_json):
 @content.command("update")
 @click.argument("content_id", type=int, required=False)
 @bulk_id_options
-@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
+@click.option("--text", default=None, help="Shortcut for --set text=VALUE, as on create")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def content_update_cmd(ctx, content_id, ids, ids_from_file, fields, as_json):
+def content_update_cmd(ctx, content_id, ids, ids_from_file, fields, text, as_json):
     """Update fields of a content element, or of many at once.
 
     Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
     in a single connection. Every record is versioned individually either way.
     """
+    parsed = parse_set_fields(fields)
+    if text is not None:
+        parsed.setdefault("text", text)
+    if not parsed:
+        raise click.UsageError("Nothing to change: give --set FIELD=VALUE or --text.")
     _require_core_bundle(ctx, "content update")
     b = _get_backend(ctx.obj.get("session"))
-    _output(dispatch_update(b, "contao:content:update", content_id, ids, ids_from_file,
-                            parse_set_fields(fields)),
+    _output(dispatch_update(b, "contao:content:update", content_id, ids, ids_from_file, parsed),
             as_json or ctx.obj.get("as_json"))
 
 

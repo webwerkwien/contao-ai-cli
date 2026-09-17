@@ -312,6 +312,7 @@ contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
 
 # Update — repeat --set for each field
 contao-ai-cli --json content update 5 --set headline="New Title"
+contao-ai-cli --json content update 5 --text '<p>New text</p>'   # like create (v0.23.0)
 contao-ai-cli --json page update 1 --set title="Home" --set robots=noindex
 
 # Publish / unpublish
@@ -654,8 +655,13 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
 
 ### What the protocol and the answers contain
 
-- **A created page is unpublished** (`published: false`), like every created content:
-  publish it deliberately with `page publish`.
+- **A created page is unpublished** (`published: false`), and so is a created article:
+  publish them deliberately with `page publish`. A content element is created visible
+  (`invisible: false`) — the unpublished article keeps it offline, as in the back end.
+- **Only a root stores a language** (core-bundle v0.22.0). `page create --language` applies
+  to `--type root`; any other page stores none and takes its root's language at runtime,
+  as a page created in the back end does. Up to v0.21.1 every page stored `de`. An
+  explicit `--set language=` is still written as given — the rule covers the default.
 - **The operator in `tl_version` and `tl_log` is the SSH user** (e.g. `c155929_C5`), with
   `source = CLI` in the log — not a Contao back-end user. The back-end bundle passes the
   Contao user through `--operator`.
@@ -845,7 +851,12 @@ contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recur
 For a root, `language`, `urlPrefix`, `urlSuffix`, `fallback` and `dns` are accepted; for any
 other page only `title`, `pageTitle`, `description`, `published`, `hide`. Anything else comes
 back in `ignored_modifications`. A root cloned without its own prefix or domain is refused.
-Everything below is copied — articles, content, layout, CSP — and **stays unpublished**.
+Everything below is copied — articles, content, layout, CSP. **Pages and articles come out
+unpublished; content elements keep their visibility** (core-bundle v0.22.0), exactly as
+Contao's "copy with subpages" does — a hidden element stays hidden, a visible one shows as
+soon as its page and article are published. Up to v0.21.1 every cloned element was hidden,
+and a published clone showed an empty page. Subpages store no language; the root keeps its
+own or the one from `--modifications`.
 Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
 " (Kopie)"; translate both afterwards with `page update`. The cloned root goes behind the
 last root.
