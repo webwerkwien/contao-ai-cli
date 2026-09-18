@@ -118,6 +118,11 @@ description below, under "Setup and updates (v0.21.0)".
 This also means `connect` is no longer a step that needs a human at a terminal — an
 agent runs it directly, once it has host, user and root path from the person.
 
+**From Git Bash on Windows, set `MSYS_NO_PATHCONV=1`.** MSYS rewrites an argument that
+starts with `/` into a Windows path: `--root /var/www/web` reaches the CLI as
+`C:/Program Files/Git/var/www/web`, and the server answers `cd: … No such file or
+directory`. Since v0.27.0 the error message says so when the root carries the Git prefix.
+
 > ⚠️ Never hardcode real hostnames, usernames, passwords, or key paths
 > in any committed file. Always ask the user for connection details.
 
@@ -567,6 +572,27 @@ come back from **every** read (`… read`, `record list`) as JSON arrays or obje
 still work. Before v0.16.0 only `content read` unpacked `headline`; every other read
 answered the raw PHP serialization.
 
+A value that **starts with `[` or `{` but is not valid JSON is refused** (core-bundle
+v0.26.0), exit 1, nothing written. Before, a list or table field stored it split at the
+commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with `ok`.
+
+> ⚠️ **Windows PowerShell 5.1 drops the double quotes inside an argument** when it calls a
+> native program such as `contao-ai-cli`. Measured 2026-09-18:
+>
+> | typed in PowerShell 5.1 | arrives as |
+> |---|---|
+> | `'listitems=["Eins","Zwei"]'` | `listitems=[Eins,Zwei]` — refused since core-bundle v0.26.0 |
+> | `'<a href="https://x.y">L</a>'` (`--text`) | `<a href=https://x.y>L</a>` — **stored without error** |
+> | `'listitems=[\"Eins\",\"Zwei\"]'` | `listitems=["Eins","Zwei"]` ✅ |
+>
+> **In PowerShell 5.1, escape every inner double quote as `\"`.** Not in PowerShell 7.3+:
+> there `$PSNativeCommandArgumentPassing` passes quotes through, so plain JSON is right and
+> `\"` would arrive as a literal backslash — refused as invalid JSON (7.3+ per the
+> PowerShell documentation, not measured here). Git Bash and POSIX shells pass plain JSON
+> through as well. `$PSVersionTable.PSVersion` tells which one runs. HTML is the quiet case: unquoted attribute values
+> are valid HTML, so nothing refuses them — but a value with a space breaks. Read back what
+> you wrote when the text contains attributes.
+
 Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
 `widthRight`): a plain number keeps the record's existing unit, `--set
 <field>_unit=vw` changes it.
@@ -698,8 +724,12 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
 ### What the protocol and the answers contain
 
 - **A created page is unpublished** (`published: false`), and so is a created article:
-  publish them deliberately with `page publish`. A content element is created visible
-  (`invisible: false`) — the unpublished article keeps it offline, as in the back end.
+  publish them deliberately — a page with `page publish <id>`, an article with
+  `article update <id> --set published=1` (there is no `article publish`). A content
+  element is created visible (`invisible: false`) — the unpublished article keeps it
+  offline, as in the back end. *Until v0.27.0 this line said both were published with
+  `page publish`; an agent working from this guide alone went looking for it (agent test,
+  2026-09-18).*
 - **Only a root stores a language** (core-bundle v0.22.0). `page create --language` applies
   to `--type root`; any other page stores none and takes its root's language at runtime,
   as a page created in the back end does. Up to v0.21.1 every page stored `de`. An
@@ -905,6 +935,11 @@ written — no version, no log entry:
   counts. Domain and prefix decide which root, and so which language, 404 page and sitemap,
   answers a request.
 - a second page at the same URL, e.g. `--set alias=packages` next to a page that has it.
+
+**An empty `dns` means "any domain"**: that root answers every host no other root claims.
+A single-site installation often has exactly that, so the root of `example.org` may well
+have `dns: ""` — look for a root with the domain first, then for the published `fallback`
+root with an empty `dns`.
 
 **A second language is a second root on the same domain with its own prefix.** Clone the
 existing tree, then translate the pages below (the clone sets the root's language in one
@@ -1247,7 +1282,7 @@ only the first time a machine talks to that host.
 
 ### Passing a password: use `--password-stdin`
 
-Three commands take a password. Each accepts it two ways, and **an agent should
+Five commands take a password. Each accepts it two ways, and **an agent should
 always use the second**:
 
 ```bash
@@ -1258,10 +1293,34 @@ contao-ai-cli user password --username alice --password "Geheim"
 printf '%s\n' "Geheim" | contao-ai-cli user password --username alice --password-stdin
 ```
 
-The same applies to `user create --password-stdin` and
+The same applies to `user create --password-stdin`,
 `security hash-password --password-stdin` (whose `PASSWORD` argument became
-optional in v0.14.0 for this reason). One line is read; only the trailing newline
-is stripped, so a password may begin or end with a space.
+optional in v0.14.0 for this reason), and since v0.27.0 to the two member commands
+below. One line is read; only the trailing newline is stripped, so a password may
+begin or end with a space.
+
+### Front end members: `member create` and `member password` (v0.27.0, core-bundle v0.26.0)
+
+```bash
+printf '%s\n' "Geheim-123" | contao-ai-cli --json member create --username anna \
+  --firstname Anna --lastname Muster --email anna@example.org --password-stdin --set groups=2
+printf '%s\n' "Neu-456" | contao-ai-cli --json member password --username anna --password-stdin
+```
+
+- **Until v0.27.0 `member create` never worked**: the server command it called did not
+  exist. Both need core-bundle v0.26.0; an older one answers that the command is not
+  available and names `bundle update core`.
+- **The password reaches the server only on stdin**, even when given as `--password`
+  here: the server commands have no password option at all.
+- Checked as Contao's password field does: at least `minPasswordLength` characters (8 by
+  default), not the username. Hashed with the hasher Contao's front end login uses. `tl_member.password`'s
+  save callbacks run, so the `setNewPassword` hook fires as in the back end.
+- `member create` sets `login` (the member may log in) and `dateAdded`. `username` and
+  `email` must be unique, `email` valid. `--set` takes the fields `member update` takes
+  (`groups=1,2`, `disable`, `start`, address fields); `password` is refused there.
+- **`member update` refuses `password`** — use `member password`. It takes `--set` like
+  every other update command; `--field`, its own spelling until v0.27.0, still works.
+- The answer never contains the password or its hash. Each call is versioned and logged.
 
 A command line is not private. On Linux `/proc/<pid>/cmdline` is world-readable
 and on Windows any process can be enumerated the same way — so `--password` is
@@ -1271,6 +1330,10 @@ recommended for security reasons"*.
 
 `--password` still works and is not deprecated — piping is not always possible.
 But when you are choosing, choose stdin.
+
+A `printf` typed into an interactive shell still lands in that shell's **history**. Out of
+a process list is not out of every record: read it into a variable first (`read -rs PW`)
+or start the line with a space where `HISTCONTROL=ignorespace` is set.
 
 ### What `user create` does under the hood
 

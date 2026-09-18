@@ -87,12 +87,27 @@ class TestMemberCreate:
         member_create(backend, "testuser", "secret123", "Test", "User", "t@t.com")
         backend.run_raw.assert_not_called()
 
-    def test_member_create_quotes_special_chars(self):
-        """Test that member_create properly escapes passwords with special characters."""
+    def test_member_create_keeps_the_password_off_the_command_line(self):
+        """The password goes on stdin, never into the command (v0.27.0, audit H3).
+
+        Until v0.27.0 this test asserted the opposite — that the password was shell-quoted
+        into `--password=…` — for a server command that never existed.
+        """
         backend = MagicMock()
-        backend.run.return_value = {"stdout": '{"status": "created"}'}
+        backend.run.return_value = {"stdout": '{"status": "ok"}'}
         dangerous_pw = "pass word; rm -rf /"
-        member_create(backend, "user", dangerous_pw, "Test", "User", "t@t.com")
+        member_create(backend, "user", dangerous_pw, "Test", "User", "t@t.com", {"groups": "1,2"})
         call_args = backend.run.call_args[0][0]
-        assert shlex.quote(dangerous_pw) in call_args
-        assert "rm -rf /" not in call_args.replace(shlex.quote(dangerous_pw), "")
+        assert "pass word" not in call_args and "--password=" not in call_args
+        assert "--password-stdin" in call_args
+        assert "--set groups=1,2" in call_args
+        assert backend.run.call_args.kwargs["stdin_data"] == dangerous_pw + "\n"
+
+    def test_member_password_sends_only_stdin(self):
+        from contao_ai_cli.core.member import member_password
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": '{"status": "ok"}'}
+        member_password(backend, "anna", "neues Passwort")
+        assert "neues Passwort" not in backend.run.call_args[0][0]
+        assert backend.run.call_args[0][0].startswith("contao:member:password anna --password-stdin")
+        assert backend.run.call_args.kwargs["stdin_data"] == "neues Passwort\n"

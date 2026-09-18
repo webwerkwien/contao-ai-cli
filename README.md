@@ -130,7 +130,7 @@ so it cannot drift from what the CLI actually offers.
 | `layout` | `create` `delete` `list` `module-add` `module-remove` `read` `update` | Page layouts (theme level) |
 | `listing` | `config` `data` `modules` | Listing module configuration |
 | `mailer` | `test` | Mailer configuration |
-| `member` | `create` `delete` `list` `update` | Front end members |
+| `member` | `create` `delete` `list` `password` `update` | Front end members |
 | `member-group` | `create` `delete` `list` `read` `update` | Front end member groups — what protected content points at |
 | `module` | `create` `delete` `list` `read` `types` `update` | Front end modules (theme level) |
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |

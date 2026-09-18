@@ -41,6 +41,22 @@ def test_a_failed_connection_saves_nothing(tmp_path):
     assert not (tmp_path / "shop.json").exists()
 
 
+def test_a_root_rewritten_by_git_bash_is_named_on_failure(tmp_path):
+    """Git Bash turned `--root /var/www/...` into `C:/Program Files/Git/var/www/...` (2026-09-18)."""
+    backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
+    for root in ("C:/Program Files/Git/var/www/web", "C:/Git/home/site", "D:/Tools/PortableGit/srv/contao",
+                 "C:\\Program Files\\Git\\var\\www\\web"):
+        args = ["--host", "h", "--user", "u", "--root", root, "--json"]
+        assert "MSYS_NO_PATHCONV=1" in json.loads(invoke(tmp_path, backend, args).stdout)["message"], root
+
+
+def test_a_real_windows_root_gets_no_git_bash_hint(tmp_path):
+    backend = MagicMock(**{"run.side_effect": ContaoBackendError("refused")})
+    for root in ("C:/inetpub/contao", "/var/www/web", "D:/Projects/Git/site"):
+        args = ["--host", "h", "--user", "u", "--root", root, "--json"]
+        assert "MSYS" not in json.loads(invoke(tmp_path, backend, args).stdout)["message"]
+
+
 def test_reconnecting_keeps_the_bridge(tmp_path):
     (tmp_path / "shop.json").write_text(json.dumps(
         {"host": "old", "bridge_url": "https://shop.at", "bridge_token": "5.secret"}), encoding="utf-8")

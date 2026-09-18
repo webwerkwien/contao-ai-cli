@@ -4,6 +4,43 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.27.0 - 2026-09-18
+
+Works with every core-bundle version; `member create`, `member password` and the JSON
+refusal described below need core-bundle v0.26.0. From the regression run and the agent
+test before 1.0: an agent (Codex) built, changed and deleted a page on a test site with
+nothing but `guide` and `--help`, and reported every guess.
+
+### Fixed
+
+- **`member create` never worked.** It called `contao:member:create`, which the
+  core-bundle never had, and passed the password as `--password=` on the command line.
+  Now it sends the password on stdin to the command core-bundle v0.26.0 adds, takes
+  `--password-stdin` like `user create`, and further fields with `--set`. Found in the
+  regression run before 1.0.
+- **`member update` took `--field`, every other update command `--set`.** `--set` now
+  works too; `--field` stays.
+- **The guide said articles are published with `page publish`.** There is no
+  `article publish`; an article is published with `article update <id> --set published=1`.
+  The agent went looking for the command the guide named.
+
+### Added
+
+- **`member password`** — sets a front end member's password (core-bundle v0.26.0),
+  `--password-stdin` or `--password`. `member update` refuses the field, and Contao has
+  no console command for it, so there was no way to reset a member's password.
+- **Windows PowerShell 5.1 drops double quotes inside arguments** to native programs —
+  now in the guide, with what arrives (measured): a JSON list loses its quotes, and HTML
+  attributes lose theirs *without any error*, because unquoted attributes are valid HTML.
+  Escaping as `\"` or PowerShell 7.3+ passes them through. core-bundle v0.26.0 refuses the
+  broken JSON; before, a list field stored `['[Eins', 'Zwei', 'Drei]']` with `ok`.
+- **An empty `dns` on a root means "any domain"** — now in the guide. The agent could not
+  find the root of a given domain, because the only root had none.
+- **`connect` names Git Bash when it rewrote `--root`.** MSYS turns `/var/www/…` into
+  `C:/Program Files/Git/var/www/…`; the server said "No such file or directory" and
+  nothing more. The failure message now points to `MSYS_NO_PATHCONV=1` when the root
+  carries the Git prefix; a real Windows root is left alone.
+
 ## v0.26.0 - 2026-09-18
 
 Works with every core-bundle version; nothing on the server changes.

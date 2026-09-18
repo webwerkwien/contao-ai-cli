@@ -1,6 +1,8 @@
 """
 connect, session-list, session-delete commands.
 """
+import re
+
 import click
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
@@ -25,6 +27,26 @@ def _host_key_notice(stderr: str) -> str | None:
         if "Permanently added" in line:
             return line.strip().removeprefix("Warning: ").strip()
     return None
+
+
+def _msys_path_hint(root: str) -> str:
+    """A hint when --root looks like Git Bash rewrote it, else ''.
+
+    Measured on 2026-09-18: `connect --root /var/www/…` typed into Git Bash arrived as
+    `C:/Program Files/Git/var/www/…` — MSYS turns an argument that starts with / into a
+    Windows path. The server answered "cd: … No such file or directory" and nothing
+    said why. Only on failure and only for the Git prefix: a Windows server with a real
+    `C:\\…` root stays untouched.
+    """
+    normalized = root.replace("\\", "/")
+    # The Git install dir (Program Files, a drive root, PortableGit) followed by a Unix
+    # top-level directory — a real Windows root that merely sits in a folder called Git
+    # does not continue with var/, home/ and the like (review before v0.27.0).
+    if re.match(r"^[A-Za-z]:/(?:.*/)?(?:Portable)?Git/(?:var|home|srv|usr|opt|www|web|data|mnt|tmp|etc)/",
+                normalized, re.IGNORECASE):
+        return (" --root looks rewritten by Git Bash (MSYS turns a leading / into a Windows"
+                " path). Run the command with MSYS_NO_PATHCONV=1 set, or from another shell.")
+    return ""
 
 
 @click.command()
@@ -53,7 +75,8 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
         probe = backend.run("--version")
     except ContaoBackendError as e:
         _output({"status": "error", "code": 1,
-                 "message": f"Connection failed: {e}. No session was saved."}, as_json)
+                 "message": f"Connection failed: {e}. No session was saved.{_msys_path_hint(root)}"},
+                as_json)
         ctx.exit(1)
 
     # Reconnecting must not drop what the session already holds (bridge URL and token):

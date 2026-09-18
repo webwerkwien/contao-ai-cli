@@ -41,7 +41,7 @@ class BuildWithGuide(build_py):
 
 setup(
     name="contao-ai-cli",
-    version="0.26.0",
+    version="0.27.0",
     description="Agent-native CLI for Contao 5 CMS via SSH",
     author="web.werk.wien",
     license="MIT",
