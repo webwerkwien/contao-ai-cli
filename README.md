@@ -112,7 +112,7 @@ so it cannot drift from what the CLI actually offers.
 
 | Group | Commands | What for |
 |---|---|---|
-| `article` | `create` `delete` `list` `read` `update` | Articles inside pages |
+| `article` | `create` `delete` `list` `publish` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
 | `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |

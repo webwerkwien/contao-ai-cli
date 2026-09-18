@@ -18,7 +18,7 @@ def content():
 
 @content.command("list")
 @click.option("--article", "article_id", type=int, default=None,
-              help="Filter by article ID (pid)")
+              help="Only the direct elements of this article (pid + ptable=tl_article)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context

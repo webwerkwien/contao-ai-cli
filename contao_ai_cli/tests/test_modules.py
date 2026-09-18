@@ -194,6 +194,30 @@ class TestContent:
         backend = json_backend()
         content_list(backend, article_id=7)
         assert "--filter=pid=7" in sent_cmd(backend)
+
+    def test_content_list_by_article_excludes_other_parent_tables(self):
+        """pid 7 can also be a content element or a news item; only tl_article counts."""
+        backend = json_backend()
+        content_list(backend, article_id=7)
+        assert "--filter=ptable=tl_article" in sent_cmd(backend)
+
+    def test_article_publish_is_an_update_of_published(self):
+        from contao_ai_cli.core.article import article_publish
+        backend = json_backend('{"status":"ok"}')
+        article_publish(backend, 158)
+        assert sent_cmd(backend) == "contao:article:update 158 --set published=1 --no-interaction"
+
+    def test_article_unpublish_writes_zero(self):
+        from contao_ai_cli.core.article import article_publish
+        backend = json_backend('{"status":"ok"}')
+        article_publish(backend, 158, published=False)
+        assert "--set published=0" in sent_cmd(backend)
+
+    def test_content_list_without_article_has_no_ptable_filter(self):
+        backend = json_backend()
+        content_list(backend)
+        assert "--filter" not in sent_cmd(backend)
+
     def test_content_read(self):
         backend = MagicMock()
         backend.run.return_value = {"stdout": json.dumps({"id": 7, "type": "text"}), "returncode": 0}

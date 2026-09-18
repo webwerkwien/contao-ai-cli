@@ -38,6 +38,18 @@ def article_update(backend: ContaoBackend, article_id: int, fields: dict) -> dic
     return run_update(backend, "contao:article:update", article_id, fields)
 
 
+def article_publish(backend: ContaoBackend, article_id: int, published: bool = True) -> dict:
+    """Publish or unpublish an article.
+
+    The core bundle has no contao:article:publish, and needs none: `published`
+    is an ordinary field, so this is `article update --set published=1|0` under
+    the name an agent looks for next to `page publish` (agent test, 2026-09-18).
+    It answers like `article update` and writes a version the same way.
+    """
+    return run_update(backend, "contao:article:update", article_id,
+                      {"published": "1" if published else "0"})
+
+
 def article_delete(backend: ContaoBackend, article_id: int) -> dict:
     """
     Delete an article via contao-ai-core-bundle.

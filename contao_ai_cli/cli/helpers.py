@@ -16,7 +16,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "0.27.0"
+__version__ = "0.28.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -322,12 +322,11 @@ skin = ReplSkin("contao", version=__version__)
 
 
 def _get_backend(session_path=None):
+    # A failure here is a ContaoBackendError and propagates like any other, so
+    # main() prints it as `Error: ...` or, under --json, as the error object.
+    # Until v0.28.0 it was printed here as `[ERROR] ...` and bypassed both.
     path = session_path or session_mod.DEFAULT_SESSION_FILE
-    try:
-        return ContaoBackend.from_session(path)
-    except ContaoBackendError as e:
-        click.echo(click.style(f"[ERROR] {e}", fg="red"), err=True)
-        sys.exit(1)
+    return ContaoBackend.from_session(path)
 
 
 def resolve_bulk_ids(record_id, ids: str | None, ids_from_file: str | None) -> list[int]:

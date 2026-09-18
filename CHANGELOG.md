@@ -4,6 +4,43 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.28.0 - 2026-09-18
+
+Works with every core-bundle version. From the second agent test before 1.0: an agent
+(Codex) built a page with list and table, a FAQ and a member from `guide` and `--help`
+alone and found three real faults. A minor release because what a caller sees on
+failure changes.
+
+### Changed
+
+- **Errors under `--json` are JSON.** One object on stdout,
+  `{"status": "error", "code": N, "message": "..."}`, nothing on stderr; `code` is the
+  exit code (`1` failed, `2` usage error). The guide promised `{"error": "..."}` for a
+  long time, but Click printed `Error: ...` as plain text before `--json` had a say.
+  `--json` counts before or after the command. Without it nothing changes. A failure
+  to load the session file now also goes this way instead of an own `[ERROR] ...` line.
+  An unknown command containing a character outside cp1252 no longer ends in a
+  traceback on Windows (found in the review: the output encoding was set too late).
+
+### Fixed
+
+- **`content list --article N` listed elements that are not in article N.** It filtered
+  on `pid` alone, and nested elements (`ptable=tl_content`) share the id space with
+  articles: for article 158 the agent got three children of content element 158. It
+  now also filters on `ptable=tl_article`.
+- **The guide's PowerShell advice failed on values with spaces.** `\"` works only when
+  the argument has a space outside double quotes; in JSON every space is inside a
+  string, so PowerShell 5.1 passes it unwrapped and it is cut apart. The guide now
+  gives the stop-parsing form `--%`, measured on c5 for table, list and link text.
+
+### Added
+
+- **`article publish <id> [--unpublish]`**, next to `page publish`. The same as
+  `article update <id> --set published=1|0`, which still works.
+- **Value formats for list and table elements in the guide:** `listitems`, `listtype`,
+  `tableitems`, `thead`/`tfoot`/`tleft`, with examples. `schema` shows the field names,
+  not their shape; the agent had to guess nested JSON and `thead=1`.
+
 ## v0.27.0 - 2026-09-18
 
 Works with every core-bundle version; `member create`, `member password` and the JSON

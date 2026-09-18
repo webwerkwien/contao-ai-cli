@@ -77,6 +77,19 @@ def article_update_cmd(ctx, article_id, ids, ids_from_file, fields, as_json):
             as_json or ctx.obj.get("as_json"))
 
 
+@article.command("publish")
+@click.argument("article_id", type=int)
+@click.option("--unpublish", is_flag=True, help="Unpublish instead of publish")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_publish_cmd(ctx, article_id, unpublish, as_json):
+    """Publish or unpublish an article (same as --set published=1|0)."""
+    _require_core_bundle(ctx, "article publish")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(article_mod.article_publish(b, article_id, not unpublish),
+            as_json or ctx.obj.get("as_json"))
+
+
 @article.command("delete")
 @click.argument("article_id", type=int)
 @click.option("--yes", is_flag=True, help="Skip the confirmation prompt")

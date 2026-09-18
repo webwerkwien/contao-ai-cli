@@ -24,15 +24,27 @@ def _parse_headline(value) -> str:
 
 def content_list(backend: ContaoBackend, article_id: int | None = None,
                  limit=None, offset=None) -> dict:
-    """List content elements. Optionally filter by article ID (pid).
+    """List content elements. Optionally only the direct elements of one article.
+
+    `pid` alone is not an article: tl_content also hangs below news, events,
+    other content elements (nested elements, `ptable=tl_content`) and so on,
+    and their ids share one number space with articles. Until v0.28.0
+    `--article 158` filtered on pid only and returned elements of content
+    element 158 next to those of article 158 (second agent test, 2026-09-18).
+    An empty ptable -- Contao 4's shorthand for tl_article -- does not occur
+    on Contao 5 installations (counted on all three sessions: 0).
 
     headline is an inputUnit field, so it arrives serialized; it is unpacked to
     plain text here the way it always was.
     """
+    filters = None
+    if article_id is not None:
+        filters = [f"pid={int(article_id)}", "ptable=tl_article"]
+
     result = record_list(
         backend, "tl_content",
         fields=["id", "pid", "type", "headline", "invisible", "ptable"],
-        filters=[f"pid={int(article_id)}"] if article_id is not None else None,
+        filters=filters,
         order="pid ASC, sorting ASC",
         limit=limit, offset=offset,
     )

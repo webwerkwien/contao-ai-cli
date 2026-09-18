@@ -333,10 +333,19 @@ for flags only.
 contao-ai-cli --json page list
 contao-ai-cli --json page read 1
 contao-ai-cli --json article list --page 1
-contao-ai-cli --json content list --article 1
+contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 
 # Create
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
+contao-ai-cli --json article create --title "New Page" --pid 12
+
+# Content elements — the value formats, as schema does not show them
+contao-ai-cli --json content create --type headline --pid 7 --set headline="Title" --set headline_unit=h1
+contao-ai-cli --json content create --type text --pid 7 --text '<p>See <a href="https://contao.org">Contao</a></p>'
+contao-ai-cli --json content create --type list --pid 7 --set listtype=unordered \
+  --set 'listitems=["One","Two","Three"]'
+contao-ai-cli --json content create --type table --pid 7 \
+  --set 'tableitems=[["Head 1","Head 2"],["Cell 1","Cell 2"]]' --set thead=1
 
 # Update — repeat --set for each field
 contao-ai-cli --json content update 5 --set headline="New Title"
@@ -345,8 +354,25 @@ contao-ai-cli --json page update 1 --set title="Home" --set robots=noindex
 
 # Publish / unpublish
 contao-ai-cli --json page publish 1
+contao-ai-cli --json article publish 12                     # v0.28.0
 contao-ai-cli --json comment publish 7 --unpublish
 ```
+
+The quoting above is for Git Bash and POSIX shells. **In Windows PowerShell 5.1 the
+list, table and link examples need a different form** — see *Structured fields* below.
+
+| field | value | notes |
+|---|---|---|
+| `headline` + `headline_unit` | text, `h1`…`h6` | read back as `{"value": …, "unit": …}` |
+| `listitems` | JSON array of strings | or the comma form `One,Two` when no item contains a comma |
+| `listtype` | `unordered` / `ordered` | |
+| `tableitems` | JSON array of rows, each an array of cells | every row the same length |
+| `thead` / `tfoot` / `tleft` | `1` / `0` | first row as header, last row as footer, first column as header |
+
+`content list --article N` returns the elements **directly** in article N. Until v0.28.0 it
+filtered on `pid` alone and mixed in elements of *content element* N (nested elements, whose
+parent table is `tl_content`, share the id space). Nested elements of a container:
+`record list tl_content --filter ptable=tl_content --filter pid=<element id>`.
 
 > Deleting cascades to child records — a page takes its subpages, articles and content
 > elements with it. The whole set lands in one `tl_undo` entry, so it stays recoverable
@@ -584,14 +610,34 @@ commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with
 > | `'listitems=["Eins","Zwei"]'` | `listitems=[Eins,Zwei]` — refused since core-bundle v0.26.0 |
 > | `'<a href="https://x.y">L</a>'` (`--text`) | `<a href=https://x.y>L</a>` — **stored without error** |
 > | `'listitems=[\"Eins\",\"Zwei\"]'` | `listitems=["Eins","Zwei"]` ✅ |
+> | `'listitems=[\"Erster Punkt\"]'` | **split into two arguments** at the space — `Got unexpected extra argument` |
+> | `'tableitems=[[\"Kopf 1\",\"Kopf 2\"]]'` | split the same way |
 >
-> **In PowerShell 5.1, escape every inner double quote as `\"`.** Not in PowerShell 7.3+:
-> there `$PSNativeCommandArgumentPassing` passes quotes through, so plain JSON is right and
-> `\"` would arrive as a literal backslash — refused as invalid JSON (7.3+ per the
-> PowerShell documentation, not measured here). Git Bash and POSIX shells pass plain JSON
-> through as well. `$PSVersionTable.PSVersion` tells which one runs. HTML is the quiet case: unquoted attribute values
-> are valid HTML, so nothing refuses them — but a value with a space breaks. Read back what
-> you wrote when the text contains attributes.
+> `\"` alone is not enough (corrected in v0.28.0; the guide recommended it until then).
+> PowerShell 5.1 wraps an argument in quotes only when it finds a space *outside* double
+> quotes, and it counts `\"` as a quote. In JSON every space sits inside a string, so the
+> argument goes out unwrapped and is cut at the space.
+>
+> **The form that works in 5.1 for every value: the stop-parsing token `--%`.** Everything
+> after it is passed as written, so write it for the Windows command line — the whole
+> argument in double quotes, inner quotes as `\"`:
+>
+> ```powershell
+> contao-ai-cli --% --json content create --type table --pid 7 --set "tableitems=[[\"Kopf 1\",\"Kopf 2\"],[\"Zelle 1\",\"Zelle 2\"]]" --set thead=1
+> contao-ai-cli --% --json content create --type text --pid 7 --text "<p>Mehr bei <a href=\"https://contao.org\" title=\"Contao CMS\">Contao</a>.</p>"
+> ```
+>
+> Measured on c5 on 2026-09-18 and read back unchanged. After `--%` PowerShell expands no
+> `$variables` (only `%NAME%`), so put the literal values in the line. For a plain list the
+> comma form needs no inner quotes at all: `--set 'listitems=Erster Punkt,Zweiter Punkt'`.
+>
+> Not in PowerShell 7.3+: there `$PSNativeCommandArgumentPassing` passes quotes through, so
+> plain JSON in single quotes is right and `\"` would arrive as a literal backslash — refused
+> as invalid JSON (7.3+ per the PowerShell documentation, not measured here). Git Bash and
+> POSIX shells pass plain JSON through as well. `$PSVersionTable.PSVersion` tells which one
+> runs. HTML is the quiet case: unquoted attribute values are valid HTML, so nothing refuses
+> them — but a value with a space breaks. Read back what you wrote when the text contains
+> attributes.
 
 Unit fields (`width`, `headerHeight`, `footerHeight`, `widthLeft`,
 `widthRight`): a plain number keeps the record's existing unit, `--set
@@ -725,7 +771,8 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
 
 - **A created page is unpublished** (`published: false`), and so is a created article:
   publish them deliberately — a page with `page publish <id>`, an article with
-  `article update <id> --set published=1` (there is no `article publish`). A content
+  `article publish <id>` (v0.28.0; before, `article update <id> --set published=1`,
+  which still works and is what `article publish` runs). A content
   element is created visible (`invisible: false`) — the unpublished article keeps it
   offline, as in the back end. *Until v0.27.0 this line said both were published with
   `page publish`; an agent working from this guide alone went looking for it (agent test,
@@ -1213,8 +1260,23 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
 
 ## Error handling
 
-- All commands exit with code `0` on success, non-zero on failure
-- With `--json`, errors are returned as `{"error": "..."}` objects
+- All commands exit with code `0` on success, non-zero on failure: `1` for a failed
+  command, `2` for a usage error (missing argument, unknown option or command). A missing
+  session file is `2` for the commands that need the core bundle and `1` for the others
+  (`cache`, `backup`, `schema`, …).
+- With `--json` — before or after the command — an error is **one object on stdout** and
+  nothing else on stderr except the error report for unexpected failures (below)
+  (v0.28.0):
+
+  ```json
+  {"status": "error", "code": 1, "message": "Command failed (exit 1): contao:page:read 198\nPage not found: 198"}
+  ```
+
+  `code` equals the exit code. Until v0.27.0 this line promised `{"error": "..."}` while
+  every command answered `Error: ...` as plain text on stderr (agent test, 2026-09-18).
+  Without `--json` it is still that `Error: ...` line on stderr. Commands that already
+  answered their own failures as an object (`connect`, `bundle`, `file`, `template`,
+  `ext run`, `bridge`, `self-update`) keep that answer.
 - SSH timeouts default to 60s; composer operations use 180s internally
 
 ### Error reports (since v0.16.0) — and what you must not do with them
@@ -1222,7 +1284,8 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
 When something fails **unexpectedly**, the CLI writes a report to stderr under
 the usual `Error: …` line, headed `## Fehlerbericht contao-ai`. It contains
 versions, the exception class, our own file and line, and the (masked) message.
-Exit code and stdout are unchanged, so nothing about parsing output changes.
+Exit code and stdout are unchanged, so nothing about parsing output changes. Under
+`--json` the report stands alone on stderr and the error object is on stdout.
 
 > ⚠️ **Do not pass a report on without asking the user first.**
 >

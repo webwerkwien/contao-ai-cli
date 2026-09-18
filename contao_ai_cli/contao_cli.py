@@ -5,6 +5,7 @@ Wraps Contao's Symfony Console (php bin/console) with a Python CLI
 that agents can use over SSH. The real Contao installation is a
 hard dependency — this CLI does not reimplement Contao functionality.
 """
+import json
 import os
 import sys
 
@@ -150,15 +151,53 @@ cli.add_command(bundle)
 cli.add_command(guide)
 
 
-def main() -> None:
-    """Entry point that attaches an error report to unexpected failures.
+def _json_requested(argv) -> bool:
+    """True when `--json` appears among the arguments, before a `--` separator.
 
-    Click already handles everything it planned for: `ClickException` (and
-    therefore `ContaoBackendError`) prints one `Error: ...` line and exits 1,
-    `Abort` exits 1 quietly, `SystemExit` carries its own code. Whatever reaches
-    the handler below got past all of that, which is very nearly the definition
-    of a defect -- so the report is generated for what arrives here rather than
-    for a list of failure types someone has to keep current.
+    The flag exists twice -- on the root group and on most commands -- and an
+    error can happen before either has been parsed (a usage error) or after
+    the command's context is gone (anything raised from inside it). The
+    argument list is the one place that knows in both cases. A value that is
+    literally `--json` (`--title --json`) would count as well; that is the
+    price of reading tokens instead of parsed options, and it only changes the
+    format of an error.
+    """
+    for token in argv:
+        if token == "--":
+            return False
+        if token == "--json":
+            return True
+    return False
+
+
+def _print_error(message: str, code: int, as_json: bool) -> None:
+    """One error, in the form the caller asked for.
+
+    Under `--json` the object goes to stdout, where the caller parses the
+    answer, in the shape `connect` and `bundle` already used for their own
+    failures: `{"status": "error", "code": N, "message": "..."}`. Without it,
+    the familiar `Error: ...` line on stderr.
+    """
+    if as_json:
+        click.echo(json.dumps({"status": "error", "code": code, "message": message},
+                              ensure_ascii=False))
+    else:
+        click.echo(f"Error: {message}", err=True)
+
+
+def main() -> None:
+    """Entry point: errors in the requested format, and a report for defects.
+
+    Click runs in non-standalone mode so that the errors it planned for reach
+    this function instead of being printed inside Click: `ClickException` (and
+    therefore `ContaoBackendError`) exits with its own code, `Abort` exits 1,
+    `SystemExit` carries its own code, `ctx.exit(n)` comes back as the return
+    value. Until v0.28.0 Click printed them itself, so `--json` had no say and
+    an agent got `Error: ...` as plain text where the guide promised JSON.
+
+    Whatever reaches the last handler got past all of that, which is very nearly
+    the definition of a defect -- so the report is generated for what arrives
+    there rather than for a list of failure types someone has to keep current.
 
     The one exception that is *not* automatically a defect is `BridgeError`: a
     4xx from the bridge is the server telling us something about the request
@@ -166,25 +205,50 @@ def main() -> None:
     noise. `is_reportable()` draws that line, and it is the same 500/422 line the
     bundles draw.
 
-    The report goes to stderr and the exit code stays 1: nothing about how this
-    CLI fails changes, there is now simply something usable underneath it.
+    The report goes to stderr and the exit code stays 1, with or without
+    `--json`: stdout carries at most the one error object.
     """
+    # Also done in the cli callback, but Click raises "No such command" and bad
+    # root options before that callback runs -- and printing that error on a
+    # cp1252 stdout crashed on the first character outside it (review v0.28.0:
+    # `--json <emoji>` exited 1 with a traceback instead of 2 with the object).
+    configure_output_encoding()
+    as_json = _json_requested(sys.argv[1:])
     try:
-        cli()
+        rv = cli(standalone_mode=False)
     except SystemExit:
         raise
     except KeyboardInterrupt:
         # A user pressing Ctrl+C is not a defect and does not want a wall of text.
         raise SystemExit(130)
+    except click.ClickException as exc:
+        if as_json:
+            _print_error(exc.format_message(), exc.exit_code, True)
+        else:
+            exc.show()
+        raise SystemExit(exc.exit_code)
+    except click.Abort:
+        # A declined confirmation, or Ctrl+C at a prompt (Click converts it).
+        if as_json:
+            _print_error("Aborted!", 1, True)
+        else:
+            click.echo("Aborted!", err=True)
+        raise SystemExit(1)
     except Exception as exc:  # noqa: BLE001 -- the top-level net, by design
         from contao_ai_cli.utils import error_report
 
-        click.echo(f"Error: {exc}", err=True)
+        _print_error(str(exc), 1, as_json)
 
         if error_report.is_reportable(exc):
             error_report.emit(exc, {"status": getattr(exc, "status", None)})
 
         raise SystemExit(1)
+
+    # Non-standalone Click returns the code of `ctx.exit(n)` (and 0 for --help
+    # and --version). No command returns a value of its own, so an int here is
+    # always an exit code.
+    if isinstance(rv, int) and not isinstance(rv, bool) and rv:
+        raise SystemExit(rv)
 
 
 if __name__ == "__main__":
