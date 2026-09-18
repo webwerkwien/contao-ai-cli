@@ -27,7 +27,7 @@ mislead a calling agent. Everything else is a nit.
 Specifically Important, because each has happened:
 
 - **A changed return value or a new field, without a matching change to
-  `CLAUDE.md`.** The doc tests stay green through this — they check the command
+  `AGENTS.md`.** The doc tests stay green through this — they check the command
   tree, not the answer. This slipped through twice on 2026-09-01.
 - A secret passed as a command-line argument where stdin is available.
 - A measurement or reproduction taken in a different environment than the code
@@ -42,7 +42,7 @@ At most five nits per review; summarise the rest as a count.
 
 ## Do not report
 
-- Style and naming, unless it contradicts a convention in `CLAUDE.md`.
+- Style and naming, unless it contradicts a convention in `AGENTS.md`.
 - Missing type hints or lint findings. Neither a type checker nor a linter is
   configured here; proposing to add one is a separate change, not a review
   comment on someone else's diff.

@@ -21,7 +21,7 @@ is not diagnostic information.
 The consent question
 --------------------
 This module builds text and returns it. It does not send anything, and it does
-not decide what happens next -- the calling agent does, and CLAUDE.md tells it
+not decide what happens next -- the calling agent does, and AGENTS.md tells it
 that a report is not passed on without the user's agreement. That is a weaker
 assurance than a technical one, which is exactly why the allow-list above it
 matters more: a report that carries nothing harmful does not depend on anyone

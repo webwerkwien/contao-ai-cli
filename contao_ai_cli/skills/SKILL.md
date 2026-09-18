@@ -9,6 +9,15 @@ Agent-native CLI for Contao 5 via SSH. Requires a running Contao 5 installation.
 Full CRUD support requires [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle)
 to be installed on the target site.
 
+**This file is the short version. Read the full agent guide before writing to a site:**
+
+```bash
+contao-ai-cli guide
+```
+
+It prints `AGENTS.md` for the installed version: what each answer means, which writes
+are refused and why, when a cache clear is needed, and what not to do with a site.
+
 ## Prerequisites
 
 - Python 3.10+
@@ -27,7 +36,7 @@ pipx install git+https://github.com/webwerkwien/contao-ai-cli.git
 ## Setup
 
 ```bash
-# Connect to a Contao installation (asks for confirmation + creates backup)
+# Connect to a Contao installation (tests the connection, saves the session on success)
 contao-ai-cli connect \
   --host your-server.example.com \
   --user ssh-username \
@@ -87,7 +96,9 @@ contao-ai-cli --json news list --pid 3
 ## Usage Examples
 
 ```bash
-# Cache
+# Cache — writes invalidate their own tags (core bundle v0.10.0+, see cacheTags),
+# including pages that include the element via an alias element. Clear the whole
+# cache only on cacheWarnings, after file writes, or against an older core bundle.
 contao-ai-cli cache clear
 contao-ai-cli cache warmup
 

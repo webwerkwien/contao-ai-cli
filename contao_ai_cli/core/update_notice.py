@@ -25,7 +25,7 @@ MAX_AGE = 24 * 3600
 SKIPPED = {"health", "self-update", "bundle", "connect", "repl",
           # Purely local: neither reads nor writes anything remote, so there is
           # nothing here that an update notice adds (review 2026-09-17).
-          "session-list", "session-delete", None}
+          "session-list", "session-delete", "guide", None}
 OPT_OUT = "CONTAO_AI_CLI_NO_UPDATE_CHECK"
 # The check reads GitHub, Packagist and the server over SSH. Each call has its own
 # timeout, but they add up: with the server unreachable one ordinary command stalled

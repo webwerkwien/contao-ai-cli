@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.26.0 - 2026-09-18
+
+Works with every core-bundle version; nothing on the server changes.
+
+### Added
+
+- **`contao-ai-cli guide`** prints the agent guide of the installed version (`--path`
+  prints only where it is, `--json` gives `{version, path, text}`). Until now the guide
+  lived only in the repository: an agent in a Contao project with a pipx install saw
+  nothing but the short `SKILL.md`. The build now copies `AGENTS.md` into the package,
+  and `SKILL.md` points to the command. Purely local, so no update check runs after it.
+
+### Changed
+
+- **The agent guide is `AGENTS.md`, not `CLAUDE.md`.** It was addressed to Claude only
+  by name; the text was always tool-neutral. `AGENTS.md` is the file other coding agents
+  (Codex, Cursor, Copilot, Gemini CLI when configured) look for. `CLAUDE.md` stays and
+  only imports it (`@AGENTS.md`), so there is one text, not two drifting copies.
+- **`AGENTS.md`: shared content does not need `cache clear`.** A page that includes an
+  element through an `alias` element carries the source element's cache tag, so updating
+  the source invalidates every including page, on every root and domain. Measured on c5
+  on 2026-09-18. On a large site a needless `cache clear` empties the whole HTTP cache.
+  `SKILL.md` no longer shows `cache clear` as the first example without saying when it
+  is needed.
+- **The test suite is no longer installed.** 48 of 148 files in the wheel were tests
+  (`contao_ai_cli/tests/`); they stay in the repository.
+- `SKILL.md` said `connect` asks for confirmation and creates a backup; it has done
+  neither since v0.21.0. It now says what `connect` does: test the connection, save the
+  session on success.
+
 ## v0.25.0 - 2026-09-17
 
 Requires **contao-ai-core-bundle v0.24.0** for `content-<id>` in `layout module-add`.

@@ -52,6 +52,7 @@ from contao_ai_cli.cli.cli_ext import ext
 from contao_ai_cli.cli.cli_health import health
 from contao_ai_cli.cli.cli_self_update import self_update
 from contao_ai_cli.cli.cli_bundle import bundle
+from contao_ai_cli.cli.cli_guide import guide
 from contao_ai_cli.core import update_notice
 
 
@@ -146,6 +147,7 @@ cli.add_command(ext)
 cli.add_command(health)
 cli.add_command(self_update)
 cli.add_command(bundle)
+cli.add_command(guide)
 
 
 def main() -> None:

@@ -1,9 +1,10 @@
 """
 The documentation must describe commands that exist.
 
-README.md promised `page … update, delete, publish` and CLAUDE.md gave two literal
+README.md promised `page … update, delete, publish` and the agent guide (CLAUDE.md
+until v0.26.0, AGENTS.md since) gave two literal
 examples — `content update --id 5` and `news delete --id 3` — for commands the CLI
-did not have, with an option spelling it never used. CLAUDE.md is the agent guide:
+did not have, with an option spelling it never used. AGENTS.md is the agent guide:
 it is exactly what a caller reads to decide what to invoke. These tests pin the
 docs to the real command tree so the promise cannot drift from the product again.
 
@@ -12,7 +13,7 @@ What these tests do NOT check: what a command answers.
 The command tree is the whole question here — name, existence, option spelling.
 A changed return value is invisible to them, and exactly that slipped through
 twice on 2026-09-01: v0.12.0 changed what `ext run` returns, v0.12.2 added a
-`hint` field. Both times this file stayed green and CLAUDE.md — the guide a
+`hint` field. Both times this file stayed green and the guide — the one a
 calling agent reasons from — said nothing about it.
 
 That is not a weakness of the tests but their boundary. It is written down
@@ -22,7 +23,7 @@ half. If what a caller sees has changed, no test covers it — that is step 3 of
 the release round in the `contao-ai-status` skill.
 
 There is a second half to that boundary, and it is the harder one: these tests
-see one repository. The behaviour a sentence in CLAUDE.md describes does not
+see one repository. The behaviour a sentence in AGENTS.md describes does not
 have to live in the same repository as the sentence.
 
 On 2026-09-05 core-bundle v0.7.0 started refusing non-boolean values for boolean
@@ -45,7 +46,7 @@ import pytest
 from contao_ai_cli.contao_cli import cli
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-DOCS = [REPO / "README.md", REPO / "CLAUDE.md"]
+DOCS = [REPO / "README.md", REPO / "AGENTS.md"]
 
 
 def command_tree() -> dict:

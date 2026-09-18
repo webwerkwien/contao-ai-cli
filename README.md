@@ -1,6 +1,6 @@
 # contao-ai-cli
 
-Agent-native Python CLI for managing Contao 5 installations from the terminal — over SSH for CRUD, over HTTPS for bulk LLM macros. Designed to be used directly or handed to an AI agent (e.g. Claude Code) as a tool set.
+Agent-native Python CLI for managing Contao 5 installations from the terminal — over SSH for CRUD, over HTTPS for bulk LLM macros. Designed to be used directly or handed to any AI coding agent (Claude Code, Codex, Cursor, …) as a tool set.
 
 > **Pre-1.0.** Runs in production on the author's own installations. Command names,
 > options and the session JSON format still change between minor versions. Read the
@@ -15,7 +15,7 @@ Agent-native Python CLI for managing Contao 5 installations from the terminal �
 |---|---|---|
 | [contao-ai-core-bundle](https://github.com/webwerkwien/contao-ai-core-bundle) | Contao bundle exposing CMS operations as Symfony console commands. | Required as the foundation layer. Install on any Contao site you want to manage via AI. |
 | **contao-ai-cli** *(this package)* | Python CLI — connects to Contao via SSH and runs commands. | For developers and agencies: manage Contao from the terminal or hand control to an AI agent. |
-| [contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) | Contao backend module — browser-based AI chat interface (Anthropic Claude, OpenAI). | For editors and admins: AI directly inside the Contao backend, no SSH or terminal needed. |
+| [contao-ai-backend-bundle](https://github.com/webwerkwien/contao-ai-backend-bundle) | Contao backend module — browser-based AI chat interface for any model provider (Anthropic, OpenAI, OpenRouter, Ollama, any OpenAI-compatible service, more via `symfony/ai`). | For editors and admins: AI directly inside the Contao backend, no SSH or terminal needed. |
 
 ## What it does
 
@@ -89,6 +89,8 @@ access and answer questions in the chat.
    type it themselves at the hidden prompt of `contao-ai-cli --session <site> bridge configure --url https://…`,
    or paste it in the chat and you pipe it: `… bridge configure --url https://… --token-stdin --test`.
 7. **Finish** with `contao-ai-cli --session <site> health`.
+8. **Read the guide** before the first write: `contao-ai-cli guide` prints `AGENTS.md` for
+   the installed version: what the answers mean, what is refused, when to clear the cache.
 
 Without a Contao Manager, `bundle install` refuses until the needed `allow-plugins` are in
 `composer.json`; ask the user before passing `--allow-plugins`.
@@ -147,7 +149,7 @@ so it cannot drift from what the CLI actually offers.
 | `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |
 | `version` | `create` `list` `read` `restore` | Contao's version history |
 
-Standalone commands: `connect`, `health`, `repl`, `self-update`, `session-delete`, `session-list`.
+Standalone commands: `connect`, `guide`, `health`, `repl`, `self-update`, `session-delete`, `session-list`.
 
 Record IDs are positional arguments, changed fields are repeated `--set FIELD=VALUE`:
 
