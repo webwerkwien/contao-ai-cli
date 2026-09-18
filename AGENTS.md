@@ -92,7 +92,12 @@ that finds nothing passes exactly like one that finds everything.
 contao-ai-cli session-list
 ```
 
-If a session exists, you can start using commands immediately.
+If a session exists, you can start using commands immediately — **with
+`--session <name>` on every command**, using a name from that list. Without `--session`
+the CLI uses the session named `session` (what `connect` saves when no `--name` is
+given), not the only or the first one; if there is none, the command fails with
+`No session named 'session'` and lists the known ones (a few commands that need no core
+bundle, such as `cache`, answer `Session file not found` instead).
 Session files are stored in `~/.contao-ai-cli/<name>.json`.
 
 ## Step 2: Connect (first time only)
@@ -335,7 +340,8 @@ contao-ai-cli --json page read 1
 contao-ai-cli --json article list --page 1
 contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 
-# Create
+# Create — --pid of a top-level page is the root of its domain; a root with an
+# empty dns answers every domain (see "Page URLs, second languages, cloning")
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
 contao-ai-cli --json article create --title "New Page" --pid 12
 
@@ -377,7 +383,11 @@ parent table is `tl_content`, share the id space). Nested elements of a containe
 > Deleting cascades to child records — a page takes its subpages, articles and content
 > elements with it. The whole set lands in one `tl_undo` entry, so it stays recoverable
 > from the back end's *Restore* module. On a terminal the CLI asks first, the same as the
-> Contao back end does; `--yes` skips the prompt for non-interactive use.
+> Contao back end does; `--yes` skips the prompt for non-interactive use. Without a
+> terminal a record delete proceeds — the record stays in `tl_undo`. Since v0.29.0 this
+> holds for **every** record delete, `user delete` and `member delete` included; until
+> v0.28.0 those two never asked. Only `file delete` and `template delete`, which have no
+> undo, refuse without `--yes` when nobody answers.
 
 ```bash
 contao-ai-cli --json news delete 3 --yes
@@ -1199,8 +1209,14 @@ contao-ai-cli connect --host site-a.example.com --user deploy --root /var/www/a 
 contao-ai-cli connect --host site-b.example.com --user deploy --root /var/www/b --name site-b
 
 # Session files live at ~/.contao-ai-cli/<name>.json
-# The CLI loads the default session automatically (first available)
+# Without --session the CLI uses the session named "session" -- never the first available
+contao-ai-cli --session site-a --json page list
 ```
+
+Until v0.28.0 this block said the first available session was loaded automatically. It
+never was: an agent following it failed on its first command (agent test, 2026-09-18).
+Choosing a site by default would be the wrong fix — with several live sites in the list,
+the one a command writes to has to be named.
 
 ## Audit trail
 
@@ -1368,7 +1384,13 @@ begin or end with a space.
 printf '%s\n' "Geheim-123" | contao-ai-cli --json member create --username anna \
   --firstname Anna --lastname Muster --email anna@example.org --password-stdin --set groups=2
 printf '%s\n' "Neu-456" | contao-ai-cli --json member password --username anna --password-stdin
+contao-ai-cli --json member update anna --set email=anna@example.com
+contao-ai-cli --json member delete anna --yes   # recoverable via undo
 ```
+
+`member update` and `member delete` take the username as a **positional argument**, not
+`--username` like `create` and `password`. `member delete` asks on a terminal like every
+record delete (v0.29.0); `--yes` skips the question.
 
 - **Until v0.27.0 `member create` never worked**: the server command it called did not
   exist. Both need core-bundle v0.26.0; an older one answers that the command is not

@@ -4,7 +4,7 @@ user group — Backend user management.
 import click
 
 from contao_ai_cli.core import session as session_mod, user as user_mod, dca_schema
-from .helpers import _get_backend, _output, _require_core_bundle, resolve_password
+from .helpers import _get_backend, _output, _require_core_bundle, confirm_delete, resolve_password
 
 
 @click.group()
@@ -98,10 +98,17 @@ def user_update(ctx, username, fields, set_fields, as_json):
 
 @user.command("delete")
 @click.argument("username")
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def user_delete(ctx, username, as_json):
-    """Delete a backend user via contao-ai-core-bundle."""
+def user_delete(ctx, username, yes, as_json):
+    """Delete a backend user via contao-ai-core-bundle.
+
+    Asks first on a terminal, like every delete that tl_undo can reverse; without
+    one it proceeds (v0.29.0 -- before, it never asked).
+    """
     _require_core_bundle(ctx, "user delete")
+    if not confirm_delete(f"back end user {username}", yes):
+        raise click.Abort()
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_delete(b, username), as_json or ctx.obj.get("as_json"))

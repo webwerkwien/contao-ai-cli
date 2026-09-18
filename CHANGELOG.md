@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.29.0 - 2026-09-18
+
+Works with every core-bundle version; the new refusals described in core-bundle v0.27.0
+(widget limits, missing parents) arrive with that release. From the third agent test
+before 1.0 (a fresh agent, guide and `--help` only, both parts completed).
+
+### Changed
+
+- **`user delete` and `member delete` ask first**, like every other delete: a question on
+  a terminal, none without one (the record stays in `tl_undo`), `--yes` skips it. Until
+  v0.28.0 they were the only two of 24 record deletes without a prompt and without
+  `--yes`. Scripts and agents without a terminal behave as before; passing `--yes` is
+  still the clear way.
+
+### Fixed
+
+- **The guide said the first available session is loaded automatically.** It never was:
+  without `--session` the CLI uses the session named `session` (what `connect` saves
+  without `--name`). The agent failed on its first command. Deliberately no automatic
+  choice: with several live sites in the list, the one a command writes to has to be
+  named.
+- **The guide showed no `member update` or `member delete`.** Both take the username as a
+  positional argument, unlike `create` and `password`; now with examples.
+- **Where a top-level page goes** is now cross-referenced at `page create`: the root of
+  its domain, and a root with an empty `dns` answers every domain.
+
 ## v0.28.0 - 2026-09-18
 
 Works with every core-bundle version. From the second agent test before 1.0: an agent

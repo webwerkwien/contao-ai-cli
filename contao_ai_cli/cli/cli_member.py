@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, member as member_mod, dca_schema
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, parse_set_fields, resolve_password,
+    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields, resolve_password,
 )
 
 
@@ -98,10 +98,17 @@ def member_update(ctx, username, fields, as_json):
 
 @member.command("delete")
 @click.argument("username")
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def member_delete(ctx, username, as_json):
-    """Delete a frontend member via contao-ai-core-bundle."""
+def member_delete(ctx, username, yes, as_json):
+    """Delete a frontend member via contao-ai-core-bundle.
+
+    Asks first on a terminal, like every delete that tl_undo can reverse; without
+    one it proceeds (v0.29.0 -- before, it never asked).
+    """
     _require_core_bundle(ctx, "member delete")
+    if not confirm_delete(f"front end member {username}", yes):
+        raise click.Abort()
     b = _get_backend(ctx.obj.get("session"))
     _output(member_mod.member_delete(b, username), as_json or ctx.obj.get("as_json"))
