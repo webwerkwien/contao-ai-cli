@@ -71,6 +71,30 @@ def _stdin_kwargs(stdin_data: str | None) -> dict:
     return {"input": stdin_data}
 
 
+# PHP's start-up warnings ("PHP Warning:  PHP Startup: Unable to load dynamic
+# library 'imagick.so' … in Unknown on line 0", "Module "x" is already loaded")
+# say nothing about the command. A start-up *fatal* error stays: it is a reason.
+_PHP_STARTUP_NOISE = re.compile(
+    r'^PHP (Warning|Notice|Deprecated):\s+(PHP Startup:|Module "[^"]+" is already loaded).*$', re.M)
+STDERR_EXCERPT_CHARS = 1500
+
+
+def stderr_excerpt(stderr: str) -> str:
+    """The part of a failed shell command's stderr worth showing: its end.
+
+    Until v1.0.0 this was the first 500 characters. On c5 a PHP start-up
+    warning about imagick.so filled almost all of them, and the reason Composer
+    gave for refusing core-bundle 1.0 next to backend-bundle v0.9.1 — at the
+    end of its output, as always — was cut off (2026-09-19). Tools put the
+    verdict last, so the tail is kept and PHP's start-up noise dropped.
+    """
+    text = _PHP_STARTUP_NOISE.sub("", stderr or "")
+    text = "\n".join(line for line in text.splitlines() if line.strip()).strip()
+    if len(text) > STDERR_EXCERPT_CHARS:
+        text = "…" + text[-STDERR_EXCERPT_CHARS:]
+    return text
+
+
 class ContaoBackendError(click.ClickException):
     """Raised when a Contao backend command fails.
 
@@ -192,9 +216,10 @@ class ContaoBackend:
         }
         if result.returncode != 0:
             # shell_command may contain passwords — omit it from the error message
+            excerpt = stderr_excerpt(result.stderr)
             raise ContaoBackendError(
                 f"Shell command failed (exit {result.returncode}). "
-                f"Stderr: {result.stderr.strip()[:500]}"
+                + (f"Stderr: {excerpt}" if excerpt else "No output from the server.")
             )
         return output
 
@@ -294,8 +319,8 @@ class ContaoBackend:
         if isinstance(payload, dict) and payload.get("message"):
             return str(payload["message"])
 
-        cleaned = (stderr or "").strip()
-        return f"Stderr: {cleaned[:500]}" if cleaned else "No output from the server."
+        cleaned = stderr_excerpt(stderr)
+        return f"Stderr: {cleaned}" if cleaned else "No output from the server."
 
     #: The three ways this can be said. The first two are Symfony's, from the
     #: console dispatcher; the second appears when nothing in the namespace

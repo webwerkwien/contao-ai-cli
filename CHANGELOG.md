@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.0.1 - 2026-09-19
+
+### Fixed
+
+- **A failed `bundle install/update` hid Composer's reason.** The error showed the first 500
+  characters of stderr. On a server whose PHP prints a start-up warning (c5: `imagick.so`),
+  that warning took nearly all of them, and Composer's explanation — at the end, as always —
+  was cut off. Measured on the Contao 6.0 testbed: core 1.0 next to backend-bundle v0.9.1
+  failed with only "./composer.json has been updated" as the reason. Now the end of stderr
+  is kept (1500 characters) and PHP's start-up warnings are left out, so the message names
+  the conflict ("backend-bundle v0.9.1 requires core-bundle >=0.6.0 <1.0"). This applies to
+  every failing shell command on the server (Composer, `mkdir`, `rm`, …) and to a console
+  command that fails without a JSON answer (e.g. the database is down). When nothing but
+  start-up noise is left, the message says "No output from the server." instead of ending
+  empty; a fatal start-up error is kept, since it is a reason.
+
 ## v1.0.0 - 2026-09-19
 
 **The first stable release**, together with contao-ai-core-bundle v1.0.0. From here on
