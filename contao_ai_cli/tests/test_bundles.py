@@ -106,7 +106,7 @@ def test_the_backend_bundle_uses_its_own_package_and_constraint():
                       side_effect=[{backend_pkg: None}, {backend_pkg: "v0.3.0"}]):
         bundles.install_bundle(b, "backend", "install")
     # shlex.quote wraps the constraint (space, <, >) in single quotes
-    assert "'webwerkwien/contao-ai-backend-bundle:>=0.1 <1.0'" in b.run_raw.call_args.args[0]
+    assert "'webwerkwien/contao-ai-backend-bundle:>=0.1 <2.0'" in b.run_raw.call_args.args[0]
 
 
 def test_a_composer_failure_is_an_answer_not_a_traceback():
@@ -118,33 +118,33 @@ def test_a_composer_failure_is_an_answer_not_a_traceback():
     assert result["status"] == "error" and "composer exploded" in result["message"]
 
 
-def test_update_crosses_a_minor_via_require_with_the_range_constraint():
+def test_update_crosses_into_1x_via_require_with_the_readme_constraint():
     """Live on web.werk.wien, 2026-09-17 (Nr. 52): v0.21.1 required `^0.20.0` and so
     overwrote the house constraint `>=0.2 <1.0` -- the next minor would again be out of
-    reach for the Contao Manager and `composer update`. The range crosses every 0.x minor
-    and survives later updates."""
+    reach for the Contao Manager and `composer update`. Since v1.0.0 the core bundle is 1.x:
+    a site on `>=0.2 <1.0` gets `^1.0` on its next update, which reaches every 1.x minor."""
     b = backend()
     with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), \
-         patch.object(bundles, "get_bundle_latest_version", return_value="0.20.0"), \
-         versions("v0.19.0", "v0.20.0"):
+         patch.object(bundles, "get_bundle_latest_version", return_value="1.0.0"), \
+         versions("v0.27.0", "v1.0.0"):
         result = bundles.install_bundle(b, "core", "update")
     cmd = b.run_raw.call_args.args[0]
     assert "composer require" in cmd
     assert "composer update" not in cmd
-    # The range the core-bundle README recommends -- also what was restored on web.werk.wien.
-    assert "'webwerkwien/contao-ai-core-bundle:>=0.2 <1.0'" in cmd
-    assert "^0.20" not in cmd
-    assert result["status"] == "ok" and result["installed"] == "v0.20.0"
-    assert result["constraint"] == ">=0.2 <1.0"
+    # The constraint the core-bundle README recommends.
+    assert "'webwerkwien/contao-ai-core-bundle:^1.0'" in cmd
+    assert "<1.0" not in cmd and "^0." not in cmd
+    assert result["status"] == "ok" and result["installed"] == "v1.0.0"
+    assert result["constraint"] == "^1.0"
 
 
-def test_install_writes_the_range_constraint_too():
-    """A plain `composer require <pkg>` writes `^0.x` -- the same trap on install."""
+def test_install_writes_the_readme_constraint_too():
+    """A plain `composer require <pkg>` would write `^<latest>` -- the constraint is explicit."""
     b = backend()
-    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v0.20.0"):
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.0.0"):
         result = bundles.install_bundle(b, "core", "install")
-    assert "'webwerkwien/contao-ai-core-bundle:>=0.2 <1.0'" in b.run_raw.call_args.args[0]
-    assert result["constraint"] == ">=0.2 <1.0"
+    assert "'webwerkwien/contao-ai-core-bundle:^1.0'" in b.run_raw.call_args.args[0]
+    assert result["constraint"] == "^1.0"
 
 
 def test_an_update_held_back_says_what_did_change():
@@ -158,7 +158,7 @@ def test_an_update_held_back_says_what_did_change():
         result = bundles.install_bundle(b, "core", "update")
     assert result["status"] == "error"
     assert result["installed"] == "v0.19.5" and result["previous"] == "v0.19.0"
-    assert result["changed"] is True and result["constraint"] == ">=0.2 <1.0"
+    assert result["changed"] is True and result["constraint"] == "^1.0"
     assert "Nothing else was changed" not in result["message"]
     assert "composer.json" in result["message"]
 
@@ -173,7 +173,7 @@ def test_backend_update_keeps_its_range_requirement_via_require():
         result = bundles.install_bundle(b, "backend", "update")
     cmd = b.run_raw.call_args.args[0]
     assert "composer require" in cmd
-    assert "'webwerkwien/contao-ai-backend-bundle:>=0.1 <1.0'" in cmd
+    assert "'webwerkwien/contao-ai-backend-bundle:>=0.1 <2.0'" in cmd
     assert result["status"] == "ok"
 
 

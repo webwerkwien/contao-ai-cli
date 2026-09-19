@@ -2,10 +2,10 @@
 
 Agent-native Python CLI for managing Contao 5 installations from the terminal — over SSH for CRUD, over HTTPS for bulk LLM macros. Designed to be used directly or handed to any AI coding agent (Claude Code, Codex, Cursor, …) as a tool set.
 
-> **Pre-1.0.** Runs in production on the author's own installations. Command names,
-> options and the session JSON format still change between minor versions. Read the
-> changelog before updating, and keep a backup of the Contao installation you point
-> it at — this tool writes.
+> **Stable since 1.0.** Command names, options, the JSON answers and the session file
+> format follow [Semantic Versioning](https://semver.org/): within 1.x they are only
+> extended, never changed or removed. Read the changelog before updating, and keep a
+> backup of the Contao installation you point it at — this tool writes.
 
 ## ConpAI — the contao-ai family
 
@@ -327,9 +327,10 @@ contao-ai-cli --session my-site --json bridge rewrite \
 The bridge line distinguishes three states, because the next step differs:
 
 - **not installed** — contao-ai-backend-bundle is absent from the server.
-  Fix with `composer require "webwerkwien/contao-ai-backend-bundle:>=0.1 <1.0"`
-  (the explicit constraint keeps later 0.x releases reachable — a plain
-  `composer require` caps at the next minor).
+  Fix with `contao-ai-cli bundle install backend`, or by hand with
+  `composer require "webwerkwien/contao-ai-backend-bundle:>=0.1 <2.0"`
+  (the explicit constraint keeps later releases reachable — a plain
+  `composer require` of a 0.x package caps at the next minor).
 - **installed, not configured** — the bundle is there, but this session has no token.
   Fix with `contao-ai-cli bridge configure --url … --token …`.
 - **ready** — both.

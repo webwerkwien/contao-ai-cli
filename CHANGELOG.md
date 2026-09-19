@@ -1,8 +1,25 @@
 # Changelog
 
-All notable changes to this project are documented here. The project adheres to [Semantic Versioning](https://semver.org/) (within the pre-1.0 reservations).
+All notable changes to this project are documented here. The project adheres to [Semantic Versioning](https://semver.org/); before 1.0.0, minor versions could change interfaces.
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
+
+## v1.0.0 - 2026-09-19
+
+**The first stable release**, together with contao-ai-core-bundle v1.0.0. From here on
+command names, options, the JSON answers and the session file format follow Semantic
+Versioning: within 1.x they are only extended, never changed or removed. The commands are
+those of v0.30.0; contao-ai-backend-bundle stays 0.x (v0.9.2 allows core 1.x).
+
+### Changed
+
+- **`bundle install/update core` writes `^1.0`, backend `>=0.1 <2.0`.** Until v0.30.0 the
+  ranges were `>=0.2 <1.0` and `>=0.1 <1.0`, which never reach 1.0. A site keeps its old
+  constraint until its next `bundle update core`. Where the backend bundle is installed, run
+  `bundle update backend` first: up to its v0.9.1 it requires core `<1.0`, and Composer
+  refuses core 1.0 next to it.
+- **README:** the pre-1.0 note gives way to the stability promise; the manual install line
+  for the backend bundle is `>=0.1 <2.0`, with `bundle install backend` named first.
 
 ## v0.30.0 - 2026-09-19
 

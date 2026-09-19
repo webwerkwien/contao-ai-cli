@@ -192,7 +192,7 @@ consent the agent asks the user for before passing that flag.
 
 **`install` and `update` both run `composer require "<pkg>:<range>"`, not `composer update`**
 — a `composer update` never leaves the constraint already on disk. The range is the one each
-bundle's README recommends: core `>=0.2 <1.0`, backend `>=0.1 <1.0` (v0.21.2, see below). The
+bundle's README recommends: core `^1.0`, backend `>=0.1 <2.0` (v1.0.0; see below). The
 answer is `status: error` unless the version read back afterwards equals `latest` exactly;
 if something else holds the newest back (a PHP requirement, a locked dependency), Composer
 still exits 0 with an older version — the error then names the installed and the newest
@@ -211,13 +211,18 @@ all — a probe failure used to fall through and be misreported as a missing
 | `previous` / `via` | **only when Composer actually ran** — absent for "already installed" and "already up to date" answers | version before the run / `contao-manager` or `composer` |
 | `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
 | `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
-| `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `>=0.2 <1.0`, backend `>=0.1 <1.0` |
+| `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `^1.0`, backend `>=0.1 <2.0` |
 
-**Both commands write that range into `composer.json`** (v0.21.2) — the form each bundle's
-README recommends, so later updates through the Contao Manager or `composer update` cross
-0.x minors. A differing constraint is replaced by it, even a deliberately stricter one. Up to v0.21.1 `bundle update core`
-wrote `^<latest>` (on web.werk.wien it turned `>=0.2 <1.0` into `^0.20.0`) and `bundle install
-core` Composer's own `^0.x` — both cap the next minor.
+**Both commands write that constraint into `composer.json`** (v0.21.2) — the form each
+bundle's README recommends, so later updates through the Contao Manager or `composer update`
+reach every following minor. A differing constraint is replaced by it, even a deliberately
+stricter one. The core bundle is 1.x since 1.0.0: a site still on `>=0.2 <1.0` gets `^1.0`
+on its next `bundle update core` (v1.0.0 of this CLI; before it wrote `>=0.2 <1.0`, which
+never reaches 1.0). The backend bundle is still 0.x; its range crosses 0.x minors and a
+later 1.x. **Update the backend bundle first** where it is installed: up to its v0.9.1 it
+requires core `<1.0`, and Composer refuses core 1.0 next to it. Up to v0.21.1 `bundle
+update core` wrote `^<latest>` (on web.werk.wien it turned `>=0.2 <1.0` into `^0.20.0`) and
+`bundle install core` Composer's own `^0.x` — both capped the next minor.
 
 Success is reported only once the new version has been **read back** from the server —
 a Composer run finishing without error is not, on its own, taken as proof.

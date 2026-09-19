@@ -16,7 +16,10 @@ BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 # A plain `composer require <pkg>` would write `^0.x`, and `^<latest>` (v0.21.0-v0.21.1)
 # overwrote `>=0.2 <1.0` on web.werk.wien: either caps the next minor for the Contao Manager
 # and `composer update` (Nr. 52, 2026-09-17).
-CONSTRAINTS = {"core": ">=0.2 <1.0", "backend": ">=0.1 <1.0"}
+# v1.0.0: the core bundle is 1.x, where `^1.0` reaches every minor; a site still on
+# `>=0.2 <1.0` gets it on its next `bundle update core`. The backend bundle is still 0.x,
+# so its range stays open across 0.x and into a later 1.x.
+CONSTRAINTS = {"core": "^1.0", "backend": ">=0.1 <2.0"}
 REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES}
 
 
