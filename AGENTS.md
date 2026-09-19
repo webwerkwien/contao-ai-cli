@@ -420,9 +420,9 @@ contao-ai-cli --json form field-create --form 6 --type submit --set slabel=Send
 - **`form delete` removes every field with it.** A form is one row; a form definition is
   usually a dozen. One `tl_undo` entry for the set.
 
-⚠️ `form list` and `form fields` predate this and still parse Symfony's ASCII table out of
-`doctrine:query:sql`; everything above answers with JSON. Use `form read` / `form field-read`
-when you want structured output.
+`form list` and `form fields <form-id>` answer like every other listing since v0.30.0 —
+`{status, table, count, total, results}` with typed values, `--limit`/`--offset`, fields in
+form order. Until v0.29.0 they returned a bare list of strings.
 
 ### The container a record lives in
 
@@ -450,7 +450,64 @@ from the DCA**, so the command tells you rather than this list going stale:
 
 **Deleting a parent takes its children with it** (`archive-delete` also removes the entries
 and their content elements). One `tl_undo` entry for the whole set, so `undo restore` brings
-the parent, the children and their links back in one step.
+the parent, the children and their links back in one step. If the site was visited while
+the parent was gone, its list stays cached empty: the restore answers with a
+`cacheWarnings` entry, and `cache clear` fixes it (core-bundle v0.28.0; Contao's list
+modules do not tag a page with a container they cannot find).
+
+**The listings filter by the parent** as `--archive`, `--calendar`, `--category`,
+`--channel` — or `--pid`, the name the create commands use (v0.30.0):
+`event list --pid 12`, `newsletter subscribers --pid 10`.
+
+### A created record starts like one created in the back end
+
+Since core-bundle v0.28.0 a create fills every field you do not set with Contao's DCA
+default, as the back end does: a layout starts with the article module in the main
+column, a page with `enableCanonical` and the default CSP, a subscribe, unsubscribe,
+registration or password module with its mail text. **Those texts come in English** (the
+console's language) — set them with `--set nl_subscribe=…` for a site in another
+language. *Until v0.27.0 a subscribe module had no mail text, and the first subscription
+in the front end answered HTTP 500.*
+
+### News, events and FAQ entries are created unpublished
+
+As in the back end, and like pages and articles: a created entry is **offline** until you
+publish it with `--set published=1` (on create or with `update`). A list module on the
+site shows nothing of it before that. *Found in the practical test on 2026-09-19: an agent
+created three FAQ questions, placed the list on a page, and the page was empty.*
+
+The answer of `news`, `event`, `faq`, `article` and `newsletter create` carries the
+`alias` (core-bundle v0.28.0) — the last part of the reader URL,
+`/faq-answer/<alias>.html`. Read it from there; it follows the language of the page the
+container points to (`Über` becomes `uber` under an English root, `ueber` under a German one).
+
+### Event dates and times
+
+```bash
+# all day, one day — no --end-date
+contao-ai-cli --json event create --pid 12 --title "Wienerwald" --start-date 2026-10-04 --set published=1
+# over several days
+contao-ai-cli --json event create --pid 12 --title "Wachau" --start-date 2026-10-17 --end-date 2026-10-18
+# with a time
+contao-ai-cli --json event create --pid 12 --title "Abendrunde" --start-date 2026-10-09 \
+  --start-time 17:30 --end-time 20:00
+# move it, change the time, or make it all-day again
+contao-ai-cli --json event update 30 --start-date 2026-10-11 --start-time 18:00
+contao-ai-cli --json event update 30 --set addTime=0
+```
+
+Dates are `YYYY-MM-DD`, times `HH:MM`, in the server's time zone. **Pass them through
+these options, not through `--set`:** the event stores the moments the front end works with
+(`startTime`, `endTime`) as Unix timestamps, derived from the days and times exactly as the
+back end derives them — an all-day event ends at 23:59:59 of its last day (core-bundle
+v0.28.0). `--set startTime=17:30` is refused by name. `--set endDate=` makes an event a
+one-day event again. An all-day event gets a time only with a start time:
+`event update 30 --end-time 21:00` alone is refused rather than starting it at 00:00, and
+the start date cannot be emptied.
+
+*Until core-bundle v0.27.0 an event created without `--end-date` ended on the day of the
+call and was missing from "upcoming events" right away; the stored times were never
+derived.*
 
 ### Cache and maintenance
 
@@ -1021,8 +1078,9 @@ Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
 last root.
 
 **A create without an alias gets Contao's alias** (core-bundle v0.17.0) — pages, articles,
-news, events, newsletters: from the title, with the language and allowed characters of the
-root. `page create --title "Über uns"` under a German root answers `"alias": "ueber-uns"`;
+news, events, newsletters, and FAQ questions from core-bundle v0.28.0: from the title, with
+the language and allowed characters of the root. Every one of these answers with the alias
+from core-bundle v0.28.0; before, only `page create` did. `page create --title "Über uns"` under a German root answers `"alias": "ueber-uns"`;
 up to core-bundle v0.16.0 it was `über-uns`. Read the alias from the answer instead of
 predicting it. If Contao's rule cannot run, the old slug is used and the answer carries
 `aliasWarning`.
@@ -1044,6 +1102,10 @@ root) rather than a `customnav` with fixed page IDs, and switch languages with
 free SQL fragment stored in the listing module, so the query is configured in the site
 rather than by the caller — it cannot be expressed as checked equality filters, and
 ignoring it would answer with different rows than the module shows in the front end.
+Its answer has the listing shape since v0.30.0 — `{status, module, table, count, results}`,
+values as strings — and a module that is missing or has no table configured is an error
+(exit 1). Until v0.29.0 it was a bare list, and an error came back as `{"error": …}` with
+exit 0.
 
 ⚠️ **All listings now need contao-ai-core-bundle on the target.** They used to run through
 `doctrine:query:sql`, which is plain Contao.

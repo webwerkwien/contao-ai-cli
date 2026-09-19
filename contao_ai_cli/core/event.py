@@ -32,15 +32,30 @@ def event_read(backend: ContaoBackend, event_id: int) -> dict:
     return run_json_or_raw(backend, f"contao:event:read {event_id}")
 
 
+def date_options(start_date: str | None = None, end_date: str | None = None,
+                 start_time: str | None = None, end_time: str | None = None) -> str:
+    """The server's --startDate/--endDate/--startTime/--endTime, for the ones given.
+
+    The server derives the stored startTime/endTime from them the way the back
+    end does (core-bundle v0.28.0) — a stored time is a timestamp, not "17:30".
+    """
+    parts = []
+    for name, value in (("startDate", start_date), ("endDate", end_date),
+                        ("startTime", start_time), ("endTime", end_time)):
+        if value:
+            parts.append(f"--{name}={shlex.quote(value)}")
+    return " ".join(parts)
+
+
 def event_create(backend: ContaoBackend, title: str, pid: int,
                  start_date: str | None = None, end_date: str | None = None,
-                 fields: dict | None = None) -> dict:
+                 fields: dict | None = None, start_time: str | None = None,
+                 end_time: str | None = None) -> dict:
     """Create a calendar event via contao-ai-core-bundle."""
     cmd = f"contao:event:create --title={shlex.quote(title)} --pid={pid} --no-interaction"
-    if start_date:
-        cmd += f" --startDate={shlex.quote(start_date)}"
-    if end_date:
-        cmd += f" --endDate={shlex.quote(end_date)}"
+    options = date_options(start_date, end_date, start_time, end_time)
+    if options:
+        cmd += " " + options
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)

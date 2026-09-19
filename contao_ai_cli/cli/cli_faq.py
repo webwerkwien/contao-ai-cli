@@ -29,8 +29,8 @@ def faq_categories(ctx, limit, offset):
 
 
 @faq.command("list")
-@click.option("--category", "category_id", type=int, default=None,
-              help="Filter by category ID")
+@click.option("--category", "--pid", "category_id", type=int, default=None,
+              help="Filter by category ID (or --pid, the name create uses)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context

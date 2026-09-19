@@ -29,8 +29,8 @@ def event_calendars(ctx, limit, offset):
 
 
 @event.command("list")
-@click.option("--calendar", "calendar_id", type=int, default=None,
-              help="Filter by calendar ID")
+@click.option("--calendar", "--pid", "calendar_id", type=int, default=None,
+              help="Filter by calendar ID (or --pid, the name create uses)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
@@ -53,40 +53,75 @@ def event_read_cmd(ctx, event_id, as_json):
     _output(event_mod.event_read(b, event_id), as_json or ctx.obj.get("as_json"))
 
 
+def _refuse_empty_date_options(**values):
+    """An empty date or time option would be dropped and answer as if not given."""
+    for name, value in values.items():
+        if value is not None and not value.strip():
+            hint = " To make it a one-day event, use --set endDate=" if name == "end_date" else ""
+            raise click.UsageError(f"--{name.replace('_', '-')} is empty.{hint}")
+
+
 @event.command("create")
 @click.option("--title", required=True, help="Event title")
 @click.option("--pid", type=int, required=True, help="Calendar ID")
 @click.option("--start-date", "start_date", default=None, help="Start date (YYYY-MM-DD, default: today)")
-@click.option("--end-date", "end_date", default=None, help="End date (YYYY-MM-DD, default: start date)")
+@click.option("--end-date", "end_date", default=None,
+              help="Last day of an event over several days (YYYY-MM-DD); leave out for one day")
+@click.option("--start-time", "start_time", default=None,
+              help="Start time (HH:MM); without it the event lasts all day")
+@click.option("--end-time", "end_time", default=None, help="End time (HH:MM), needs --start-time")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def event_create_cmd(ctx, title, pid, start_date, end_date, fields, as_json):
-    """Create a calendar event via contao-ai-core-bundle."""
+def event_create_cmd(ctx, title, pid, start_date, end_date, start_time, end_time, fields, as_json):
+    """Create a calendar event via contao-ai-core-bundle.
+
+    The stored start and end are derived from the dates and times as in the back
+    end (core-bundle v0.28.0): an all-day event ends at 23:59:59 of its last day.
+    """
     _require_core_bundle(ctx, "event create")
+    _refuse_empty_date_options(start_date=start_date, end_date=end_date,
+                               start_time=start_time, end_time=end_time)
     parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
-    _output(event_mod.event_create(b, title, pid, start_date, end_date, parsed),
+    _output(event_mod.event_create(b, title, pid, start_date, end_date, parsed,
+                                   start_time=start_time, end_time=end_time),
             as_json or ctx.obj.get("as_json"))
 
 
 @event.command("update")
 @click.argument("event_id", type=int, required=False)
 @bulk_id_options
-@click.option("--set", "fields", multiple=True, required=True, metavar="FIELD=VALUE",
+@click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE",
               help="Field to change; repeat for several fields")
+@click.option("--start-date", "start_date", default=None, help="New start date (YYYY-MM-DD)")
+@click.option("--end-date", "end_date", default=None,
+              help="New last day (YYYY-MM-DD); --set endDate= makes it a one-day event")
+@click.option("--start-time", "start_time", default=None, help="New start time (HH:MM)")
+@click.option("--end-time", "end_time", default=None, help="New end time (HH:MM)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def event_update_cmd(ctx, event_id, ids, ids_from_file, fields, as_json):
+def event_update_cmd(ctx, event_id, ids, ids_from_file, fields, start_date, end_date,
+                     start_time, end_time, as_json):
     """Update fields of an event, or of many at once.
 
     Give one ID, or --ids=39,40,41 / --ids-from-file ids.txt to change several
     in a single connection. Every record is versioned individually either way.
+
+    Dates and times go through --start-date/--end-date/--start-time/--end-time;
+    the stored start and end follow from them as in the back end. --set
+    addTime=0 turns an event with a time back into an all-day one.
     """
     _require_core_bundle(ctx, "event update")
+    _refuse_empty_date_options(start_date=start_date, end_date=end_date,
+                               start_time=start_time, end_time=end_time)
+    options = event_mod.date_options(start_date, end_date, start_time, end_time)
+    parsed = parse_set_fields(fields)
+    if not parsed and not options:
+        raise click.UsageError("Nothing to change: give --set FIELD=VALUE or a date/time option.")
     b = _get_backend(ctx.obj.get("session"))
-    _output(dispatch_update(b, "contao:event:update", event_id, ids, ids_from_file,
-                            parse_set_fields(fields)),
+    command = "contao:event:update" + (" " + options if options else "")
+    _output(dispatch_update(b, command, event_id, ids, ids_from_file, parsed),
             as_json or ctx.obj.get("as_json"))
 
 

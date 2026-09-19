@@ -29,8 +29,8 @@ def newsletter_channels(ctx, limit, offset):
 
 
 @newsletter.command("list")
-@click.option("--channel", "channel_id", type=int, default=None,
-              help="Filter by channel ID")
+@click.option("--channel", "--pid", "channel_id", type=int, default=None,
+              help="Filter by channel ID (or --pid, the name create uses)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
@@ -43,8 +43,8 @@ def newsletter_list_cmd(ctx, channel_id, limit, offset):
 
 
 @newsletter.command("subscribers")
-@click.option("--channel", "channel_id", type=int, default=None,
-              help="Filter by channel ID")
+@click.option("--channel", "--pid", "channel_id", type=int, default=None,
+              help="Filter by channel ID (or --pid, the name create uses)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context

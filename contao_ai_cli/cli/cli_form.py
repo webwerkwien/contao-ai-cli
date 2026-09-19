@@ -17,22 +17,28 @@ def form():
 
 
 @form.command("list")
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def form_list_cmd(ctx):
+def form_list_cmd(ctx, limit, offset):
     """List all forms."""
+    _require_core_bundle(ctx, "form list")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(form_mod.form_list(b), ctx.obj.get("as_json"))
+    _output(form_mod.form_list(b, limit, offset), ctx.obj.get("as_json"))
 
 
 @form.command("fields")
 @click.argument("form_id", type=int)
+@click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
+@click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
-def form_fields_cmd(ctx, form_id):
+def form_fields_cmd(ctx, form_id, limit, offset):
     """List all fields of a form (form_id = ID from tl_form)."""
+    _require_core_bundle(ctx, "form fields")
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(form_mod.form_fields(b, form_id), ctx.obj.get("as_json"))
+    _output(form_mod.form_fields(b, form_id, limit, offset), ctx.obj.get("as_json"))
 
 
 # --- the form itself ------------------------------------------------------

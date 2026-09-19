@@ -1,41 +1,37 @@
 """Contao form generator (tl_form, tl_form_field)."""
 from contao_ai_cli.utils.contao_backend import ContaoBackend
-from contao_ai_cli.utils.table_parser import parse_table
+from contao_ai_cli.core.contao_ops import record_list
 
 
-def form_list(backend: ContaoBackend) -> list:
-    """List all forms from tl_form."""
-    sql = (
-        "SELECT id, title, alias, method, formID, recipient, subject, "
-        "storeValues, targetTable, sendViaEmail "
-        "FROM tl_form ORDER BY title"
+# Both listings parsed Symfony's ASCII table out of `doctrine:query:sql` until
+# v0.30.0 and answered with a bare list of strings, the only listings in this CLI
+# that did (practical test 2026-09-19). Now they go through record:list like every
+# other: `{status, table, count, total, results}`, typed values, --limit/--offset.
+
+def form_list(backend: ContaoBackend, limit=None, offset=None) -> dict:
+    """List all forms (tl_form)."""
+    return record_list(
+        backend, "tl_form",
+        fields=["id", "title", "alias", "method", "formID", "recipient", "subject",
+                "storeValues", "targetTable", "sendViaEmail"],
+        order="title ASC",
+        limit=limit, offset=offset,
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
 
 
-def form_fields(backend: ContaoBackend, form_id: int) -> list:
-    """
-    List all fields of a specific form.
-    form_id: ID of the tl_form record.
-    """
-    sql = (
-        f"SELECT id, type, name, label, mandatory, invisible, rgxp, "
-        f"placeholder, value, sorting "
-        f"FROM tl_form_field WHERE pid = {form_id} ORDER BY sorting"
+def form_fields(backend: ContaoBackend, form_id: int, limit=None, offset=None) -> dict:
+    """List the fields of one form (tl_form_field), in form order."""
+    return record_list(
+        backend, "tl_form_field",
+        fields=["id", "type", "name", "label", "mandatory", "invisible", "rgxp",
+                "placeholder", "value", "sorting"],
+        filters=[f"pid={int(form_id)}"],
+        order="sorting ASC",
+        limit=limit, offset=offset,
     )
-    result = backend.run(f'doctrine:query:sql "{sql}"')
-    parsed = parse_table(result["stdout"])
-    return parsed if parsed else {"raw": result["stdout"]}
 
 
 # --- write access (needs contao-ai-core-bundle) ---------------------------
-#
-# The two listings above predate this and still parse Symfony's ASCII table out
-# of `doctrine:query:sql`. Everything below goes through the bundle and answers
-# with JSON. Migrating the listings onto `record:list` is a separate, tracked
-# change — it would alter their output shape.
 
 import shlex  # noqa: E402
 

@@ -27,7 +27,11 @@ def listing_config(backend: ContaoBackend, module_id: int) -> dict:
     return run_json_or_raw(backend, f"contao:listing:config {int(module_id)}")
 
 
-def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> list:
+class ListingError(Exception):
+    """A listing module that cannot be read: missing, or without table/fields."""
+
+
+def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> dict:
     """
     Fetch the actual listing data for a given listing module ID.
 
@@ -54,7 +58,7 @@ def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None
         # settings is an ordinary lookup and had no business being raw SQL.
         answer = listing_config(backend, module_id)
         if not isinstance(answer, dict) or answer.get("status") != "ok":
-            return {"error": f"Module {module_id} not found or not a listing module"}
+            raise ListingError(f"Module {module_id} not found or not a listing module")
         cfg = answer
 
     table = cfg.get("list_table", "").strip()
@@ -62,10 +66,15 @@ def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None
     where_clause = cfg.get("list_where", "").strip()
 
     if not table or not fields:
-        return {"error": f"Module {module_id} has no list_table or list_fields configured"}
+        raise ListingError(f"Module {module_id} has no list_table or list_fields configured")
 
     # Normalize quotes: replace " with ' so the outer doctrine:query:sql "..." quoting survives
     where_clause = where_clause.replace('"', "'")
     where = f"WHERE {where_clause}" if where_clause else ""
     sql = f"SELECT {fields} FROM {table} {where} ORDER BY id"
-    return run_sql_table(backend, sql)
+    rows = run_sql_table(backend, sql)
+    # The answer every other listing gives (v0.30.0). Until then a bare list
+    # here, and an error was a dict with exit code 0 (practical test 2026-09-19).
+    # Values stay strings: this is a SQL table read, not record:list.
+    return {"status": "ok", "module": int(module_id), "table": table,
+            "count": len(rows), "results": rows}

@@ -4,6 +4,54 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v0.30.0 - 2026-09-19
+
+Needs core-bundle v0.28.0 for the new event options and for the fixes below that live on
+the server; everything else works with every core-bundle version. From the practical test
+of the core modules (FAQ, news, events, newsletter, forms, comments, listing) on c5,
+Contao 5.7.13, on 2026-09-19. A minor release because three answers change shape.
+
+### Added
+
+- **`event create --start-time/--end-time`, and `event update --start-date/--end-date/
+  --start-time/--end-time`.** A time of day could only be set as a raw timestamp before, and
+  `--set startTime=17:30` ended in a database error. The server derives the stored times
+  from these as the back end does (core-bundle v0.28.0). `event update` no longer needs a
+  `--set` when a date option is given.
+- **`--pid` on the list filters** — `news list`, `event list`, `faq list`, `newsletter list`
+  and `newsletter subscribers` take it next to `--archive`/`--calendar`/`--category`/
+  `--channel`, since every create names the same thing `--pid`.
+
+### Changed
+
+- **`form list` and `form fields` answer like every other listing**: `{status, table,
+  count, total, results}`, typed values, `--limit`/`--offset`; they go through
+  `record:list` and so need the core bundle. Until v0.29.0 they parsed an ASCII table and
+  returned a bare list of strings.
+- **`listing data` answers `{status, module, table, count, results}`**, and a missing or
+  unconfigured module is an error (exit 1, JSON error object under `--json`). Until v0.29.0
+  a bare list, and an error was `{"error": …}` with exit 0.
+
+### Fixed
+
+- **`event create --help` promised "default: start date" for `--end-date`.** The server
+  used the day of the call, so every event created without it ended that day and was
+  missing from "upcoming events" (fixed in core-bundle v0.28.0; the help now says what
+  happens).
+- **The REPL split a line at every space, quotes ignored.** `page create --title "Über
+  uns"` arrived as `--title '"Über'` plus a stray `uns"`, so no value with a space could be
+  entered there. Lines are now split like a shell does (`shlex`); an unclosed quote is
+  reported and the REPL goes on. Only the interactive mode was affected — on the command
+  line the shell splits.
+- **A declined prompt in the REPL printed a bare red cross** (the abort has no message).
+  It now says "Aborted, nothing changed." as a warning; usage errors keep their text.
+- **The guide now says what a created record starts with** — Contao's DCA defaults since
+  core-bundle v0.28.0, with the mail texts of newsletter and registration modules in
+  English.
+- **The guide did not say that news, events and FAQ entries are created unpublished**, only
+  pages and articles; now it does, with the date and time options, the alias in the create
+  answers and the cache note after restoring a calendar or archive.
+
 ## v0.29.0 - 2026-09-18
 
 Works with every core-bundle version; the new refusals described in core-bundle v0.27.0

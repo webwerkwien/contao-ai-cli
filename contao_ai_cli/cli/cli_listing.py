@@ -32,7 +32,11 @@ def listing_data_cmd(ctx, module_id):
     """Fetch listing data for a specific module ID."""
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
-    _output(listing_mod.listing_data(b, module_id), ctx.obj.get("as_json"))
+    try:
+        data = listing_mod.listing_data(b, module_id)
+    except listing_mod.ListingError as e:
+        raise click.ClickException(str(e))
+    _output(data, ctx.obj.get("as_json"))
 
 
 @listing.command("config")

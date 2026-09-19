@@ -61,7 +61,12 @@ def repl(ctx):
 
         # Parse and invoke via click
         try:
-            args = line.split()
+            args = split_line(line)
+        except ValueError as e:
+            skin.error(f"Could not read the line: {e}")
+            continue
+
+        try:
             ctx_standalone = root_cli.make_context("cli", args, parent=None,
                                                    obj={"session": ctx.obj.get("session"),
                                                         "as_json": False})
@@ -69,7 +74,29 @@ def repl(ctx):
                 root_cli.invoke(ctx_standalone)
         except SystemExit:
             pass
+        except click.Abort:
+            # A declined prompt ("delete …? no"). str(Abort()) is empty, so this
+            # printed a bare red cross until v0.30.0.
+            skin.warning("Aborted, nothing changed.")
+        except click.ClickException as e:
+            skin.error(e.format_message())
         except Exception as e:
-            skin.error(str(e))
+            skin.error(str(e) or type(e).__name__)
 
     skin.print_goodbye()
+
+
+def split_line(line: str) -> list[str]:
+    """Split a REPL line the way a shell would, quotes included.
+
+    Until v0.30.0 this was `line.split()`: `page create --title "Über uns"` became
+    `--title '"Über'` plus a stray `uns"`, so any value with a space broke.
+
+    POSIX rules, as on the command line the guide shows: a backslash escapes the
+    next character. Contao paths use forward slashes, so that costs nothing there.
+
+    :raises ValueError: on an unclosed quote
+    """
+    import shlex
+
+    return shlex.split(line)

@@ -29,8 +29,8 @@ def news_archives(ctx, limit, offset):
 
 
 @news.command("list")
-@click.option("--archive", "archive_id", type=int, default=None,
-              help="Filter by archive ID")
+@click.option("--archive", "--pid", "archive_id", type=int, default=None,
+              help="Filter by archive ID (or --pid, the name create uses)")
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context

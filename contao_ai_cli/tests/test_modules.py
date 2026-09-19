@@ -18,7 +18,7 @@ from contao_ai_cli.core.file import (
 )
 from contao_ai_cli.core.form import form_list, form_fields
 from contao_ai_cli.core.layout import layout_read, layout_module
-from contao_ai_cli.core.listing import listing_module_list, listing_data
+from contao_ai_cli.core.listing import listing_module_list, listing_data, ListingError
 from contao_ai_cli.core.mailer import mailer_test
 from contao_ai_cli.core.messenger import (
     messenger_stats,
@@ -504,36 +504,31 @@ class TestFile:
 
 
 class TestForm:
-    def test_form_list(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(
-                ["id", "title", "alias", "method", "formID", "recipient", "subject", "storeValues", "targetTable", "sendViaEmail"],
-                [["1", "Contact", "contact", "POST", "contact", "mail@example.com", "Hi", "1", "", "1"]],
-            ),
-            "returncode": 0,
-        }
-        result = form_list(backend)
-        assert result[0]["title"] == "Contact"
+    # Both listings moved onto record:list in v0.30.0; until then they were the
+    # only ones answering with a bare list of strings (practical test 2026-09-19).
 
-    def test_form_fields(self):
-        backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(
-                ["id", "type", "name", "label", "mandatory", "invisible", "rgxp", "placeholder", "value", "sorting"],
-                [["1", "text", "email", "Email", "1", "", "email", "", "", "128"]],
-            ),
-            "returncode": 0,
-        }
+    def test_form_list_goes_through_record_list(self):
+        backend = json_backend('{"status":"ok","results":[{"id":1,"title":"Contact"}]}')
+        result = form_list(backend)
+        assert result["results"][0]["title"] == "Contact"
+        cmd = sent_cmd(backend)
+        assert cmd.startswith("contao:record:list tl_form ")
+        assert "--order='title ASC'" in cmd
+
+    def test_form_fields_filters_by_form_and_keeps_form_order(self):
+        backend = json_backend('{"status":"ok","results":[{"id":1,"name":"email"}]}')
         result = form_fields(backend, 8)
-        assert result[0]["name"] == "email"
-        assert "WHERE pid = 8" in backend.run.call_args[0][0]
+        assert result["results"][0]["name"] == "email"
+        cmd = sent_cmd(backend)
+        assert cmd.startswith("contao:record:list tl_form_field ")
+        assert "--filter=pid=8" in cmd
+        assert "--order='sorting ASC'" in cmd
 
-    def test_form_list_raw_fallback(self):
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "not a table", "returncode": 0}
-        result = form_list(backend)
-        assert result == {"raw": "not a table"}
+    def test_form_fields_passes_limit_and_offset(self):
+        backend = json_backend('{"status":"ok","results":[]}')
+        form_fields(backend, 8, limit=50, offset=10)
+        cmd = sent_cmd(backend)
+        assert "--limit=50" in cmd and "--offset=10" in cmd
 
 
 class TestLayout:
@@ -586,19 +581,33 @@ class TestListing:
             "returncode": 0,
         }
         result = listing_data(backend, 1, cfg={"list_table": "tl_demo", "list_fields": "id, title", "list_where": 'type = "news"'})
-        assert result == [{"id": "1", "title": "Entry"}]
+        # The answer every listing gives (v0.30.0); a bare list until then.
+        assert result == {"status": "ok", "module": 1, "table": "tl_demo", "count": 1,
+                          "results": [{"id": "1", "title": "Entry"}]}
         assert "tl_demo" in backend.run.call_args[0][0]
 
-    def test_listing_data_missing_module(self):
+    def test_listing_data_missing_module_is_an_error(self):
+        # Was {"error": …} with exit code 0 until v0.30.0.
         backend = MagicMock()
         backend.run.return_value = {"stdout": "", "returncode": 0}
-        result = listing_data(backend, 99)
-        assert result == {"error": "Module 99 not found or not a listing module"}
+        with pytest.raises(ListingError, match="Module 99 not found or not a listing module"):
+            listing_data(backend, 99)
 
-    def test_listing_data_missing_config(self):
+    def test_listing_data_missing_config_is_an_error(self):
         backend = MagicMock()
-        result = listing_data(backend, 5, cfg={"list_table": "", "list_fields": ""})
-        assert result == {"error": "Module 5 has no list_table or list_fields configured"}
+        with pytest.raises(ListingError, match="Module 5 has no list_table or list_fields configured"):
+            listing_data(backend, 5, cfg={"list_table": "", "list_fields": ""})
+
+    def test_listing_data_error_exits_1_with_json(self, monkeypatch):
+        from click.testing import CliRunner
+        from contao_ai_cli.cli import cli_listing
+
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": "", "returncode": 0}
+        monkeypatch.setattr(cli_listing, "_get_backend", lambda path: backend)
+        result = CliRunner().invoke(cli_listing.listing, ["data", "99"], obj={"session": None, "as_json": True})
+        assert result.exit_code == 1
+        assert "Module 99 not found" in result.output
 
 
 class TestMailer:
