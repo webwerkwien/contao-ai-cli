@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.0.2 - 2026-09-23
+
+Guide only. No command, option or answer changes.
+
+### Changed
+
+- **The agent guide says that member and user fields of other bundles work** — with
+  core-bundle v1.1.0, `member update`, `member create` and `user update` refuse only
+  credentials, two-factor state and, for users, `admin`, `pwChange` and `amg`; `member
+  create` additionally refuses `username`, which belongs to `--username`. Everything else is
+  checked against the table's real columns, so `--set consho_vatId=…` on `tl_member` goes
+  through.
+  **With core-bundle 1.0.0 or older the same call answers *"Field(s) not allowed"***, because
+  those versions carried a hand-maintained allow list of Contao's own fields
+  ([core-bundle #71](https://github.com/webwerkwien/contao-ai-core-bundle/issues/71)).
+  The guide is shipped with the package and read by `contao-ai-cli guide`, so it only
+  reaches an agent through a release.
+- **The guide warns about `--set id=…`.** Up to core-bundle v1.0.0 it renumbered the record
+  on every table — the row moved, the answer still reported the old id, the version history
+  stayed behind, and on `tl_user` it moved page ownership between accounts. Refused from
+  core-bundle v1.1.0; on older installations an agent must not pass it
+  ([core-bundle #72](https://github.com/webwerkwien/contao-ai-core-bundle/issues/72)).
+
 ## v1.0.1 - 2026-09-19
 
 ### Fixed

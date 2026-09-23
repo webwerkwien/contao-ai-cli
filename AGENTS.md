@@ -1468,10 +1468,29 @@ record delete (v0.29.0); `--yes` skips the question.
   default), not the username. Hashed with the hasher Contao's front end login uses. `tl_member.password`'s
   save callbacks run, so the `setNewPassword` hook fires as in the back end.
 - `member create` sets `login` (the member may log in) and `dateAdded`. `username` and
-  `email` must be unique, `email` valid. `--set` takes the fields `member update` takes
-  (`groups=1,2`, `disable`, `start`, address fields); `password` is refused there.
+  `email` must be unique, `email` valid. `--set` takes what `member update` takes
+  (`groups=1,2`, `disable`, `start`, address fields), minus `username`, which belongs to
+  `--username`; `password` is refused there too.
 - **`member update` refuses `password`** — use `member password`. It takes `--set` like
   every other update command; `--field`, its own spelling until v0.27.0, still works.
+- **Fields of other bundles work here too** (core-bundle v1.1.0). `member update`,
+  `member create` and `user update` refuse only credentials and authentication state —
+  `password`, `secret`, `useTwoFactor`, `backupCodes`, `trustedTokenVersion`, `session`;
+  for `user` also `admin`, `pwChange` and `amg` (the allowed member groups — the front-end
+  preview authenticates **as** them, so it is impersonation); for `member create` also
+  `username`, which belongs to `--username`. Everything else is checked against the table's
+  real columns, so a column another bundle adds to `tl_member` is writable:
+  `--set consho_vatId=ATU…`. The comparison ignores case, so `--set Password=…` is refused
+  as well.
+  **With core-bundle 1.0.0 or older the same call answers *"Field(s) not allowed"*** —
+  those versions carried a hand-maintained allow list of Contao's own fields
+  (core-bundle Issue #71). Ask `dca schema tl_member` which fields the table really has.
+- **`--set id=…` is refused on every table** (core-bundle v1.1.0). Up to v1.0.0 it
+  renumbered the record: the row moved to the new id while the answer still reported the
+  old one, the version history stayed behind, and on `tl_user` it moved page ownership
+  between accounts. `tstamp` is refused too — the write sets it itself, so passing it was
+  reported as written and never was. **If an installation still runs core-bundle ≤ 1.0.0,
+  never pass `id` in `--set`** (core-bundle Issue #72).
 - The answer never contains the password or its hash. Each call is versioned and logged.
 
 A command line is not private. On Linux `/proc/<pid>/cmdline` is world-readable
