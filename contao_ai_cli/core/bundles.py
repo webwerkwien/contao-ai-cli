@@ -37,15 +37,24 @@ def get_bundle_latest_version(package: str) -> str | None:
         return None
 
 
+def composer_command(backend, phar_path: str | None) -> str:
+    """How Composer is reached on this site: the manager's passthrough, or plain composer.
+
+    One implementation, because `health` now reports this string for a caller to
+    use by hand (issue #58) and `composer_bundle` runs it. Two copies would be a
+    documented command that is not the one we execute.
+    """
+    if phar_path:
+        return f"{shlex.quote(backend.php_path)} {shlex.quote(phar_path)} composer"
+    return "composer"
+
+
 def composer_bundle(backend, requirement: str, action: str, phar_path: str | None = None,
                     timeout: int = COMPOSER_TIMEOUT) -> dict:
     """composer require|update through the Contao Manager's passthrough when there is one."""
     if action not in ("require", "update"):
         raise ValueError(f"Unsupported composer action: {action!r}")
-    if phar_path:
-        composer = f"{shlex.quote(backend.php_path)} {shlex.quote(phar_path)} composer"
-    else:
-        composer = "composer"
+    composer = composer_command(backend, phar_path)
     target = requirement if action == "require" else requirement.split(":", 1)[0]
     return backend.run_raw(f"{composer} {action} {shlex.quote(target)} --no-interaction", timeout=timeout)
 

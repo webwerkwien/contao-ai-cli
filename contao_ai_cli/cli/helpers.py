@@ -16,7 +16,7 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.repl_skin import ReplSkin
 from contao_ai_cli.core import session as session_mod
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 CORE_BUNDLE = "webwerkwien/contao-ai-core-bundle"
 BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
@@ -551,19 +551,141 @@ def _detect_core_bundle(backend) -> bool:
         return False
 
 
+# Measured on this machine 2026-09-24 by bisection, not taken from documentation:
+# the largest single argument that still starts a process on Windows 11 is 32734
+# characters — the 32767-character CreateProcessW budget minus the rest of the
+# command line. A field value travels inside the SSH command line, and
+# `shlex.quote()` grows it: every apostrophe in HTML becomes five characters. So
+# the check below runs on the *quoted* length, not on the file size.
+WINDOWS_ARG_LIMIT = 32_000
+
+# Where the --set-file callback leaves its values for parse_set_fields().
+# parse_set_fields() takes them with .pop(): the REPL reuses one context across
+# commands, and a value left behind would be written into the *next* record.
+SET_FILE_META = "contao_ai_cli.set_file"
+
+
+def _read_set_file(spec: str) -> tuple[str, str]:
+    """Turn one `--set-file FIELD=PATH` into (field, file contents)."""
+    key, sep, path = spec.partition("=")
+    key = key.strip()
+    if not sep or not key:
+        raise click.UsageError(f"--set-file expects FIELD=PATH, got: {spec!r}")
+    if not path:
+        raise click.UsageError(f"--set-file {key}: no path given.")
+    try:
+        # newline="" turns off universal-newline mode. Without it Python rewrites
+        # every CRLF to LF on the way in — measured, not assumed: the first version
+        # of this used Path.read_text() and test_newlines_and_quotes_survive_unchanged
+        # caught it. A back-end textarea submits CRLF too, so translating here would
+        # be us editing the user's content while claiming to pass it on.
+        with open(path, encoding="utf-8", newline="") as fh:
+            value = fh.read()
+    except UnicodeDecodeError:
+        # Guessing the encoding would put mojibake in the database and report ok.
+        raise click.UsageError(
+            f"--set-file {key}: {path!r} is not UTF-8. Convert the file first."
+        ) from None
+    except OSError as e:
+        raise click.UsageError(f"--set-file {key}: cannot read {path!r} ({e}).") from None
+
+    # Nothing is trimmed either — a trailing newline in the file is part of the value.
+    if sys.platform == "win32" and len(shlex.quote(value)) > WINDOWS_ARG_LIMIT:
+        raise click.UsageError(
+            f"--set-file {key}: {path!r} is too large to pass from Windows "
+            f"({len(shlex.quote(value))} characters once quoted, limit {WINDOWS_ARG_LIMIT}). "
+            f"The value travels inside the SSH command line and Windows caps that at "
+            f"32767 characters. Nothing was written."
+        )
+    return key, value
+
+
+def set_file_callback(ctx, param, value):
+    """
+    Collect `--set-file FIELD=PATH` for parse_set_fields().
+
+    `expose_value=False`, and the values travel in `ctx.meta` rather than as a
+    parameter: the option is attached to every command that takes `--set`
+    (`contao_cli.attach_set_file_options`), and threading a new argument through
+    fifty command functions would be fifty chances to forget one.
+
+    The slot is written on every invocation, even when nothing was passed —
+    see SET_FILE_META for why an empty write matters.
+    """
+    pairs = {}
+    for spec in value or ():
+        key, contents = _read_set_file(spec)
+        if key in pairs:
+            raise click.UsageError(f"--set-file {key} was given twice.")
+        pairs[key] = contents
+    ctx.meta[SET_FILE_META] = pairs
+    return None
+
+
+def set_file_option() -> click.Option:
+    """A fresh `--set-file` option. Click parameters must not be shared between commands.
+
+    `is_eager` is not cosmetic. Click processes eager parameters first, and
+    `set_option_callback` below has to see `ctx.meta` already filled to decide
+    whether an update changes anything at all.
+    """
+    return click.Option(
+        ["--set-file"], multiple=True, metavar="FIELD=PATH", expose_value=False,
+        is_eager=True, callback=set_file_callback,
+        help="Read a field's value from a UTF-8 file instead of the command line — "
+             "for long or multi-line values (head HTML, markup) that the calling "
+             "shell would otherwise have to carry intact.",
+    )
+
+
+def set_option_callback(ctx, param, value):
+    """
+    Refuse an update that changes nothing.
+
+    Attached by `contao_cli.attach_set_file_options` to the `--set` of every
+    command that used to declare `required=True`. That flag had to go — Click
+    checks it before any callback runs, so `--set-file` alone would have been
+    rejected for want of a `--set` it replaces.
+
+    The check belongs here and not in `parse_set_fields()`: the commands call
+    that only after `_get_backend()`, so a plain `page update 12` would open an
+    SSH connection before noticing there was nothing to send.
+    """
+    if not value and not ctx.meta.get(SET_FILE_META):
+        raise click.UsageError("Nothing to change: pass --set FIELD=VALUE or --set-file FIELD=PATH.")
+    return value
+
+
 def parse_set_fields(fields) -> dict:
     """
-    Turn repeated `--set FIELD=VALUE` into a dict.
+    Turn repeated `--set FIELD=VALUE` into a dict, and merge in `--set-file`.
 
     A malformed entry is an error rather than something to drop: silently
     ignoring `--set titel Neu` would report a successful update that changed
     nothing.
+
+    The `--set-file` values are merged here because this is the one funnel every
+    write command already goes through, so no command needed a new parameter.
+    The "nothing to change" case is not checked here but in
+    `set_option_callback()` — see there for why.
     """
     parsed = {}
     for raw in fields:
         key, sep, value = raw.partition("=")
         if not sep or not key:
             raise click.UsageError(f"--set expects FIELD=VALUE, got: {raw!r}")
+        parsed[key] = value
+
+    ctx = click.get_current_context(silent=True)
+    if ctx is None:
+        return parsed
+
+    for key, value in (ctx.meta.pop(SET_FILE_META, None) or {}).items():
+        if key in parsed:
+            raise click.UsageError(
+                f"{key} was given by both --set and --set-file. Pick one — "
+                f"choosing for you would write a value you did not mean."
+            )
         parsed[key] = value
     return parsed
 

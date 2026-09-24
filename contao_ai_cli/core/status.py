@@ -9,10 +9,10 @@ meant.
 """
 from contao_ai_cli.cli.helpers import (
     BACKEND_BUNDLE, CONTAO_CORE_BUNDLE, CORE_BUNDLE, check_cli_update,
-    get_installed_package_versions, is_newer_version,
+    detect_contao_manager, get_installed_package_versions, is_newer_version,
 )
 from contao_ai_cli.core import backend_bridge as bridge_mod, session as session_mod
-from contao_ai_cli.core.bundles import get_bundle_latest_version
+from contao_ai_cli.core.bundles import composer_command, get_bundle_latest_version
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 
 WARNING = (
@@ -60,6 +60,11 @@ def collect_status(session_path: str) -> dict:
     core_status: dict = {"reachable": False}
     contao_status: dict = {"installed": None}
     backend_status: dict = {"installed": None, "latest": None, "update_available": False}
+    # How Composer is reached on this site. Reported because nothing else we ship
+    # tells a caller how to install an extension this CLI does not manage, and
+    # guessing it wrong on a Managed Edition means going behind the manager's back
+    # (issue #58). `via` is None only when we could not look.
+    composer_status: dict = {"via": None, "command": None}
     # None = could not look, which is not the same as "not installed".
     backend_installed: bool | None = None
 
@@ -91,6 +96,12 @@ def collect_status(session_path: str) -> dict:
             "latest": backend_latest,
             "update_available": is_newer_version(backend_latest, versions[BACKEND_BUNDLE]),
         }
+        manager = detect_contao_manager(backend)
+        phar = manager["phar_path"] if manager["available"] else None
+        composer_status = {
+            "via": "contao-manager" if phar else "composer",
+            "command": composer_command(backend, phar),
+        }
     except ContaoBackendError as e:
         core_status = {"reachable": False, "reason": f"no active session ({e})"}
     except Exception as e:  # noqa: BLE001 - a status must never kill the command that asks
@@ -108,7 +119,8 @@ def collect_status(session_path: str) -> dict:
         bridge_status["token"] = bridge_mod.mask_token(cfg["bridge_token"])
 
     return {"cli": cli_status, "contao": contao_status, "core": core_status,
-            "backend": backend_status, "bridge": bridge_status}
+            "backend": backend_status, "bridge": bridge_status,
+            "composer": composer_status}
 
 
 def next_steps(state: dict, session_name: str | None) -> list[dict]:

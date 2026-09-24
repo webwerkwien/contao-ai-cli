@@ -73,6 +73,40 @@ def schema_show(ctx, table, mandatory_only, as_json):
     _output(rows, as_json or ctx.obj.get("as_json"))
 
 
+@schema.command("palette")
+@click.argument("table")
+@click.option("--set", "set_fields", multiple=True, metavar="FIELD=VALUE",
+              help="The record whose palette counts, e.g. --set type=unfiltered_html")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def schema_palette(ctx, table, set_fields, as_json):
+    """Which fields a record of this kind actually has, and which are mandatory.
+
+    The server builds Contao's own palette for the record described by --set, so
+    selectors, sub-palettes and onpalette callbacks decide, exactly as in the
+    back end:
+
+        schema palette tl_content --set type=unfiltered_html
+        -> fields: type, title, unfilteredHtml, customTpl, protected, ...
+
+    Ask this before writing to a typed record for the first time. Contao has
+    element types whose field is not named after them -- an `unfiltered_html`
+    element stores its markup in `unfilteredHtml`, and the `html` column next to
+    it belongs to the separate `html` element and stays empty. Reading that empty
+    column tells you nothing; the palette does.
+
+    Same answer as `schema mandatory --set ...`, which is where this lived until
+    v1.1.0 and still works. It was not findable there (issue #56): nobody looking
+    for the fields of a type searches under "mandatory".
+    """
+    if not set_fields:
+        raise click.UsageError(
+            "schema palette needs the record: --set type=... (a table has one palette per type). "
+            "For every field that is mandatory somewhere in the table, use: schema mandatory " + table
+        )
+    ctx.invoke(schema_mandatory, table=table, set_fields=set_fields, as_json=as_json)
+
+
 @schema.command("mandatory")
 @click.argument("table")
 @click.option("--set", "set_fields", multiple=True, metavar="FIELD=VALUE",
@@ -85,6 +119,9 @@ def schema_mandatory(ctx, table, set_fields, as_json):
     With --set, the server builds Contao's own palette for that record and answers
     only its mandatory fields — `--set type=root` for a root page (core-bundle
     v0.16.0). Without, every field of the table that is mandatory in some palette.
+
+    The --set form is also `schema palette`, which is the name to reach for when
+    the question is "which fields does this kind of record have".
     """
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     if set_fields:

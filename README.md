@@ -95,6 +95,36 @@ access and answer questions in the chat.
 Without a Contao Manager, `bundle install` refuses until the needed `allow-plugins` are in
 `composer.json`; ask the user before passing `--allow-plugins`.
 
+### Installing an extension this CLI does not manage
+
+`bundle install` handles the two contao-ai bundles and nothing else, deliberately: it knows
+their version constraints and reads the installed version back afterwards, and it knows
+neither for a foreign package. **Installing packages is not this CLI's job** — that boundary
+is where the audit-trail rule below stops applying.
+
+The route is the Contao Manager's Composer passthrough over the same SSH connection. Ask the
+CLI for the exact command rather than guessing it:
+
+```bash
+contao-ai-cli --session my-site health --json     # -> composer.command, composer.via
+```
+
+Then, from the Contao root, a dry run first:
+
+```bash
+php public/contao-manager.phar.php composer require terminal42/contao-changelanguage --dry-run
+php public/contao-manager.phar.php composer require terminal42/contao-changelanguage
+```
+
+Two things afterwards:
+
+- **Without a Contao Manager** the command is plain `composer`, and the project's
+  `allow-plugins` has to permit Contao's plugins or Composer refuses. On a Managed Edition
+  the manager brings its own config and `composer.json` is left alone — which is the reason
+  to go through the passthrough rather than around it.
+- **If the extension adds DCA fields**, the cached schema is now stale:
+  `contao-ai-cli --session my-site schema sync tl_page`.
+
 ### Staying up to date
 
 `contao-ai-cli` prints one line on stderr — `Updates: … - contao-ai-cli health` — the first
@@ -138,7 +168,7 @@ so it cannot drift from what the CLI actually offers.
 | `newsletter` | `channel-create` `channel-delete` `channel-update` `channels` `create` `delete` `list` `send` `subscriber-create` `subscriber-delete` `subscriber-update` `subscribers` `update` | Newsletters, channels and recipients. **`send` always refuses** — sending stays with a person in the Contao back end |
 | `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
 | `record` | `clone` `list` `schema` | **Any** table with a DCA, incl. extension tables |
-| `schema` | `mandatory` `resolve` `show` `sync` | DCA field definitions |
+| `schema` | `mandatory` `palette` `resolve` `show` `sync` | DCA field definitions |
 | `search` | `index-create` `index-drop` `query` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
 | `settings` | `read` `update` | Global settings — `localconfig.php`, not a table |

@@ -4,6 +4,57 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.1.0 - 2026-09-24
+
+Four findings from live work on web.werk.wien. `schema palette` needs
+contao-ai-core-bundle **v0.16.0** or newer on the target site; everything else works
+against any version.
+
+### Added
+
+- **`--set-file FIELD=PATH` on every command that takes `--set`**
+  ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)). The file is read as UTF-8
+  and passed through unchanged — no trimming, no line-ending translation. The CLI always
+  quoted a value correctly once it had one; what could not be relied on was the caller's own
+  shell carrying quotes, `$`, backticks and newlines to it intact. Measured end to end: a
+  319-character block with all of those written to `tl_content.unfilteredHtml` on the test
+  server and read back byte-identical.
+  Refused with nothing written: a field given by both options, the same field twice, a
+  missing file, a file that is not UTF-8, and — on Windows only — a value above 32000
+  characters once quoted, because it travels inside the SSH command line and Windows caps
+  that at 32767 characters for the whole invocation (measured on Windows 11: the largest
+  single argument that still starts a process is 32734).
+  `--set` is no longer `required` on the update commands, since `--set-file` alone is a
+  complete instruction. Passing neither is still refused, and still before the SSH
+  connection is opened.
+- **`schema palette TABLE --set type=…`** ([#56](https://github.com/webwerkwien/contao-ai-cli/issues/56)) —
+  which fields a record of that kind actually has, and which are mandatory. Not a new
+  capability: the same answer was `schema mandatory --set …` from core-bundle v0.16.0 on,
+  and that spelling still works. It was not findable, and the cost was real — Contao has two
+  HTML content elements, type `html` stores its markup in `html` and type `unfiltered_html`
+  in `unfilteredHtml`, so `record list --fields=html` answers an empty value for the latter
+  with nothing to distinguish "empty" from "wrong field".
+- **`health --json` has a `composer` key** ([#58](https://github.com/webwerkwien/contao-ai-cli/issues/58)):
+  `{"via": "contao-manager"|"composer", "command": "…"}` — how Composer is reached on this
+  site, and the exact command. `via: null` means the server could not be looked at, never
+  "there is no Composer". The string comes from the same function `bundle install` runs, so
+  the documented command and the executed one cannot drift apart.
+
+### Changed
+
+- **`bundle install <foreign package>` points somewhere instead of just refusing**
+  ([#57](https://github.com/webwerkwien/contao-ai-cli/issues/57)). It answered Click's
+  generic `invalid choice`; it now names the Contao Manager passthrough, the dry run, the
+  `health --json` key that gives the exact command, and the `schema sync` that is due
+  afterwards. The full package name of one of our own bundles now resolves too.
+- **The guide says where the boundary runs.** New section *"Installing an extension this CLI
+  does not manage"* in `AGENTS.md` and `README.md`. Nothing the project shipped answered
+  "the user wants extension X installed": the passthrough appeared only as the internals of
+  `bundle install core|backend`, while *"None of it happens if you go around this CLI"* told
+  an agent not to leave — so the absence of a route read as "it must somehow go through
+  here". Found because a parallel session took the right route only by reading a private
+  maintenance note that no user of this CLI has.
+
 ## v1.0.2 - 2026-09-23
 
 Guide only. No command, option or answer changes.

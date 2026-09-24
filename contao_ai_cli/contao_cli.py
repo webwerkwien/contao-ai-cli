@@ -11,6 +11,7 @@ import sys
 
 import click
 
+from contao_ai_cli.cli import helpers as helpers_mod
 from contao_ai_cli.cli.helpers import __version__, configure_output_encoding
 from contao_ai_cli.core import session as session_mod
 from contao_ai_cli.cli.cli_connect import connect, session_list, session_delete
@@ -149,6 +150,57 @@ cli.add_command(health)
 cli.add_command(self_update)
 cli.add_command(bundle)
 cli.add_command(guide)
+
+
+# --- --set-file, attached wherever --set already is --------------------------
+
+# Commands whose `--set` names the record that selects a palette rather than a
+# value to write. Reading `type=unfiltered_html` from a file makes no sense, so
+# they do not get `--set-file`. Listed by path so the exclusion is a decision
+# with a reason, not an accident of how a module happens to parse its options;
+# test_set_file.py fails if a command leaves this list without gaining the option.
+SET_FILE_EXCLUDED = frozenset({"schema mandatory", "schema palette", "schema resolve"})
+
+
+def attach_set_file_options(group, prefix: str = "") -> None:
+    """
+    Give every command that takes `--set` the matching `--set-file`.
+
+    Done by walking the finished command tree rather than by writing the option
+    into forty-nine decorators: a list maintained by hand drifts the moment
+    someone adds a command, and the drift is silent -- the option simply is not
+    there, and the caller reads that as "not supported here".
+
+    Where `--set` was `required`, it stops being so: a caller who passes only
+    `--set-file` has supplied a change, and Click checks `required` before any
+    callback could say so. The demand does not disappear -- `set_option_callback`
+    takes it over, and it sees both options.
+    """
+    ctx = click.Context(group)
+    for name in group.list_commands(ctx):
+        command = group.get_command(ctx, name)
+        path = f"{prefix}{name}"
+        if isinstance(command, click.Group):
+            attach_set_file_options(command, f"{path} ")
+            continue
+        opts = {o for p in command.params for o in getattr(p, "opts", [])}
+        if "--set" not in opts or "--set-file" in opts or path in SET_FILE_EXCLUDED:
+            continue
+        for param in command.params:
+            if "--set" not in getattr(param, "opts", []) or not param.required:
+                continue
+            if param.callback is not None:
+                # Refuse rather than overwrite: a callback already there would
+                # disappear without a sound, and this loop is its only reader.
+                raise RuntimeError(
+                    f"`{path}` already has a --set callback; attach_set_file_options would lose it"
+                )
+            param.required = False
+            param.callback = helpers_mod.set_option_callback
+        command.params.append(helpers_mod.set_file_option())
+
+
+attach_set_file_options(cli)
 
 
 def _json_requested(argv) -> bool:

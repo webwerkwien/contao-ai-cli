@@ -76,6 +76,14 @@ def health(ctx):
         else:
             click.echo(f"  Core      {installed}   (could not reach Packagist)")
 
+    # Not an update line: it answers "how would I install something this CLI does
+    # not manage" before anyone has to guess it. See status.collect_status.
+    composer_status = result["composer"]
+    if composer_status["via"] == "contao-manager":
+        click.echo(f"  Composer  via Contao Manager: {composer_status['command']}")
+    elif composer_status["via"] == "composer":
+        click.echo("  Composer  plain composer (no Contao Manager found)")
+
     state = bridge_status["state"]
     if state == "ready":
         line = f"  Bridge    ready: {bridge_status['url']}   token: {bridge_status['token']}"

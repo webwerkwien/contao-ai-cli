@@ -227,6 +227,44 @@ update core` wrote `^<latest>` (on web.werk.wien it turned `>=0.2 <1.0` into `^0
 Success is reported only once the new version has been **read back** from the server —
 a Composer run finishing without error is not, on its own, taken as proof.
 
+### Installing an extension this CLI does not manage
+
+`bundle install` takes `core` and `backend` and refuses anything else, with a message
+saying what to do instead. That is a boundary, not a gap: `install_bundle` knows our two
+packages' version constraints and reads the installed version back, and it knows neither
+for a foreign package.
+
+> 🎯 **Installing packages is outside this CLI — and that is the one place where "do not
+> go around this CLI" (see "None of it happens if you go around this CLI") does not
+> apply.** It is written down because the absence of a route used to read as "so it must
+> somehow go through here". It does not.
+
+Ask for the command rather than assuming one; a Managed Edition and a plain Composer
+install need different ones, and using the wrong one on a Managed Edition writes into
+`composer.json` behind the manager's back:
+
+```bash
+contao-ai-cli --session my-site health --json
+# -> "composer": {"via": "contao-manager", "command": "/usr/bin/php8.3 public/contao-manager.phar.php composer"}
+```
+
+Then run that command over the same SSH connection, from the Contao root — **dry run
+first**, and ask the user before the real one: it changes what is installed on their site.
+
+```
+<composer.command> require terminal42/contao-changelanguage --dry-run
+<composer.command> require terminal42/contao-changelanguage
+```
+
+Two things afterwards:
+
+- **`via: "composer"`** (no Contao Manager) means the project's own `allow-plugins` has to
+  permit Contao's plugins, or Composer refuses. The same consent question as
+  `bundle install --allow-plugins`, and it is the user's to answer.
+- **If the extension adds DCA fields**, the cached schema is stale and `schema show` now
+  describes a table that no longer looks like that: `schema sync <table>`. An extension
+  that extends `tl_member` or `tl_page` is the normal case, not the exception.
+
 ### `self-update`
 
 Reinstalls contao-ai-cli itself at the newest tag via pipx:
@@ -277,6 +315,14 @@ The backend-bundle counterpart of `core`: `installed`, `latest`, `update_availab
 `bridge.state` (`not_installed` / `not_configured` / `ready`) still says what to do
 about the bridge itself; `backend` is about whether contao-ai-backend-bundle is on the
 server at all and current, independent of whether this session has a token for it.
+
+### `health --json` has a `composer` key (new in v1.1.0)
+
+`{"via": "contao-manager" | "composer", "command": "…"}` — how Composer is reached on
+*this* site, and the exact command to reach it with. It is not an update line; it exists
+so nothing has to be guessed when a package has to be installed. See "Installing an
+extension this CLI does not manage" below. `via: null` means the server could not be
+looked at, never "there is no Composer".
 
 ## Step 3: Use JSON output for machine-readable results
 
@@ -363,6 +409,10 @@ contao-ai-cli --json content update 5 --set headline="New Title"
 contao-ai-cli --json content update 5 --text '<p>New text</p>'   # like create (v0.23.0)
 contao-ai-cli --json page update 1 --set title="Home" --set robots=noindex
 
+# A long or multi-line value comes from a file, not from the command line (v1.1.0)
+contao-ai-cli --json page update 1 --set-file head=head.html
+contao-ai-cli --json content update 5 --set-file unfilteredHtml=block.html --set invisible=0
+
 # Publish / unpublish
 contao-ai-cli --json page publish 1
 contao-ai-cli --json article publish 12                     # v0.28.0
@@ -371,6 +421,28 @@ contao-ai-cli --json comment publish 7 --unpublish
 
 The quoting above is for Git Bash and POSIX shells. **In Windows PowerShell 5.1 the
 list, table and link examples need a different form** — see *Structured fields* below.
+
+#### `--set-file FIELD=PATH` — a value the calling shell never has to carry (v1.1.0)
+
+Every command that takes `--set` also takes `--set-file`, and the two mix freely. The file
+is read as **UTF-8** and passed through unchanged: no trimming, no line-ending translation,
+a trailing newline included. Use it for anything long or multi-line — head HTML, a block of
+markup, a teaser with paragraphs.
+
+This is not only convenience. The CLI quotes a value correctly once it has one, but
+everything *before* the CLI is the caller's own shell, and carrying quotes, `$`, backticks
+and newlines through it intact is the least reliable part of the chain (issue #55, reported
+from live work 2026-09-24). `--set-file` removes that part.
+
+Refused, with nothing written: a field given by both `--set` and `--set-file`; the same
+field twice; a file that is missing or not UTF-8. **On Windows, a value above ~32 000
+characters once quoted** — it travels inside the SSH command line, and Windows caps that at
+32 767 characters for the whole invocation (measured, not quoted from documentation). There
+is no such cap on Linux or macOS.
+
+`--set` is no longer `required` on the update commands, because `--set-file` alone is a
+complete instruction. Passing neither is still refused, and still before the connection is
+opened.
 
 | field | value | notes |
 |---|---|---|
@@ -569,16 +641,29 @@ contao-ai-cli --json backup list
 contao-ai-cli --json schema show tl_content
 contao-ai-cli --json schema mandatory tl_news
 contao-ai-cli --json schema resolve tl_content type
-contao-ai-cli --json schema mandatory tl_page --set type=root --set enableCsp=1   # one kind of record
+contao-ai-cli --json schema palette tl_page --set type=root --set enableCsp=1     # one kind of record
+contao-ai-cli --json schema palette tl_content --set type=unfiltered_html
 contao-ai-cli --json schema resolve tl_content customTpl --set type=text          # templates of a text element
 ```
+
+**`schema palette` before writing to a typed record for the first time** (v1.1.0; the same
+answer was `schema mandatory --set …` from core-bundle v0.16.0 on, and that spelling still
+works). It answers two things at once: the `fields` this kind of record actually has, and
+which of them are `mandatory`.
+
+> ⚠️ **A field is not named after its element type.** Contao has *two* HTML content
+> elements: type `html` stores its markup in `html`, type `unfiltered_html` stores it in
+> `unfilteredHtml`, and both columns sit side by side in `tl_content`. So
+> `record list tl_content --fields=html` answers an empty value for an `unfiltered_html`
+> element — correctly, and there is nothing in that answer to tell "empty" from "wrong
+> field". The palette is what tells you (issue #56, found on a live site 2026-09-24).
 
 **Ask for one kind of record, not the whole table** (core-bundle v0.16.0). `schema
 mandatory tl_page` alone lists every field that is mandatory in *some* palette — 13 for
 tl_page, from `url` (redirects only) to `csp` (only with CSP enabled). With `--set` the
 server builds Contao's own palette for that record and answers only what applies: a root
 page needs `title` and `language`; with `enableCsp=1` also `csp`; a redirect `title` and
-`url`. The answer also lists the palette's `fields`.
+`url`.
 
 **`options` in `schema show` is a list of values or a `{value: label}` map** — never a
 list of labels. A select declared `isAssociative` stores its index, so `tl_page.useSSL`
