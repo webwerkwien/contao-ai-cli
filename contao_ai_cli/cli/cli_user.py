@@ -4,7 +4,10 @@ user group — Backend user management.
 import click
 
 from contao_ai_cli.core import session as session_mod, user as user_mod, dca_schema
-from .helpers import _get_backend, _output, _require_core_bundle, confirm_delete, resolve_password
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, confirm_delete, parse_set_fields,
+    resolve_password,
+)
 
 
 @click.group()
@@ -90,8 +93,13 @@ def user_password(ctx, username, password, password_stdin, as_json):
 def user_update(ctx, username, fields, set_fields, as_json):
     """Update a backend user field via contao-ai-core-bundle."""
     _require_core_bundle(ctx, "user update")
-    combined = list(fields) + list(set_fields)
-    parsed = dict(f.split("=", 1) for f in combined if "=" in f)
+    # parse_set_fields, not a parse of its own, for two reasons. It is the only
+    # place that collects the `--set-file` values, so parsing by hand here accepted
+    # `--set-file`, dropped it and answered ok (found in review 2026-09-24). And the
+    # old `if "=" in f` silently discarded a malformed entry -- `--set disable 1`
+    # reported a successful update that changed nothing, which is the exact case
+    # parse_set_fields was written to refuse.
+    parsed = parse_set_fields(list(fields) + list(set_fields))
     b = _get_backend(ctx.obj.get("session"))
     _output(user_mod.user_update(b, username, parsed), as_json or ctx.obj.get("as_json"))
 

@@ -4,7 +4,9 @@ file group — Manage Contao files (DBAFS / tl_files).
 import click
 
 from contao_ai_cli.core import session as session_mod, file as file_mod
-from .helpers import _get_backend, _output, _require_core_bundle, confirm_escalation
+from .helpers import (
+    _get_backend, _output, _require_core_bundle, confirm_escalation, parse_set_fields,
+)
 
 
 @click.group()
@@ -196,9 +198,9 @@ def file_read_cmd(ctx, path, as_json):
 def file_meta_cmd(ctx, path, lang, fields, as_json):
     """Update metadata fields on a tl_files record via contao-ai-core-bundle."""
     _require_core_bundle(ctx, "file meta")
-    invalid = [f for f in fields if "=" not in f]
-    if invalid:
-        raise click.UsageError(f"Invalid --set value(s): {invalid!r}. Expected format: FIELD=VALUE")
-    parsed = dict(f.split("=", 1) for f in fields)
+    # parse_set_fields, not a parse of its own: it is the only place that collects
+    # the `--set-file` values, and a command that parses `--set` by hand accepts
+    # `--set-file`, drops it and answers ok (found in review 2026-09-24).
+    parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_meta_update(b, path, parsed, lang), as_json or ctx.obj.get("as_json"))

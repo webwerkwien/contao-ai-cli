@@ -14,16 +14,14 @@ against any version.
 
 - **`--set-file FIELD=PATH` on every command that takes `--set`**
   ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)). The file is read as UTF-8
-  and passed through unchanged — no trimming, no line-ending translation. The CLI always
-  quoted a value correctly once it had one; what could not be relied on was the caller's own
-  shell carrying quotes, `$`, backticks and newlines to it intact. Measured end to end: a
-  319-character block with all of those written to `tl_content.unfilteredHtml` on the test
-  server and read back byte-identical.
+  and passed through unchanged — no trimming, no line-ending translation; a leading
+  byte-order mark is dropped, since PowerShell writes one by default and it is an encoding
+  artefact rather than content. The CLI always quoted a value correctly once it had one;
+  what could not be relied on was the caller's own shell carrying quotes, `$`, backticks and
+  newlines to it intact. Measured end to end: a 319-character block with all of those
+  written to `tl_content.unfilteredHtml` on the test server and read back byte-identical.
   Refused with nothing written: a field given by both options, the same field twice, a
-  missing file, a file that is not UTF-8, and — on Windows only — a value above 32000
-  characters once quoted, because it travels inside the SSH command line and Windows caps
-  that at 32767 characters for the whole invocation (measured on Windows 11: the largest
-  single argument that still starts a process is 32734).
+  missing file, a file that is not UTF-8.
   `--set` is no longer `required` on the update commands, since `--set-file` alone is a
   complete instruction. Passing neither is still refused, and still before the SSH
   connection is opened.
@@ -40,8 +38,24 @@ against any version.
   "there is no Composer". The string comes from the same function `bundle install` runs, so
   the documented command and the executed one cannot drift apart.
 
+- **A command line too long for Windows is refused before it is started.** CreateProcessW
+  takes 32767 characters for the whole line; above 32000 the CLI answers *"too long for
+  Windows … Nothing was sent to the server"* instead of letting the `OSError` reach the
+  top-level handler, which would file it as a defect. No such limit applies on Linux or
+  macOS. Found by the pre-release review: the first version of the `--set-file` guard
+  measured one value at a time with `shlex.quote`, and three ordinary cases walked past it
+  and failed to start — 30000 characters of markup with 1600 quotation marks (`subprocess`
+  escapes each one), the same with backslash-escaped quotes, and two `--set-file` values of
+  20000 that each fit on their own.
+
 ### Changed
 
+- **`file meta` and `user update` collect `--set-file` instead of dropping it.** Both parsed
+  `--set` by hand and never called `parse_set_fields()`, which is the only place the
+  `--set-file` values are picked up — so they accepted the option, wrote nothing and
+  answered `status: ok`. Found by the pre-release review. `user update` also stopped
+  silently discarding a malformed `--set`: `--set disable 1` used to report a successful
+  update that changed nothing, and is now refused.
 - **`bundle install <foreign package>` points somewhere instead of just refusing**
   ([#57](https://github.com/webwerkwien/contao-ai-cli/issues/57)). It answered Click's
   generic `invalid choice`; it now names the Contao Manager passthrough, the dry run, the

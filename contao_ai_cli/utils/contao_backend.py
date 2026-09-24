@@ -13,6 +13,13 @@ from typing import Any
 
 import click
 
+# CreateProcessW's own cap. Measured by bisection on Windows 11, 2026-09-24: the
+# largest single argument that still starts a process is 32734, the rest of the
+# 32767 going to the executable path and the other arguments. The margin below is
+# deliberate -- `_guard_command_line_length` measures the line we build, and the
+# loader is not the only thing in it.
+WINDOWS_COMMAND_LINE_LIMIT = 32_000
+
 
 def _reject_option_lookalike(label: str, value: str) -> str:
     """
@@ -166,6 +173,36 @@ class ContaoBackend:
             )
         return found
 
+    def _guard_command_line_length(self, ssh_cmd: list[str]) -> None:
+        """
+        Refuse a command line Windows cannot start, before CreateProcess does.
+
+        CreateProcessW takes at most 32767 characters for the *whole* line, and
+        `subprocess` builds that line with `list2cmdline`, which escapes every `"`
+        as `\\"`. So neither the length of one value nor its POSIX-quoted length is
+        the number that matters -- measured 2026-09-24, all three cases below pass
+        a per-value check of 32000 and then fail to start:
+
+            30000 x `x` + 1600 x `"`      quoted 31602   list2cmdline 33350
+            29000 x `x` + 1000 x `\\"`     quoted 31002   list2cmdline 33150
+            two --set-file values, 20000  quoted 20000   list2cmdline 40158
+
+        Without this the OSError falls through to the top-level handler in main(),
+        which treats anything arriving there as a defect and writes an error report
+        -- for a limit we knew about. Nothing has been sent at this point.
+        """
+        if sys.platform != "win32":
+            return
+        length = len(subprocess.list2cmdline(ssh_cmd))
+        if length <= WINDOWS_COMMAND_LINE_LIMIT:
+            return
+        raise ContaoBackendError(
+            f"The command is too long for Windows to start: {length} characters, "
+            f"limit {WINDOWS_COMMAND_LINE_LIMIT}. Nothing was sent to the server. "
+            f"A long field value is the usual cause -- split the change into several "
+            f"commands. There is no such limit on Linux or macOS."
+        )
+
     def _ssh_args(self) -> list[str]:
         args = [
             self._ssh_bin,
@@ -200,6 +237,7 @@ class ContaoBackend:
         """
         full_cmd = f"cd {shlex.quote(self.contao_root)} && {shell_command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
+        self._guard_command_line_length(ssh_cmd)
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
         env["MSYS2_ARG_CONV_EXCL"] = "*"
@@ -248,6 +286,7 @@ class ContaoBackend:
         """
         full_cmd = f"cd {shlex.quote(self.contao_root)} && {shlex.quote(self.php_path)} bin/console {command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
+        self._guard_command_line_length(ssh_cmd)
 
         # Disable Git Bash / MSYS2 path conversion on Windows
         env = os.environ.copy()

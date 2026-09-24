@@ -10,7 +10,7 @@ from contao_ai_cli.core import bundles as bundles_mod, session as session_mod
 from .helpers import _get_backend, _output
 
 
-def _resolve(name: str) -> str:
+def _resolve(name: str, action: str = "install") -> str:
     """Accept `core`/`backend`, and point anything else somewhere useful.
 
     `click.Choice` used to do this, and answered `invalid choice: changelanguage`.
@@ -24,15 +24,19 @@ def _resolve(name: str) -> str:
     for short, package in bundles_mod.BUNDLES.items():
         if name == package:
             return short
+    # `update` says update, and recommends `composer update`, not `require`.
+    # The message named the wrong subcommand and the wrong Composer verb until a
+    # review pointed it out (2026-09-24).
+    verb = "update" if action == "update" else "require"
     raise click.UsageError(
-        f"`bundle install {name}` -- this command manages the two contao-ai bundles only "
+        f"`bundle {action} {name}` -- this command manages the two contao-ai bundles only "
         f"({', '.join(sorted(bundles_mod.BUNDLES))}), because it knows their version "
         f"constraints and reads the installed version back afterwards. It knows none of "
         f"that for another package.\n\n"
-        f"To install any other extension, use the Contao Manager's Composer passthrough "
+        f"For any other extension, use the Contao Manager's Composer passthrough "
         f"over the same SSH connection -- a dry run first:\n\n"
-        f"    php public/contao-manager.phar.php composer require {name} --dry-run\n"
-        f"    php public/contao-manager.phar.php composer require {name}\n\n"
+        f"    php public/contao-manager.phar.php composer {verb} {name} --dry-run\n"
+        f"    php public/contao-manager.phar.php composer {verb} {name}\n\n"
         f"`contao-ai-cli health --json` reports the exact command for the connected site "
         f"under `composer.command`. Afterwards, if the extension adds DCA fields, refresh "
         f"the cached schema: contao-ai-cli schema sync <table>."
@@ -40,7 +44,7 @@ def _resolve(name: str) -> str:
 
 
 def _run(ctx, name, action, allow_plugins, as_json):
-    name = _resolve(name)
+    name = _resolve(name, action)
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     result = bundles_mod.install_bundle(_get_backend(session_path), name, action, allow_plugins)
     if name == "core" and result["status"] == "ok":

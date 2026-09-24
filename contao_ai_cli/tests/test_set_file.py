@@ -13,8 +13,9 @@ that anything called the guard. `test_every_command_with_set_has_set_file` and
 `test_the_excluded_commands_are_real_and_still_take_set` are the equivalent here —
 they pin the wiring, not the function.
 """
-import pathlib
-import sys
+import ast
+import inspect
+import textwrap
 from unittest.mock import patch
 
 import click
@@ -24,7 +25,7 @@ from click.testing import CliRunner
 # Importing this module is what attaches the options — see attach_set_file_options.
 from contao_ai_cli.contao_cli import SET_FILE_EXCLUDED, attach_set_file_options, cli
 from contao_ai_cli.cli import cli_page
-from contao_ai_cli.cli.helpers import SET_FILE_META, WINDOWS_ARG_LIMIT, parse_set_fields
+from contao_ai_cli.cli.helpers import SET_FILE_META, parse_set_fields
 
 
 def walk(group, prefix=""):
@@ -41,6 +42,20 @@ def walk(group, prefix=""):
 
 def opts_of(command):
     return {o for p in command.params for o in getattr(p, "opts", [])}
+
+
+def calls_parse_set_fields(command) -> bool:
+    """Does this command's callback actually *call* parse_set_fields()?
+
+    The AST, because a substring search is satisfied by the word appearing in a
+    comment — which is how the first version of this passed against a command
+    that had been broken on purpose.
+    """
+    tree = ast.parse(textwrap.dedent(inspect.getsource(command.callback)))
+    return any(isinstance(node, ast.Call)
+               and isinstance(node.func, ast.Name)
+               and node.func.id == "parse_set_fields"
+               for node in ast.walk(tree))
 
 
 class TestTheOptionIsWhereItShouldBe:
@@ -64,6 +79,50 @@ class TestTheOptionIsWhereItShouldBe:
             assert path in tree, f"{path!r} is excluded from --set-file but does not exist"
             assert "--set" in opts_of(tree[path]), f"{path!r} no longer takes --set"
             assert "--set-file" not in opts_of(tree[path])
+
+    def test_every_command_that_has_the_option_also_collects_it(self):
+        """
+        Attaching the option is half the wiring. `parse_set_fields()` is the only
+        place that takes the values out of `ctx.meta`, so a command that parses
+        `--set` by hand accepts `--set-file`, silently drops it and answers ok.
+
+        That is exactly what `file meta` and `user update` did until a review found
+        it on 2026-09-24 — while the test above was green, because it only asked
+        whether the option was there. Same shape as the core-bundle guard of
+        2026-09-23: the guard existed, nothing called it.
+
+        Source inspection rather than an import-time check: reading forty-seven
+        source files on every CLI start would be a startup cost for a mistake only
+        a developer can make, and this suite is where developers find out.
+
+        The AST and not a substring, and that distinction was measured, not
+        assumed: written first as `"parse_set_fields" in getsource(...)`, it went
+        green against a deliberately broken `user update` — because the comment
+        above the broken line said the words. A test that a comment can satisfy
+        proves nothing.
+        """
+        deaf = [path for path, cmd in walk(cli)
+                if "--set-file" in opts_of(cmd) and not calls_parse_set_fields(cmd)]
+        assert not deaf, f"accept --set-file and throw it away: {deaf}"
+
+    def test_that_check_notices_a_command_that_parses_by_hand(self):
+        """The known non-match. A scan that cannot fail passes like one that cannot find."""
+        @click.command()
+        @click.option("--set", "fields", multiple=True)
+        def hand_rolled(fields):
+            # A mention of parse_set_fields in prose must not satisfy the check.
+            dict(f.split("=", 1) for f in fields)
+
+        assert not calls_parse_set_fields(hand_rolled)
+
+    def test_that_check_accepts_a_command_that_does_call_it(self):
+        """And the positive control, so the check is not simply always false."""
+        @click.command()
+        @click.option("--set", "fields", multiple=True)
+        def proper(fields):
+            parse_set_fields(fields)
+
+        assert calls_parse_set_fields(proper)
 
     def test_a_second_pass_changes_nothing(self):
         """Idempotent: the walk must not stack a second option onto every command.
@@ -166,14 +225,13 @@ class TestReadingTheFile:
         assert "given twice" in result.output
         assert fields == {}
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="the argv cap this guards is a Windows one")
-    def test_a_value_too_long_for_the_windows_command_line_is_refused(self, tmp_path):
-        f = tmp_path / "big.html"
-        f.write_text("x" * (WINDOWS_ARG_LIMIT + 10), encoding="utf-8")
-        result, fields = self._fields(["--set-file", f"head={f}"], tmp_path)
-        assert result.exit_code != 0
-        assert "too large" in result.output and "Nothing was written" in result.output
-        assert fields == {}
+    def test_a_byte_order_mark_does_not_become_part_of_the_value(self, tmp_path):
+        """PowerShell's `>` and Out-File write one by default — the very shell this avoids."""
+        f = tmp_path / "head.html"
+        f.write_bytes(b"\xef\xbb\xbf<meta charset=\"utf-8\">")
+        _, fields = self._fields(["--set-file", f"head={f}"], tmp_path)
+        assert fields == {"head": '<meta charset="utf-8">'}
+        assert not fields["head"].startswith("﻿")
 
 
 class TestNothingToChange:

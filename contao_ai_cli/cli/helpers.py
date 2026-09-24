@@ -551,17 +551,11 @@ def _detect_core_bundle(backend) -> bool:
         return False
 
 
-# Measured on this machine 2026-09-24 by bisection, not taken from documentation:
-# the largest single argument that still starts a process on Windows 11 is 32734
-# characters — the 32767-character CreateProcessW budget minus the rest of the
-# command line. A field value travels inside the SSH command line, and
-# `shlex.quote()` grows it: every apostrophe in HTML becomes five characters. So
-# the check below runs on the *quoted* length, not on the file size.
-WINDOWS_ARG_LIMIT = 32_000
-
 # Where the --set-file callback leaves its values for parse_set_fields().
-# parse_set_fields() takes them with .pop(): the REPL reuses one context across
-# commands, and a value left behind would be written into the *next* record.
+# parse_set_fields() takes them with .pop() rather than reading them: the slot is
+# per invocation, and a value that outlived its command would be written into the
+# next record. (The REPL builds a fresh context per line, so no path does that
+# today -- verified in review 2026-09-24. The .pop() keeps it that way.)
 SET_FILE_META = "contao_ai_cli.set_file"
 
 
@@ -579,7 +573,14 @@ def _read_set_file(spec: str) -> tuple[str, str]:
         # of this used Path.read_text() and test_newlines_and_quotes_survive_unchanged
         # caught it. A back-end textarea submits CRLF too, so translating here would
         # be us editing the user's content while claiming to pass it on.
-        with open(path, encoding="utf-8", newline="") as fh:
+        #
+        # utf-8-sig, so a leading byte-order mark is dropped instead of becoming the
+        # first character of the field. Windows PowerShell 5.1 -- the shell whose
+        # quoting this option exists to avoid -- writes one by default with `>` and
+        # `Out-File`, and a BOM in `tl_page.head` would land in the page's <head>.
+        # It is an encoding artefact, not content; nothing else about the file is
+        # touched, not even a trailing newline.
+        with open(path, encoding="utf-8-sig", newline="") as fh:
             value = fh.read()
     except UnicodeDecodeError:
         # Guessing the encoding would put mojibake in the database and report ok.
@@ -589,14 +590,8 @@ def _read_set_file(spec: str) -> tuple[str, str]:
     except OSError as e:
         raise click.UsageError(f"--set-file {key}: cannot read {path!r} ({e}).") from None
 
-    # Nothing is trimmed either — a trailing newline in the file is part of the value.
-    if sys.platform == "win32" and len(shlex.quote(value)) > WINDOWS_ARG_LIMIT:
-        raise click.UsageError(
-            f"--set-file {key}: {path!r} is too large to pass from Windows "
-            f"({len(shlex.quote(value))} characters once quoted, limit {WINDOWS_ARG_LIMIT}). "
-            f"The value travels inside the SSH command line and Windows caps that at "
-            f"32767 characters. Nothing was written."
-        )
+    # No size check here. It belongs to the command line, not to one value:
+    # ContaoBackend._guard_command_line_length measures what Windows measures.
     return key, value
 
 
@@ -625,9 +620,13 @@ def set_file_callback(ctx, param, value):
 def set_file_option() -> click.Option:
     """A fresh `--set-file` option. Click parameters must not be shared between commands.
 
-    `is_eager` is not cosmetic. Click processes eager parameters first, and
-    `set_option_callback` below has to see `ctx.meta` already filled to decide
-    whether an update changes anything at all.
+    `is_eager` makes the order a rule rather than a coincidence.
+    `set_option_callback` below needs `ctx.meta` filled before it runs, and
+    without the flag that happens only because of how Click sorts: eager first,
+    then by position on the command line, then the rest — a `--set` that was not
+    passed sorts last anyway. It would work today (checked against the installed
+    Click in review 2026-09-24), by way of a rule about argument order that
+    nobody would think to preserve.
     """
     return click.Option(
         ["--set-file"], multiple=True, metavar="FIELD=PATH", expose_value=False,

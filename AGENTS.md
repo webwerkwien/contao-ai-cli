@@ -426,8 +426,10 @@ list, table and link examples need a different form** — see *Structured fields
 
 Every command that takes `--set` also takes `--set-file`, and the two mix freely. The file
 is read as **UTF-8** and passed through unchanged: no trimming, no line-ending translation,
-a trailing newline included. Use it for anything long or multi-line — head HTML, a block of
-markup, a teaser with paragraphs.
+a trailing newline included. A leading byte-order mark is the one exception — it is dropped,
+because PowerShell writes one by default and a BOM in `tl_page.head` would land in the
+page's `<head>`. Use it for anything long or multi-line — head HTML, a block of markup, a
+teaser with paragraphs.
 
 This is not only convenience. The CLI quotes a value correctly once it has one, but
 everything *before* the CLI is the caller's own shell, and carrying quotes, `$`, backticks
@@ -435,10 +437,16 @@ and newlines through it intact is the least reliable part of the chain (issue #5
 from live work 2026-09-24). `--set-file` removes that part.
 
 Refused, with nothing written: a field given by both `--set` and `--set-file`; the same
-field twice; a file that is missing or not UTF-8. **On Windows, a value above ~32 000
-characters once quoted** — it travels inside the SSH command line, and Windows caps that at
-32 767 characters for the whole invocation (measured, not quoted from documentation). There
-is no such cap on Linux or macOS.
+field twice; a file that is missing or not UTF-8.
+
+> ⚠️ **On Windows there is a size limit, and it belongs to the whole command, not to one
+> value.** CreateProcessW takes at most 32 767 characters for the entire line, so several
+> `--set-file` values add up and quotation marks in markup count double (`subprocess`
+> escapes every `"`). The CLI measures the line it is about to start and refuses above
+> 32 000 with *"too long for Windows … Nothing was sent to the server"* — split the change
+> into several commands. There is no such limit on Linux or macOS. The first version of this
+> guard measured one value at a time and let 30 000 characters of HTML with 1 600 quotes
+> through; it is written down because the wrong measurement looked exactly as convincing.
 
 `--set` is no longer `required` on the update commands, because `--set-file` alone is a
 complete instruction. Passing neither is still refused, and still before the connection is
