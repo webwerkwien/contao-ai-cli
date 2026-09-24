@@ -318,11 +318,23 @@ server at all and current, independent of whether this session has a token for i
 
 ### `health --json` has a `composer` key (new in v1.1.0)
 
-`{"via": "contao-manager" | "composer", "command": "…"}` — how Composer is reached on
-*this* site, and the exact command to reach it with. It is not an update line; it exists
-so nothing has to be guessed when a package has to be installed. See "Installing an
-extension this CLI does not manage" below. `via: null` means the server could not be
-looked at, never "there is no Composer".
+How Composer is reached on *this* site, and the exact command to reach it with. It is not
+an update line; it exists so nothing has to be guessed when a package has to be installed.
+See "Installing an extension this CLI does not manage" below.
+
+| key | meaning |
+|---|---|
+| `via` | `contao-manager` or `composer`. **`null` means the server could not be looked at**, never "there is no Composer" |
+| `command` | the exact command — the same string `bundle install` runs, so the documented and the executed one cannot drift |
+| `managerPhar` | path to the manager phar, or `null` |
+| `managerBundle` | whether `contao/manager-bundle` is in `composer.lock` |
+| `note` | present only when the two signals need explaining — read it before acting |
+
+> ⚠️ **`via: "composer"` has two quite different causes, and only `note` tells them apart**
+> (issue #59). A Managed Edition with no manager installed — plain Composer is then the
+> right route. Or a manager phar whose config directory is missing, where plain Composer
+> writes into `composer.json` past the manager. Unlike `bundle install`, which is caught a
+> step later by its allow-plugins check, this advice has nothing behind it.
 
 ## Step 3: Use JSON output for machine-readable results
 

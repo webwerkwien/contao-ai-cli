@@ -33,10 +33,20 @@ against any version.
   in `unfilteredHtml`, so `record list --fields=html` answers an empty value for the latter
   with nothing to distinguish "empty" from "wrong field".
 - **`health --json` has a `composer` key** ([#58](https://github.com/webwerkwien/contao-ai-cli/issues/58)):
-  `{"via": "contao-manager"|"composer", "command": "…"}` — how Composer is reached on this
-  site, and the exact command. `via: null` means the server could not be looked at, never
-  "there is no Composer". The string comes from the same function `bundle install` runs, so
-  the documented command and the executed one cannot drift apart.
+  `via`, `command`, `managerPhar`, `managerBundle` and, where the signals need explaining,
+  `note`. `via: null` means the server could not be looked at, never "there is no Composer".
+  The command string comes from the same function `bundle install` runs, so the documented
+  command and the executed one cannot drift apart.
+  **`via: "composer"` has two causes and only `note` tells them apart**
+  ([#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)): a Managed Edition with no
+  manager installed, where plain Composer is correct — or a manager phar whose config
+  directory is missing, where plain Composer writes past the manager. `bundle install` is
+  caught a step later by its allow-plugins check; this advice had nothing behind it, and the
+  text said "no Contao Manager found" in both cases. Detection is unchanged on purpose: it
+  has to keep agreeing with what `bundle install` would run. Measured read-only across all
+  five reachable installations — three full ones detected correctly, the two console-only
+  Contao 5.3 and 6.0 testbeds are Managed Editions without the tool, and the dangerous
+  combination occurs on none of them.
 
 - **A command line too long for Windows is refused before it is started.** CreateProcessW
   takes 32767 characters for the whole line; above 32000 the CLI answers *"too long for

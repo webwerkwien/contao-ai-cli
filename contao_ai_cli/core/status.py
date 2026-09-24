@@ -64,7 +64,8 @@ def collect_status(session_path: str) -> dict:
     # tells a caller how to install an extension this CLI does not manage, and
     # guessing it wrong on a Managed Edition means going behind the manager's back
     # (issue #58). `via` is None only when we could not look.
-    composer_status: dict = {"via": None, "command": None}
+    composer_status: dict = {"via": None, "command": None,
+                             "managerPhar": None, "managerBundle": None}
     # None = could not look, which is not the same as "not installed".
     backend_installed: bool | None = None
 
@@ -101,7 +102,25 @@ def collect_status(session_path: str) -> dict:
         composer_status = {
             "via": "contao-manager" if phar else "composer",
             "command": composer_command(backend, phar),
+            # The raw signals, because `via` alone cannot tell "no manager anywhere"
+            # from "a manager that cannot be driven from here" (issue #59). Detection
+            # stays as it is: `install_bundle` decides the same way, and the reported
+            # command has to be the one that would actually run.
+            "managerPhar": manager["phar_path"],
+            "managerBundle": manager["manager_bundle"],
         }
+        if manager["phar_path"] and not manager["available"]:
+            composer_status["note"] = (
+                "A Contao Manager phar is present but its config directory is missing, so "
+                "the passthrough cannot be used from here. On a Managed Edition a plain "
+                "`composer require` writes into composer.json past the manager -- open the "
+                "manager once in the browser, or install through it."
+            )
+        elif not manager["phar_path"] and manager["manager_bundle"]:
+            composer_status["note"] = (
+                "Managed Edition (contao/manager-bundle is in the lock file) with no Contao "
+                "Manager installed. Plain composer is the only route here and the right one."
+            )
     except ContaoBackendError as e:
         core_status = {"reachable": False, "reason": f"no active session ({e})"}
     except Exception as e:  # noqa: BLE001 - a status must never kill the command that asks

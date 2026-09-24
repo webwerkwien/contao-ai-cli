@@ -82,7 +82,12 @@ def health(ctx):
     if composer_status["via"] == "contao-manager":
         click.echo(f"  Composer  via Contao Manager: {composer_status['command']}")
     elif composer_status["via"] == "composer":
-        click.echo("  Composer  plain composer (no Contao Manager found)")
+        # "no Contao Manager found" was wrong in two different ways, both of them
+        # quiet: a phar that cannot be driven, and a Managed Edition without the
+        # tool. status.collect_status writes the distinction into `note` (issue #59).
+        click.echo("  Composer  plain composer")
+    if composer_status.get("note"):
+        click.echo(click.style(f"            {composer_status['note']}", fg="yellow"))
 
     state = bridge_status["state"]
     if state == "ready":

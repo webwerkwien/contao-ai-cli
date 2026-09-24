@@ -61,7 +61,8 @@ class TestTheRefusalIsASignpost:
 
 
 class TestHealthNamesTheComposerRoute:
-    def _status(self, tmp_path, manager_available, phar="public/contao-manager.phar.php"):
+    def _status(self, tmp_path, manager_available, phar="public/contao-manager.phar.php",
+                manager_bundle=True):
         backend = MagicMock()
         backend.php_path = "/usr/bin/php8.3"
         with patch("contao_ai_cli.core.status.check_cli_update",
@@ -73,27 +74,64 @@ class TestHealthNamesTheComposerRoute:
                                  "contao/core-bundle": "5.7.13"}), \
              patch("contao_ai_cli.core.status.get_bundle_latest_version", return_value="1.1.0"), \
              patch("contao_ai_cli.core.status.detect_contao_manager",
-                   return_value={"phar_path": phar if manager_available else None,
+                   return_value={"phar_path": phar,
                                  "config_dir": manager_available,
-                                 "manager_bundle": manager_available,
+                                 "manager_bundle": manager_bundle,
                                  "available": manager_available}):
             return collect_status(str(tmp_path / "none.json"))
+
+    def test_a_phar_that_cannot_be_driven_is_not_reported_as_no_manager(self, tmp_path):
+        """Issue #59: unlike bundle install, this advice has no allow-plugins net behind it.
+
+        Measured 2026-09-24: none of the five reachable installations is in this
+        state. The test exists because the *consequence* is a plain `composer
+        require` on a Managed Edition, written past the manager.
+        """
+        composer = self._status(tmp_path, manager_available=False)["composer"]
+        assert composer["via"] == "composer"
+        assert composer["managerPhar"] == "public/contao-manager.phar.php"
+        assert "phar is present" in composer["note"]
+        assert "past the manager" in composer["note"]
+
+    def test_a_managed_edition_without_the_tool_says_so(self, tmp_path):
+        """The state c5-contao53 and c5-contao6 are actually in (measured 2026-09-24)."""
+        composer = self._status(tmp_path, manager_available=False, phar=None,
+                                manager_bundle=True)["composer"]
+        assert composer["via"] == "composer"
+        assert composer["managerPhar"] is None and composer["managerBundle"] is True
+        assert "Managed Edition" in composer["note"]
+        assert "the right one" in composer["note"]
+
+    def test_the_text_output_no_longer_claims_there_is_no_manager(self, tmp_path):
+        """The old line said "no Contao Manager found", which was wrong in both cases above."""
+        from contao_ai_cli.cli import cli_health
+        from click.testing import CliRunner as _CliRunner
+        state = self._status(tmp_path, manager_available=False)
+        with patch("contao_ai_cli.cli.cli_health.collect_status", return_value=state):
+            out = _CliRunner().invoke(cli_health.health, [], obj={}).output
+        assert "no Contao Manager found" not in out
+        assert "phar is present" in out
 
     def test_a_managed_edition_answers_the_passthrough(self, tmp_path):
         composer = self._status(tmp_path, manager_available=True)["composer"]
         assert composer["via"] == "contao-manager"
         assert composer["command"] == "/usr/bin/php8.3 public/contao-manager.phar.php composer"
+        assert "note" not in composer
 
     def test_without_a_manager_it_answers_plain_composer(self, tmp_path):
-        composer = self._status(tmp_path, manager_available=False)["composer"]
-        assert composer == {"via": "composer", "command": "composer"}
+        composer = self._status(tmp_path, manager_available=False, phar=None,
+                                manager_bundle=False)["composer"]
+        assert composer["via"] == "composer"
+        assert composer["command"] == "composer"
+        assert "note" not in composer
 
     def test_an_unreachable_server_says_it_could_not_look(self, tmp_path):
         """`via: null` must not read as "this site has no Composer"."""
         with patch("contao_ai_cli.core.status.check_cli_update",
                    return_value={"current": "1.1.0", "latest": None, "update_available": False}):
             composer = collect_status(str(tmp_path / "none.json"))["composer"]
-        assert composer == {"via": None, "command": None}
+        assert composer == {"via": None, "command": None,
+                            "managerPhar": None, "managerBundle": None}
 
     def test_the_reported_command_is_the_one_we_would_run(self):
         """Two copies of this string would be a documented command we do not execute."""
