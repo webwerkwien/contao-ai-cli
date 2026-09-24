@@ -6,9 +6,11 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 ## v1.1.0 - 2026-09-24
 
-Four findings from live work on web.werk.wien. `schema palette` needs
-contao-ai-core-bundle **v0.16.0** or newer on the target site; everything else works
-against any version.
+Five findings from live work on web.werk.wien ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
+plus two defects in released versions that surfaced while building them
+([#60](https://github.com/webwerkwien/contao-ai-cli/issues/60), [#61](https://github.com/webwerkwien/contao-ai-cli/issues/61)).
+`schema palette` needs contao-ai-core-bundle **v0.16.0** or newer on the target site;
+everything else works against any version.
 
 ### Added
 
@@ -48,7 +50,8 @@ against any version.
   Contao 5.3 and 6.0 testbeds are Managed Editions without the tool, and the dangerous
   combination occurs on none of them.
 
-- **A command line too long for Windows is refused before it is started.** CreateProcessW
+- **A command line too long for Windows is refused before it is started**
+  ([#61](https://github.com/webwerkwien/contao-ai-cli/issues/61)). CreateProcessW
   takes 32767 characters for the whole line; above 32000 the CLI answers *"too long for
   Windows … Nothing was sent to the server"* instead of letting the `OSError` reach the
   top-level handler, which would file it as a defect. No such limit applies on Linux or
@@ -64,8 +67,10 @@ against any version.
   `--set` by hand and never called `parse_set_fields()`, which is the only place the
   `--set-file` values are picked up — so they accepted the option, wrote nothing and
   answered `status: ok`. Found by the pre-release review. `user update` also stopped
-  silently discarding a malformed `--set`: `--set disable 1` used to report a successful
-  update that changed nothing, and is now refused.
+  silently discarding a malformed `--set`
+  ([#60](https://github.com/webwerkwien/contao-ai-cli/issues/60), a defect in every version
+  up to v1.0.2): `--set disable 1` used to report a successful update that changed nothing,
+  and is now refused.
 - **`bundle install <foreign package>` points somewhere instead of just refusing**
   ([#57](https://github.com/webwerkwien/contao-ai-cli/issues/57)). It answered Click's
   generic `invalid choice`; it now names the Contao Manager passthrough, the dry run, the
