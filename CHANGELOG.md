@@ -6,7 +6,7 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 ## v1.1.0 - 2026-09-24
 
-Five findings from live work on web.werk.wien ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
+Five findings from live use ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
 plus two defects in released versions that surfaced while building them
 ([#60](https://github.com/webwerkwien/contao-ai-cli/issues/60), [#61](https://github.com/webwerkwien/contao-ai-cli/issues/61)).
 `schema palette` needs contao-ai-core-bundle **v0.16.0** or newer on the target site;

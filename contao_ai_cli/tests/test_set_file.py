@@ -1,7 +1,7 @@
 """
 `--set-file FIELD=PATH` — a field value read from a file instead of the command line.
 
-Issue #55. Reported from live work on web.werk.wien: the head HTML of a page could
+Issue #55. Reported from live use: the head HTML of a page could
 only be passed as a literal, so the caller's own shell had to carry quotes, `$`,
 backticks and newlines intact. The CLI never damaged such a value — `build_set_args`
 quotes it and `join_args` carries the comment about not touching it afterwards — but
