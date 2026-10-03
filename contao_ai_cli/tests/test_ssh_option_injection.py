@@ -115,7 +115,9 @@ def test_scp_separates_its_operands_too():
 
 def test_an_ordinary_session_still_works():
     # The guard has to let normal values through, or it is just an outage.
-    args = make_backend(user="web_werk_wien_SSH", host="5.9.34.63", port=2222)._ssh_args()
+    # Underscore, capitals and an IP, as real hosting logins look. The address is
+    # from the documentation range (RFC 5737); until v1.1.1 this held a real login.
+    args = make_backend(user="site_user_SSH", host="203.0.113.10", port=2222)._ssh_args()
 
-    assert "web_werk_wien_SSH@5.9.34.63" in args
+    assert "site_user_SSH@203.0.113.10" in args
     assert "2222" in args

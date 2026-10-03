@@ -123,7 +123,13 @@ def _composer_excerpt(text: str) -> str:
     head: list[str] = []
     budget = COMPOSER_EXCERPT_CHARS - sum(len(t) + 1 for t in tail)
     for line in lines[:len(lines) - len(tail)]:
-        if sum(len(h) + 1 for h in head) + len(line) > budget:
+        used = sum(len(h) + 1 for h in head)
+        if used + len(line) > budget:
+            # A reason longer than the room left is cut, not dropped -- otherwise
+            # one giant line leaves only the marker where the reason was.
+            room = budget - used - 1
+            if room > 80:
+                head.append(line[:room] + "…")
             break
         head.append(line)
     return "\n".join(head + ["    …"] + tail)

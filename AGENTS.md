@@ -969,7 +969,7 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
   to `--type root`; any other page stores none and takes its root's language at runtime,
   as a page created in the back end does. Up to v0.21.1 every page stored `de`. An
   explicit `--set language=` is still written as given — the rule covers the default.
-- **The operator in `tl_version` and `tl_log` is the SSH user** (e.g. `c155929_C5`), with
+- **The operator in `tl_version` and `tl_log` is the SSH user** (e.g. `web123_ssh`), with
   `source = CLI` in the log — not a Contao back-end user. The back-end bundle passes the
   Contao user through `--operator`.
 - **`tl_log.text` is HTML-encoded** (`&quot;`) — Contao encodes log input. Decode before

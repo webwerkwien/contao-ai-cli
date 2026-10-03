@@ -1,4 +1,7 @@
-"""A failed shell command shows the end of its stderr, without PHP start-up noise.
+"""A failed shell command shows the part of its stderr that explains it, without PHP start-up noise.
+
+For most output that is the end. For a Composer problem report it is the whole problem
+block minus the lines that explain nothing (v1.1.1, #63) -- see COMPOSER_53 below.
 
 c5, 2026-09-19: `bundle update core` against backend-bundle v0.9.1 failed, and the
 message showed an imagick.so start-up warning plus "./composer.json has been
@@ -145,6 +148,38 @@ def test_an_oversized_problem_block_keeps_its_head_and_its_end():
     assert text.endswith("to their original content."), "and so does the verdict"
     assert "…" in text
     assert "vendor/pkg40 1.0" not in text, "the middle goes"
+
+
+def test_a_single_reason_longer_than_the_room_is_cut_not_dropped():
+    """Review 2026-10-03: one 6000-character reason vanished entirely, the marker stood in for it."""
+    block = ("Your requirements could not be resolved to an installable set of packages.\n\n"
+             "  Problem 1\n"
+             "    - vendor/giant 1.0 requires x/y ^9 -> found x/y[" + "9.0, " * 1200 + "] but it conflicts.\n\n"
+             "Installation failed, reverting ./composer.json and ./composer.lock to their original content.")
+    text = stderr_excerpt(block)
+    assert "vendor/giant 1.0 requires x/y ^9" in text
+    assert len(text) <= COMPOSER_EXCERPT_CHARS + 200
+    assert text.endswith("to their original content.")
+
+
+def test_the_real_path_carries_stderr_into_the_bundle_answer():
+    """Review 2026-10-03 (rule 25): the other test builds the error itself. This one lets
+    run_raw raise it, through composer_bundle, into install_bundle's answer."""
+    from contao_ai_cli.core import bundles
+    backend = ContaoBackend.__new__(ContaoBackend)
+    backend.contao_root = "/var/www"
+    backend.php_path = "php"
+    with patch.object(ContaoBackend, "_ssh_args", return_value=["ssh"]), \
+         patch.object(ContaoBackend, "run", return_value={"returncode": 0, "stdout": "", "stderr": ""}), \
+         patch.object(bundles, "get_installed_package_versions", return_value={bundles.BACKEND_BUNDLE: None}), \
+         patch.object(bundles, "detect_contao_manager", return_value={"available": True, "phar_path": "p"}), \
+         patch("contao_ai_cli.utils.contao_backend.subprocess.run",
+               return_value=MagicMock(returncode=2, stdout="", stderr=IMAGICK + "\n" + COMPOSER_53)) as run:
+        result = bundles.install_bundle(backend, "backend", "install")
+    assert "composer require" in run.call_args[0][0][-1], "the composer call itself went through run_raw"
+    assert result["status"] == "error"
+    assert "fixed to v6.4.30" in result["message"]
+    assert "satisfiable by" in result["stderr"] and "imagick" not in result["stderr"]
 
 
 def test_non_composer_output_still_keeps_its_end():

@@ -73,7 +73,7 @@ def mask(text: str, *known_secrets: str) -> str:
 def shorten_path(path: str) -> str:
     """Locate the code without describing the machine.
 
-    An absolute path names the user (`C:\\Users\\booki\\...`, `/home/michael/...`)
+    An absolute path names the user (`C:\\Users\\<name>\\...`, `/home/<name>/...`)
     and says nothing a maintainer needs. Everything from `contao_ai_cli/` on is
     kept because that is the part that identifies our code; anything else is
     reduced to its file name.

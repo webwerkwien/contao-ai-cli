@@ -29,7 +29,10 @@ Needs no newer contao-ai-core-bundle.
   error class behind it (`ContaoBackendError`) carries the same text as `.stderr`.
 - Installation names were removed from older changelog entries, code comments and test
   docstrings ([#62](https://github.com/webwerkwien/contao-ai-cli/issues/62)). The evidence
-  stays — "found on a live installation" — the hostname goes.
+  stays — "found on a live installation" — the hostname goes. The pre-release review found
+  one the search had missed: a test held a real SSH login and server address as its
+  example of an ordinary session; it now uses a made-up login and a documentation address
+  (RFC 5737). Two example paths and an example SSH user in the guide went the same way.
 
 ## v1.1.0 - 2026-09-24
 
