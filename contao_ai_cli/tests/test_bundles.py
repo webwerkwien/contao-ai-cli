@@ -119,7 +119,7 @@ def test_a_composer_failure_is_an_answer_not_a_traceback():
 
 
 def test_update_crosses_into_1x_via_require_with_the_readme_constraint():
-    """Live on web.werk.wien, 2026-09-17 (Nr. 52): v0.21.1 required `^0.20.0` and so
+    """On a live installation, 2026-09-17 (Nr. 52): v0.21.1 required `^0.20.0` and so
     overwrote the house constraint `>=0.2 <1.0` -- the next minor would again be out of
     reach for the Contao Manager and `composer update`. Since v1.0.0 the core bundle is 1.x:
     a site on `>=0.2 <1.0` gets `^1.0` on its next update, which reaches every 1.x minor."""

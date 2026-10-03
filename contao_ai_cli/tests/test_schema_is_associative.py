@@ -3,7 +3,7 @@
 Contao's `tl_page.useSSL` declares `array('http://', 'https://')` with
 `isAssociative` and stores 0/1. `schema show` listed the labels, so a caller
 building `--set useSSL=...` from it had nothing it could pass (Nr. 53, found
-live on web.werk.wien on 2026-09-17; the core bundle refused `useSSL=1` for the
+on a live installation on 2026-09-17; the core bundle refused `useSSL=1` for the
 same reason and is fixed in v0.21.1).
 
 The field definitions below are what `parse_vardump` makes of

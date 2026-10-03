@@ -23,8 +23,8 @@ def page_tree(backend: ContaoBackend, root: int | None = None, depth: int | None
     The page tree, built on the server.
 
     Used to be a SELECT over every page, nested in Python. That could not move
-    to record:list — its 100-row cap is passed by any real site (wienerwandern.at
-    has 283 pages).
+    to record:list — its 100-row cap is passed by any real site (one live
+    installation has 283 pages).
 
     **The cap was never the real problem.** Paginating around it would still
     put 80 KB of JSON in front of the caller, for a question that is almost

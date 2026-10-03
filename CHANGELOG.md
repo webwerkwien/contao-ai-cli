@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.1.1 - 2026-10-03
+
+Needs no newer contao-ai-core-bundle.
+
+### Fixed
+
+- **A refused Composer run showed the wrong reason** ([#63](https://github.com/webwerkwien/contao-ai-cli/issues/63)).
+  `bundle install` and `bundle update` kept the last 1500 characters of Composer's output,
+  on the assumption that tools put the verdict last. Composer's reasons sit inside its
+  `Problem N` block, one line per constraint, and the block grows with every release of the
+  package. On a Contao 5.3 installation the output was 2879 characters; the two reasons
+  that mattered (`symfony/clock` and `contao/core-bundle` held by the lock file) were cut
+  off, and what stayed — lines about long-gone releases — named the core constraint as the
+  problem. A Composer problem report is now kept whole, minus progress lines and the
+  `-> satisfiable by` lines that say a part is fine; only past 4000 characters is the
+  middle cut, between lines, keeping the first reasons and the verdict. Other failures keep
+  their end, as before.
+
+### Changed
+
+- **A failed `bundle install|update` reports Composer's whole output in a new `stderr`
+  key**, cleaned of PHP's start-up warnings but not cut. `message` keeps the excerpt. The
+  error class behind it (`ContaoBackendError`) carries the same text as `.stderr`.
+- Installation names were removed from older changelog entries, code comments and test
+  docstrings ([#62](https://github.com/webwerkwien/contao-ai-cli/issues/62)). The evidence
+  stays — "found on a live installation" — the hostname goes.
+
 ## v1.1.0 - 2026-09-24
 
 Five findings from live use ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
@@ -387,7 +414,7 @@ Pairs with **contao-ai-core-bundle v0.21.1**, which accepts `--set useSSL=1`.
 - **`schema show` listed the labels of an `eval.isAssociative` list as its values.**
   `tl_page.useSSL` came back as `["http://", "https://"]`, none of which can be set; it now
   answers `{"0": "http://", "1": "https://"}`, the same value-to-label shape as a resolved
-  callback. Found live on web.werk.wien in the ConpAI 1.0 acceptance test (Nr. 53).
+  callback. Found on a live installation in the ConpAI 1.0 acceptance test (Nr. 53).
 - **Integer option keys that are not 0..n-1 were read as positions.** `array(6 => 'Hero')`
   came back as `["Hero"]`; it now answers `{"6": "Hero"}` (review before this release).
 
@@ -413,7 +440,7 @@ Requires **contao-ai-core-bundle v0.21.0** for `template delete` and a logged `c
 ### Fixed
 
 - **`bundle update core` overwrote the constraint in `composer.json`** with `^<latest>` — on
-  web.werk.wien `>=0.2 <1.0` became `^0.20.0`, so the next minor was out of reach for the
+  a live installation `>=0.2 <1.0` became `^0.20.0`, so the next minor was out of reach for the
   Contao Manager and `composer update` again. `bundle install core` had the same effect
   through Composer's own `^0.x`. Both commands now write the range each bundle's README
   recommends — core `>=0.2 <1.0`, backend `>=0.1 <1.0` — and name it in the answer
@@ -1117,7 +1144,7 @@ came out of that.
   - **a truncated listing says so** — `count` against `total`. The server caps at 100 rows and defaults to 20; `--limit` and `--offset` exist on every listing now
   - **column names are checked against the DCA**, so a wrong one is refused by name
 
-- **`page tree` is answered by the server** (`contao:page:tree`). It could not move to `record:list`: the 100-row cap is passed by any real site — wienerwandern.at has 283 pages. But the cap was never the real problem; paginating around it would still hand the caller **80 KB** of JSON for a question that is almost never "all 283 pages".
+- **`page tree` is answered by the server** (`contao:page:tree`). It could not move to `record:list`: the 100-row cap is passed by any real site — one live installation has 283 pages. But the cap was never the real problem; paginating around it would still hand the caller **80 KB** of JSON for a question that is almost never "all 283 pages".
 
   Contao answers it the same way — the back end tree renders one level and keeps the expanded state per node. So depth is the control: **two levels by default**, `--root` to descend into a branch, `--depth` for more. `truncated` says whether pages exist below the cut, so a depth-limited tree cannot be mistaken for a complete one.
 
@@ -1424,7 +1451,7 @@ Suite: 349 tests, 16 skipped (325 before).
 
 - **`health` reported "Bridge not configured" for a server that had no bridge at all.** The line was derived solely from whether the session file carried a `bridge_url` and `bridge_token`; whether contao-ai-backend-bundle was actually installed on the target was never checked. Both cases printed the same words, and they call for opposite next steps - "not configured" reads as *installed, needs a token*, so you go and set a token into nothing.
 
-  Found during the live rollout on web.werk.wien: `health` said exactly the same thing before and after the bundle was installed.
+  Found during a live rollout: `health` said exactly the same thing before and after the bundle was installed.
 
   The bridge line now has three states - `not installed`, `installed, not configured`, `ready` - plus `unknown` when the server could not be reached, which is not the same as "not installed" and no longer pretends to be. A session that carries a token for a server without the bundle is called out explicitly rather than reported as ready.
 
@@ -1436,7 +1463,7 @@ Suite: 349 tests, 16 skipped (325 before).
 
 ### Notes
 
-Verified live against c5 (both bundles present -> `ready`) and web.werk.wien (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
+Verified against the test server (both bundles present -> `ready`) and a live installation (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
 
 ## v0.5.0 — 2026-08-24
 

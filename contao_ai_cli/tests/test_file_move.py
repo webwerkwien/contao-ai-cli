@@ -1,6 +1,6 @@
 """`file move --path … --to <folder>`: move as cut and paste in the back end, UUID kept.
 
-Live on web.werk.wien on 2026-09-17 (ConpAI 1.0, Nr. 64): the site's files were to go
+On a live installation on 2026-09-17 (ConpAI 1.0, Nr. 64): the site's files were to go
 into `files/conpai-consho/layout`, and there was no way to move a file. Deleting and
 writing anew changes the UUID, and every image element pointing at it renders nothing.
 The core-bundle command (v0.23.0) keeps the UUIDs and reports `pathUsages` — texts that

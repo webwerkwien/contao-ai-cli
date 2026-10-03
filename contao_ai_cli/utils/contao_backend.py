@@ -84,19 +84,73 @@ def _stdin_kwargs(stdin_data: str | None) -> dict:
 _PHP_STARTUP_NOISE = re.compile(
     r'^PHP (Warning|Notice|Deprecated):\s+(PHP Startup:|Module "[^"]+" is already loaded).*$', re.M)
 STDERR_EXCERPT_CHARS = 1500
+COMPOSER_EXCERPT_CHARS = 4000
+
+# Where Composer's explanation starts. Everything above it is progress
+# ("Loading composer repositories…", "Updating dependencies").
+_COMPOSER_UNRESOLVABLE = "Your requirements could not be resolved"
+_COMPOSER_PROBLEM = re.compile(r"^\s*Problem \d+\s*$", re.M)
+
+
+def clean_stderr(stderr: str | None) -> str:
+    """stderr without PHP's start-up noise and without blank lines, otherwise whole."""
+    text = _PHP_STARTUP_NOISE.sub("", stderr or "")
+    return "\n".join(line for line in text.splitlines() if line.strip()).strip()
+
+
+def _composer_excerpt(text: str) -> str:
+    """Composer's problem report, kept whole minus the lines that explain nothing.
+
+    Composer lists every constraint of the failed resolution as one `- …` line.
+    A line ending in `-> satisfiable by …` says that part is fine; the reasons
+    are the lines with a `but` (`fixed to … (lock file version)`, `conflicts
+    with`, `were not loaded`). Which of them is *the* reason Composer does not
+    say, and the order is not by importance, so all of them stay.
+    """
+    text = text[text.index(_COMPOSER_UNRESOLVABLE):]
+    lines = [line for line in text.splitlines()
+             if not ("-> satisfiable by" in line and " but " not in line)]
+    if sum(len(line) + 1 for line in lines) <= COMPOSER_EXCERPT_CHARS:
+        return "\n".join(lines)
+
+    # Still too long: keep the head (the first reasons) and the end (the
+    # verdict), drop the middle, and cut only between lines.
+    tail: list[str] = []
+    for line in reversed(lines):
+        if sum(len(t) + 1 for t in tail) + len(line) > COMPOSER_EXCERPT_CHARS // 4:
+            break
+        tail.insert(0, line)
+    head: list[str] = []
+    budget = COMPOSER_EXCERPT_CHARS - sum(len(t) + 1 for t in tail)
+    for line in lines[:len(lines) - len(tail)]:
+        if sum(len(h) + 1 for h in head) + len(line) > budget:
+            break
+        head.append(line)
+    return "\n".join(head + ["    …"] + tail)
 
 
 def stderr_excerpt(stderr: str) -> str:
-    """The part of a failed shell command's stderr worth showing: its end.
+    """The part of a failed shell command's stderr worth showing.
 
     Until v1.0.0 this was the first 500 characters. On c5 a PHP start-up
     warning about imagick.so filled almost all of them, and the reason Composer
     gave for refusing core-bundle 1.0 next to backend-bundle v0.9.1 — at the
     end of its output, as always — was cut off (2026-09-19). Tools put the
     verdict last, so the tail is kept and PHP's start-up noise dropped.
+
+    v1.1.1: for Composer that rule pointed the wrong way. Its reasons sit
+    *inside* the problem block, one line per constraint, and the block grows
+    with every release of the package. On a Contao 5.3 installation (2026-10-03)
+    the output was 2879 characters; the two reasons that mattered began 2460
+    and 1693 characters before the end, and the 1500-character tail kept only
+    lines about long-gone releases — which named the core constraint as the
+    problem, the wrong cause entirely. A Composer problem report is now kept
+    whole, minus the lines that explain nothing (see _composer_excerpt).
+    Everything else keeps its end, as before.
     """
-    text = _PHP_STARTUP_NOISE.sub("", stderr or "")
-    text = "\n".join(line for line in text.splitlines() if line.strip()).strip()
+    text = clean_stderr(stderr)
+    if _COMPOSER_UNRESOLVABLE in text and _COMPOSER_PROBLEM.search(text):
+        return _composer_excerpt(text)
     if len(text) > STDERR_EXCERPT_CHARS:
         text = "…" + text[-STDERR_EXCERPT_CHARS:]
     return text
@@ -119,8 +173,16 @@ class ContaoBackendError(click.ClickException):
     goes to stderr, so scripts and pipelines behave exactly as before. Existing
     `except ContaoBackendError` handlers keep working, and `str(e)` still
     yields the message.
+
+    `stderr` (v1.1.1) carries the server's whole stderr, cleaned of PHP's
+    start-up noise but not cut. The message holds an excerpt that has to guess
+    what matters; a caller that wants to judge for itself reads this instead.
+    `None` where the failure produced no stderr worth keeping (a timeout).
     """
-    pass
+
+    def __init__(self, message: str, stderr: str | None = None):
+        super().__init__(message)
+        self.stderr = stderr or None
 
 
 class ContaoBackend:
@@ -257,7 +319,8 @@ class ContaoBackend:
             excerpt = stderr_excerpt(result.stderr)
             raise ContaoBackendError(
                 f"Shell command failed (exit {result.returncode}). "
-                + (f"Stderr: {excerpt}" if excerpt else "No output from the server.")
+                + (f"Stderr: {excerpt}" if excerpt else "No output from the server."),
+                stderr=clean_stderr(result.stderr),
             )
         return output
 
@@ -321,7 +384,8 @@ class ContaoBackend:
             raise ContaoBackendError(
                 f"Command failed (exit {result.returncode}): {truncated}\n"
                 f"{self._explain_failure(result.stdout, result.stderr)}"
-                f"{self.undefined_command_hint(result.stdout, result.stderr)}"
+                f"{self.undefined_command_hint(result.stdout, result.stderr)}",
+                stderr=clean_stderr(result.stderr),
             )
 
         if json_output:
@@ -400,7 +464,7 @@ class ContaoBackend:
         """
         Why that command might be missing, said only as far as it is known.
 
-        Measured on web.werk.wien (core v0.2.14): `page tree` answered *Command
+        Measured on a live installation (core v0.2.14): `page tree` answered *Command
         "contao:page:tree" is not defined*, which reads like a typo or a broken
         CLI. `health` on the same server says *v0.2.14 -> update available:
         v0.2.33* one command earlier — both numbers were already in reach and

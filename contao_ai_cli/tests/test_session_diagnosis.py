@@ -59,7 +59,7 @@ def test_unknown_session_does_not_blame_the_bundle(session_dir):
 
 def test_unknown_session_names_the_session_and_lists_the_real_ones(session_dir):
     _write_session(session_dir, "c5-axeltest", core_bundle_available=True)
-    _write_session(session_dir, "wienerwandern", core_bundle_available=True)
+    _write_session(session_dir, "example-site", core_bundle_available=True)
 
     with pytest.raises(click.UsageError) as excinfo:
         helpers._require_core_bundle(_Ctx(str(session_dir / "c5.json")), "page read")
@@ -70,7 +70,7 @@ def test_unknown_session_names_the_session_and_lists_the_real_ones(session_dir):
     # And what they could have meant. A dead end that knows the answer and
     # keeps it is the same failure in a smaller form.
     assert "c5-axeltest" in message
-    assert "wienerwandern" in message
+    assert "example-site" in message
 
 
 def test_no_sessions_at_all_points_at_connect(session_dir):

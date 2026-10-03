@@ -14,7 +14,7 @@ BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 
 # The constraint written into composer.json -- per bundle, the range its README recommends.
 # A plain `composer require <pkg>` would write `^0.x`, and `^<latest>` (v0.21.0-v0.21.1)
-# overwrote `>=0.2 <1.0` on web.werk.wien: either caps the next minor for the Contao Manager
+# overwrote `>=0.2 <1.0` on a live installation: either caps the next minor for the Contao Manager
 # and `composer update` (Nr. 52, 2026-09-17).
 # v1.0.0: the core bundle is 1.x, where `^1.0` reaches every minor; a site still on
 # `>=0.2 <1.0` gets it on its next `bundle update core`. The backend bundle is still 0.x,
@@ -118,8 +118,13 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
                         manager["phar_path"] if manager["available"] else None)
         backend.run("cache:warmup --env=prod")
     except ContaoBackendError as e:
-        return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
-                "message": f"{action} failed: {e}"}
+        failed = {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
+                  "message": f"{action} failed: {e}"}
+        # The message carries an excerpt; Composer's whole report goes along
+        # (v1.1.1), so a caller does not depend on what the excerpt kept.
+        if e.stderr:
+            failed["stderr"] = e.stderr
+        return failed
 
     after = get_installed_package_versions(backend, [package])[package]
     if after is None:

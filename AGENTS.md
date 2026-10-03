@@ -212,6 +212,17 @@ all — a probe failure used to fall through and be misreported as a missing
 | `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
 | `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
 | `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `^1.0`, backend `>=0.1 <2.0` |
+| `stderr` | when Composer (or the cache warmup) failed and said something (v1.1.1) | the server's **whole** stderr, without PHP's start-up warnings. `message` holds an excerpt |
+
+**Read `stderr`, not only `message`, when Composer refuses.** `message` carries an excerpt,
+and an excerpt has to guess what matters. For a Composer problem report it keeps the whole
+`Problem N` block minus the lines that explain nothing (`-> satisfiable by …`, progress), and
+cuts the middle only past 4000 characters. Until v1.1.1 it kept the last 1500 characters, and
+on a Contao 5.3 installation that dropped both real reasons — `symfony/clock` and
+`contao/core-bundle` held by the lock file — while keeping lines about long-gone releases that
+named the core constraint, the wrong cause. Which line of a problem block is *the* reason,
+Composer does not say: the ones with a `but` (`fixed to … (lock file version)`, `conflicts
+with`) are the candidates.
 
 **Both commands write that constraint into `composer.json`** (v0.21.2) — the form each
 bundle's README recommends, so later updates through the Contao Manager or `composer update`
@@ -221,7 +232,7 @@ on its next `bundle update core` (v1.0.0 of this CLI; before it wrote `>=0.2 <1.
 never reaches 1.0). The backend bundle is still 0.x; its range crosses 0.x minors and a
 later 1.x. **Update the backend bundle first** where it is installed: up to its v0.9.1 it
 requires core `<1.0`, and Composer refuses core 1.0 next to it. Up to v0.21.1 `bundle
-update core` wrote `^<latest>` (on web.werk.wien it turned `>=0.2 <1.0` into `^0.20.0`) and
+update core` wrote `^<latest>` (on a live installation it turned `>=0.2 <1.0` into `^0.20.0`) and
 `bundle install core` Composer's own `^0.x` — both capped the next minor.
 
 Success is reported only once the new version has been **read back** from the server —
@@ -1146,7 +1157,7 @@ bytes often came out as `null`, which looked like a missing reference.
 
 **`page tree` is its own command** (`contao:page:tree`): the tree is built server-side,
 level by level, because `record:list` caps at 100 rows and a real site passes that —
-wienerwandern.at has 283 pages. Two levels by default; `truncated` says whether pages
+one live installation has 283 pages. Two levels by default; `truncated` says whether pages
 exist below the cut, so a depth-limited tree cannot be mistaken for a complete one. Use
 `--root` to descend into one branch, `--depth` for more levels.
 

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from contao_ai_cli.utils.contao_backend import (
-    STDERR_EXCERPT_CHARS, ContaoBackend, ContaoBackendError, stderr_excerpt,
+    COMPOSER_EXCERPT_CHARS, STDERR_EXCERPT_CHARS, ContaoBackend, ContaoBackendError, stderr_excerpt,
 )
 
 IMAGICK = ("PHP Warning:  PHP Startup: Unable to load dynamic library 'imagick.so' (tried: "
@@ -71,6 +71,114 @@ def test_only_noise_says_so_instead_of_an_empty_message():
 def test_console_failure_without_json_uses_the_same_excerpt():
     assert ContaoBackend._explain_failure("", IMAGICK + "\nSQLSTATE[HY000] [2002] Connection refused") \
         == "Stderr: SQLSTATE[HY000] [2002] Connection refused"
+
+
+# Measured 2026-10-03: `bundle install backend` on a Contao 5.3 installation. 2879
+# characters without the imagick lines. The two reasons that matter -- symfony/clock
+# held at 6.4 (line 9) and contao/core-bundle held at 5.3 (line 12) -- began 2460 and
+# 1693 characters before the end, so the 1500-character tail kept neither. What it did
+# keep were the lines about long-gone backend releases and the core constraint, which
+# point at the wrong cause entirely.
+COMPOSER_53 = """./composer.json has been updated
+Running composer update webwerkwien/contao-ai-backend-bundle
+Loading composer repositories with package information
+Updating dependencies
+Your requirements could not be resolved to an installable set of packages.
+
+  Problem 1
+    - Root composer.json requires webwerkwien/contao-ai-backend-bundle >=0.1 <2.0 -> satisfiable by webwerkwien/contao-ai-backend-bundle[v0.1.0, ..., v0.10.0].
+    - symfony/ai-bundle v0.13.0 requires symfony/clock ^7.3|^8.0 -> found symfony/clock[v7.3.0, v7.3.8, v7.4.0, v7.4.8, v8.0.0, v8.0.8, v8.1.0] but the package is fixed to v6.4.30 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.
+    - webwerkwien/contao-ai-backend-bundle[v0.1.0, ..., v0.1.5] require webwerkwien/contao-ai-core-bundle ^0.2 -> found webwerkwien/contao-ai-core-bundle[v0.2.0, ..., v0.2.38] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle v0.1.6 requires webwerkwien/contao-ai-core-bundle ^0.2.38 -> found webwerkwien/contao-ai-core-bundle[v0.2.38] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle v0.10.0 requires contao/core-bundle ^5.7 || ^6.0 -> found contao/core-bundle[5.7.0, ..., 5.7.13, 6.0.0, 6.0.1, 6.0.2] but the package is fixed to 5.3.51 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.
+    - webwerkwien/contao-ai-backend-bundle[v0.2.0, ..., v0.3.0] require webwerkwien/contao-ai-core-bundle >=0.2.38 <1.0 -> found webwerkwien/contao-ai-core-bundle[v0.2.38, ..., v0.28.0] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle[v0.4.0, ..., v0.6.0] require webwerkwien/contao-ai-core-bundle >=0.4.0 <1.0 -> found webwerkwien/contao-ai-core-bundle[v0.4.0, ..., v0.28.0] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle[v0.7.0, ..., v0.7.1] require webwerkwien/contao-ai-core-bundle >=0.5.0 <1.0 -> found webwerkwien/contao-ai-core-bundle[v0.5.0, ..., v0.28.0] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle[v0.8.0, ..., v0.9.1] require webwerkwien/contao-ai-core-bundle >=0.6.0 <1.0 -> found webwerkwien/contao-ai-core-bundle[v0.6.0, ..., v0.28.0] but it conflicts with your root composer.json require (^1.0).
+    - webwerkwien/contao-ai-backend-bundle[v0.9.2, ..., v0.9.3] require symfony/ai-bundle ^0.13 -> satisfiable by symfony/ai-bundle[v0.13.0].
+
+Use the option --with-all-dependencies (-W) to allow upgrades, downgrades and removals for packages currently locked to specific versions.
+
+Installation failed, reverting ./composer.json and ./composer.lock to their original content."""
+
+
+def test_the_measured_composer_output_is_long_enough_to_have_been_cut():
+    """The counter: if this fixture were short, the tests below would pass by accident."""
+    assert len(COMPOSER_53) > STDERR_EXCERPT_CHARS + 1000
+
+
+def test_composer_keeps_every_reason_in_the_problem_block():
+    text = stderr_excerpt(IMAGICK + "\n" + COMPOSER_53)
+    assert "symfony/clock[v7.3.0" in text and "fixed to v6.4.30" in text
+    assert "contao/core-bundle ^5.7 || ^6.0" in text and "fixed to 5.3.51" in text
+    assert text.endswith("to their original content.")
+
+
+def test_composer_drops_lines_that_explain_nothing():
+    """`-> satisfiable by` says that part is fine; progress lines say nothing at all."""
+    text = stderr_excerpt(COMPOSER_53)
+    assert "satisfiable by" not in text
+    assert "Loading composer repositories" not in text
+    assert "./composer.json has been updated" not in text
+    assert text.startswith("Your requirements could not be resolved")
+    # A known non-match: a reason line that mentions an older release stays.
+    assert "v0.1.6 requires webwerkwien/contao-ai-core-bundle ^0.2.38" in text
+
+
+def test_a_satisfiable_line_with_a_but_is_a_reason():
+    block = ("Your requirements could not be resolved to an installable set of packages.\n\n"
+             "  Problem 1\n"
+             "    - a/b 1.0 requires c/d ^2 -> satisfiable by c/d[2.0] but these were not loaded, "
+             "likely because it conflicts with another require.\n")
+    assert "these were not loaded" in stderr_excerpt(block)
+
+
+def test_an_oversized_problem_block_keeps_its_head_and_its_end():
+    reasons = "\n".join(f"    - vendor/pkg{i} 1.0 requires x/y ^{i} -> found x/y[{i}.0] but it conflicts "
+                        f"with your root composer.json require (^0)." + " pad" * 30 for i in range(80))
+    block = ("Your requirements could not be resolved to an installable set of packages.\n\n"
+             "  Problem 1\n" + reasons +
+             "\n\nInstallation failed, reverting ./composer.json and ./composer.lock to their original content.")
+    text = stderr_excerpt(block)
+    assert len(text) <= COMPOSER_EXCERPT_CHARS + 200
+    assert "vendor/pkg0 1.0" in text, "the first reasons stay"
+    assert text.endswith("to their original content."), "and so does the verdict"
+    assert "…" in text
+    assert "vendor/pkg40 1.0" not in text, "the middle goes"
+
+
+def test_non_composer_output_still_keeps_its_end():
+    text = stderr_excerpt("Problem with the database\n" + "x" * 5000 + "\nthe verdict")
+    assert text.startswith("…") and text.endswith("the verdict")
+
+
+def test_the_error_carries_the_full_cleaned_stderr():
+    """An agent should not depend on a cut that has to guess what matters."""
+    backend = ContaoBackend.__new__(ContaoBackend)
+    backend.contao_root = "/var/www"
+    with patch.object(ContaoBackend, "_ssh_args", return_value=["ssh"]), \
+         patch("contao_ai_cli.utils.contao_backend.subprocess.run",
+               return_value=MagicMock(returncode=2, stdout="", stderr=IMAGICK + "\n" + COMPOSER_53)):
+        with pytest.raises(ContaoBackendError) as e:
+            backend.run_raw("composer require x")
+    assert e.value.stderr is not None
+    assert "imagick" not in e.value.stderr
+    assert "./composer.json has been updated" in e.value.stderr, "full means full, progress lines included"
+    assert "satisfiable by" in e.value.stderr
+
+
+def test_a_failed_bundle_install_reports_the_full_stderr():
+    from contao_ai_cli.core import bundles
+    backend = MagicMock()
+    backend.run.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
+    error = ContaoBackendError("Shell command failed (exit 2). Stderr: cut", stderr="the whole story")
+    with patch.object(bundles, "get_installed_package_versions", return_value={bundles.BACKEND_BUNDLE: None}), \
+         patch.object(bundles, "detect_contao_manager", return_value={"available": True, "phar_path": "p"}), \
+         patch.object(bundles, "composer_bundle", side_effect=error):
+        result = bundles.install_bundle(backend, "backend", "install")
+    assert result["status"] == "error"
+    assert result["stderr"] == "the whole story"
+    assert "cut" in result["message"]
 
 
 def test_run_raw_error_message_carries_the_reason():

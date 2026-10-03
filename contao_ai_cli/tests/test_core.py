@@ -311,7 +311,7 @@ class TestPage:
 
     def test_page_tree_uses_the_server_command(self):
         """The tree is built server-side; record:list caps at 100 rows and a
-        real site passes that (wienerwandern.at has 283 pages)."""
+        real site passes that (one live installation has 283 pages)."""
         backend = json_backend()
         page_tree(backend)
         assert sent(backend) == "contao:page:tree"

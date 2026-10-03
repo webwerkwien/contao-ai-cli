@@ -1,4 +1,4 @@
-"""Two findings from the ConpAI 1.0 site build on web.werk.wien, 2026-09-17.
+"""Two findings from the ConpAI 1.0 site build on a live installation, 2026-09-17.
 
 Nr. 65: `file write` turned LF into CRLF on Windows. The content went into a temp file
 opened in text mode, which writes the platform's line ending, so site.css arrived with
