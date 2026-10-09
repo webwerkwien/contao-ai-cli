@@ -415,7 +415,8 @@ contao-ai-cli --json article list --page 1
 contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 
 # Create — --pid of a top-level page is the root of its domain; a root with an
-# empty dns answers every domain (see "Page URLs, second languages, cloning")
+# empty dns answers every domain (see "Page URLs, second languages, cloning").
+# Only a root may stand at the top level: without --pid, use --type root (core v1.2.0)
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
 contao-ai-cli --json article create --title "New Page" --pid 12
 
@@ -531,6 +532,36 @@ contao-ai-cli --json form field-create --form 6 --type submit --set slabel=Send
 `form list` and `form fields <form-id>` answer like every other listing since v0.30.0 —
 `{status, table, count, total, results}` with typed values, `--limit`/`--offset`, fields in
 form order. Until v0.29.0 they returned a bare list of strings.
+
+### Moving pages, articles and content (core-bundle v1.2.0)
+
+When someone says "put it below X" or "put it after X", that is `move`, not `update`:
+
+```bash
+contao-ai-cli --json page move 14 --to 5        # below page 5, behind its last subpage
+contao-ai-cli --json page move 14 --after 8     # directly behind page 8, same level
+contao-ai-cli --json article move 21 --to 7     # onto page 7, behind its last article
+contao-ai-cli --json content move 40 --after 38 # directly behind element 38, same parent
+contao-ai-cli --json content move 40 --to 12 --ptable tl_news  # into news entry 12
+```
+
+A page takes its subpages, articles and content along; an article its elements. The answer
+names the new `pid` and `sorting`. `--to` and `--after` are exclusive; `--ptable` goes only
+with `content move --to` (default: the element's current parent table). One record per
+call — to move several in order, move the first, then each next one `--after` the previous.
+
+**Contao's rules apply, as in the back end**, and a refusal exits 1 with the reason:
+
+- a page cannot go below itself or one of its subpages;
+- **a website root (`type root`) stays at the top level, and nothing else goes there** —
+  `--to 0` for a regular page is refused, and so is `page create` without `--pid` unless
+  `--type root`, and `page update --set type=root` on a subpage;
+- an error page (`error_401`, `error_403`, `error_404`, `error_503`) stands directly below a
+  root, one of each type per root;
+- the URL rules of `page update` (a page whose alias is taken in the new place is refused).
+
+`update --set pid=…` still works and now puts the record behind its new siblings too; `move`
+is the form to reach for, because it says where.
 
 ### The container a record lives in
 

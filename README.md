@@ -142,14 +142,14 @@ so it cannot drift from what the CLI actually offers.
 
 | Group | Commands | What for |
 |---|---|---|
-| `article` | `create` `delete` `list` `publish` `read` `update` | Articles inside pages |
+| `article` | `create` `delete` `list` `move` `publish` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
 | `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
 | `comment` | `delete` `list` `publish` | Comment moderation |
 | `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
-| `content` | `create` `delete` `list` `read` `update` | Content elements |
+| `content` | `create` `delete` `list` `move` `read` `update` | Content elements |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
 | `ext` | `describe` `list` `run` | Console commands this CLI does not wrap — extensions, plugins, your own. `run` warns, records the invocation, and returns the foreign answer inside an envelope (`command_output`, `exit_code`) rather than as its own. A missing command is told whether an older core bundle is the reason |
@@ -166,7 +166,7 @@ so it cannot drift from what the CLI actually offers.
 | `messenger` | `consume` `failed` `remove` `retry` `stats` `stop-workers` | Messenger transports |
 | `news` | `archive-create` `archive-delete` `archive-read` `archive-update` `archives` `create` `delete` `list` `read` `repair-headlines` `update` | News entries and their archives |
 | `newsletter` | `channel-create` `channel-delete` `channel-update` `channels` `create` `delete` `list` `send` `subscriber-create` `subscriber-delete` `subscriber-update` `subscribers` `update` | Newsletters, channels and recipients. **`send` always refuses** — sending stays with a person in the Contao back end |
-| `page` | `create` `delete` `list` `publish` `read` `tree` `update` | Site structure |
+| `page` | `create` `delete` `list` `move` `publish` `read` `tree` `update` | Site structure |
 | `record` | `clone` `list` `schema` | **Any** table with a DCA, incl. extension tables |
 | `schema` | `mandatory` `palette` `resolve` `show` `sync` | DCA field definitions |
 | `search` | `index-create` `index-drop` `query` `reindex` | Fulltext index |

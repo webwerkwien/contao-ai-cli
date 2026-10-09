@@ -4,9 +4,10 @@ page group — Manage Contao pages (tl_page).
 import click
 
 from contao_ai_cli.core import session as session_mod, page as page_mod
+from contao_ai_cli.core.contao_ops import run_move
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
-    dispatch_update, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
+    confirm_delete, dispatch_update, output_move, parse_set_fields,
 )
 
 
@@ -62,7 +63,8 @@ def page_read_cmd(ctx, page_id, as_json):
 
 @page.command("create")
 @click.option("--title", required=True, help="Page title")
-@click.option("--pid", type=int, default=0, show_default=True, help="Parent page ID")
+@click.option("--pid", type=int, default=0, show_default=True,
+              help="Parent page ID; 0 (the top level) only for --type root — core-bundle v1.2.0 refuses anything else there, as the back end does")
 @click.option("--type", "page_type", default="regular", show_default=True, help="Page type (regular, root, …)")
 @click.option("--alias", default="", help="Page alias (auto-generated if omitted)")
 @click.option("--language", default="de", show_default=True,
@@ -97,6 +99,26 @@ def page_update_cmd(ctx, page_id, ids, ids_from_file, fields, as_json):
     _output(dispatch_update(b, "contao:page:update", page_id, ids, ids_from_file,
                             parse_set_fields(fields)),
             as_json or ctx.obj.get("as_json"))
+
+
+@page.command("move")
+@click.argument("page_id", type=int)
+@click.option("--to", "to", type=int, default=None, help="New parent page ID — the page goes behind its last subpage")
+@click.option("--after", type=int, default=None, help="Sibling page ID — the page goes directly behind it, below the same parent")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def page_move_cmd(ctx, page_id, to, after, as_json):
+    """Move a page with its subpages, as cut and paste in the back end.
+
+    --to 5 puts it below page 5, behind the last subpage; --after 8 puts it
+    directly behind page 8, at the same level. Contao's rules apply: a website
+    root stays at the top level and nothing else goes there, a page cannot go
+    below itself. Needs core-bundle v1.2.0.
+    """
+    check_move_target(to, after)
+    _require_core_bundle(ctx, "page move")
+    b = _get_backend(ctx.obj.get("session"))
+    output_move(ctx, run_move(b, "contao:page:move", page_id, to=to, after=after), as_json)
 
 
 @page.command("delete")

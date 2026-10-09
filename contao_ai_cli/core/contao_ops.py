@@ -201,6 +201,39 @@ def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
     return run_json_or_raw(backend, cmd)
 
 
+def run_move(backend, command: str, record_id: int, to: int | None = None,
+             after: int | None = None, ptable: str | None = None) -> dict:
+    """
+    Run an <entity>:move command (core-bundle v1.2.0): the back end's cut and paste.
+
+    `to` puts the record behind the last child of that parent, `after` directly
+    behind that sibling, below its parent. The server computes the position and runs
+    every rule of an update, so a refusal (a root below a page, a page below itself)
+    comes back as JSON with exit 1 — returned as it came, like file move. Only a
+    failure without JSON raises, with the hint naming the version a missing command
+    needs.
+    """
+    cmd = join_args(
+        command,
+        int(record_id),
+        f"--to={int(to)}" if to is not None else "",
+        f"--after={int(after)}" if after is not None else "",
+        f"--ptable={shlex.quote(ptable)}" if ptable else "",
+        "--no-interaction",
+    )
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"{command.split(':')[1]} move failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
+            ) from None
+        return {"raw": result["stdout"]}
+
+
 def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict:
     """
     Run an <entity>:update command for many records over one connection.

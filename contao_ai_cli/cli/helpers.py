@@ -734,6 +734,28 @@ def ask_yes_no(question: str, default: bool = False) -> bool | None:
         click.echo("Error: invalid input", err=True)
 
 
+def check_move_target(to, after, ptable=None) -> None:
+    """Exactly one of --to and --after, and --ptable only with --to (core-bundle v1.2.0).
+
+    Checked here rather than left to the server: a usage error costs no SSH round trip
+    and exits 2 like every other one.
+    """
+    if (to is None) == (after is None):
+        raise click.UsageError(
+            "Give either --to <parent ID> (behind its last child) "
+            "or --after <sibling ID> (directly behind it), not both."
+        )
+    if ptable and after is not None:
+        raise click.UsageError("--ptable goes with --to; with --after the element takes the sibling's parent table.")
+
+
+def output_move(ctx, result, as_json) -> None:
+    """Print a move's answer; a refusal keeps its message and exits 1, like file move."""
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
+
+
 def confirm_delete(what: str, assume_yes: bool = False) -> bool:
     """
     Ask before deleting, unless told not to or nobody is there to answer.

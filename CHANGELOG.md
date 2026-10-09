@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.2.0 - 2026-10-09
+
+The move commands need contao-ai-core-bundle **v1.2.0**; everything else works with v1.0.0
+and later, as before. On an older bundle `page move` answers that the server command is
+missing and names the version that has it.
+
+### Added
+
+- **`page move`, `article move`, `content move`** — the back end's cut and paste.
+  `--to <parent>` puts the record behind the parent's last child, `--after <sibling>`
+  directly behind the sibling, at the same level. `content move --to` takes `--ptable` for
+  another parent table (a news entry, an element group). People say "put it below X" or
+  "after X"; until now that was `update --set pid=…`, which nobody looking for "move" found
+  and which could only put the record at the end. The server runs every rule of an update:
+  a page cannot go below itself, a website root stays at the top level, nothing else goes
+  there. Prompted by Contao's 6.1 API gaining the same operation
+  ([contao/contao#10400](https://github.com/contao/contao/pull/10400)).
+
+### Changed
+
+- **`page create` without `--pid` is refused unless `--type root`** — from core-bundle
+  v1.2.0, which keeps the page tree to Contao's rules. The default stays `0`; the help text
+  and `AGENTS.md` say what it is for.
+
 ## v1.1.1 - 2026-10-03
 
 Needs no newer contao-ai-core-bundle.

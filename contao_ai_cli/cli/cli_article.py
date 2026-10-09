@@ -4,9 +4,10 @@ article group — Manage Contao articles (tl_article).
 import click
 
 from contao_ai_cli.core import session as session_mod, article as article_mod
+from contao_ai_cli.core.contao_ops import run_move
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
-    dispatch_update, parse_set_fields,
+    _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
+    confirm_delete, dispatch_update, output_move, parse_set_fields,
 )
 
 
@@ -88,6 +89,24 @@ def article_publish_cmd(ctx, article_id, unpublish, as_json):
     b = _get_backend(ctx.obj.get("session"))
     _output(article_mod.article_publish(b, article_id, not unpublish),
             as_json or ctx.obj.get("as_json"))
+
+
+@article.command("move")
+@click.argument("article_id", type=int)
+@click.option("--to", "to", type=int, default=None, help="Page ID — the article goes behind the page's last article")
+@click.option("--after", type=int, default=None, help="Article ID — the article goes directly behind it, on the same page")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_move_cmd(ctx, article_id, to, after, as_json):
+    """Move an article with its content, as cut and paste in the back end.
+
+    --to 5 puts it on page 5, behind the last article; --after 9 puts it directly
+    behind article 9, on that article's page. Needs core-bundle v1.2.0.
+    """
+    check_move_target(to, after)
+    _require_core_bundle(ctx, "article move")
+    b = _get_backend(ctx.obj.get("session"))
+    output_move(ctx, run_move(b, "contao:article:move", article_id, to=to, after=after), as_json)
 
 
 @article.command("delete")
