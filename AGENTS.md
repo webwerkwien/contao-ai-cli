@@ -1320,8 +1320,11 @@ contao-ai-cli --json language check --root 83
 ```
 
 - **The order matters, as in the back end:** a page before its articles, an archive
-  before its entries. The target must be one the back end would offer — published, in the
-  fallback tree, not linked twice. A refusal says which of these failed.
+  before its entries. The target must be one the back end would offer: for a page, a page
+  in the tree of the fallback root; for an article, news item, event or FAQ, one of the
+  entries the back end lists for the linked page or archive — and those lists contain
+  only what changelanguage finds, which skips unpublished pages. A second link to the
+  same target is refused by the package's own check. A refusal says which rule failed.
 - The write goes through the core: version, the package's own checks, cache invalidation.
 - Without the package on the server the group answers that the command does not exist.
 
