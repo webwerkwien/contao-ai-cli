@@ -230,7 +230,7 @@ all — a probe failure used to fall through and be misreported as a missing
 | `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
 | `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
 | `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `^1.0`, backend `>=0.1 <2.0` |
-| `dependenciesChanged` | **only when Composer actually ran** and the bundle was read back (v1.3.0) | every other package that moved: `{name: {"from": old, "to": new}}`, `null` on either side for one added or removed. `{}` = nothing else moved; `null` = the installed packages could not be read, so it is unknown — never "nothing" |
+| `dependenciesChanged` | **only when Composer ran without error** (v1.3.0) — on success, on an update held back below the newest, and when the bundle is missing afterwards | every other package that moved: `{name: {"from": old, "to": new}}`, `null` on either side for one added or removed. `{}` = nothing else moved; `null` = the installed packages could not be read, so it is unknown — never "nothing" |
 | `stderr` | when Composer (or the cache warmup) failed and said something (v1.1.1) | the server's **whole** stderr, without PHP's start-up warnings. `message` holds an excerpt |
 
 **Read `stderr`, not only `message`, when Composer refuses.** `message` carries an excerpt,

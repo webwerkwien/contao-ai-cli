@@ -1,5 +1,6 @@
 """Installing and updating the contao-ai bundles on a site (moved out of the connect wizard, 2026-09-17)."""
 import json
+import re
 import shlex
 import urllib.request
 
@@ -30,6 +31,7 @@ REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES
 WITH_DEPENDENCIES = "--update-with-dependencies"
 MINIMAL_CHANGES = "--minimal-changes"
 _NO_MINIMAL_CHANGES = '"--minimal-changes" option does not exist'
+_PACKAGE_NAME = re.compile(r"[a-z0-9_.-]+/[a-z0-9_.-]+")
 
 
 def get_bundle_latest_version(package: str) -> str | None:
@@ -80,9 +82,10 @@ def composer_bundle(backend, requirement: str, action: str, phar_path: str | Non
 
 
 def installed_snapshot(backend) -> dict[str, str] | None:
-    """Every installed package and its version, or None when installed.json cannot be read."""
+    """Every installed package and its version, or None when no package could be read."""
     php_code = (
-        'if($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true)){'
+        'if(($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true))'
+        '&&isset($d["packages"])){'
         'foreach($d["packages"] as $p)echo $p["name"]," ",$p["version"],"\\n";}'
     )
     # Any failure means "unknown", like get_installed_package_versions: the snapshot only
@@ -91,10 +94,13 @@ def installed_snapshot(backend) -> dict[str, str] | None:
         out = backend.run_raw(f"{shlex.quote(backend.php_path)} -r '{php_code}'")["stdout"]
     except Exception:  # noqa: BLE001
         return None
+    # Only lines that look like a package: a start-up warning on stdout (imagick on c5) is a
+    # "name version" line too, and two identical warning sets would read as {} -- "nothing
+    # else moved" -- where the truth is "unknown" (pre-release review 2026-10-10).
     snapshot = {}
     for line in out.splitlines():
         name, _, version = line.strip().partition(" ")
-        if name and version:
+        if _PACKAGE_NAME.fullmatch(name) and version:
             snapshot[name] = version
     return snapshot or None
 
@@ -184,7 +190,9 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
     after = get_installed_package_versions(backend, [package])[package]
     also_changed = dependency_changes(snapshot_before, installed_snapshot(backend), package)
     if after is None:
+        # What moved instead is the most useful thing to know here.
         return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
+                "dependenciesChanged": also_changed,
                 "message": f"Composer finished, but {package} is not installed afterwards."}
 
     if action == "update" and str(after).lstrip("v") != str(latest).lstrip("v"):

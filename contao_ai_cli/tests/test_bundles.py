@@ -320,6 +320,49 @@ def test_unreadable_snapshots_say_unknown_not_nothing():
     assert result["status"] == "ok" and result["dependenciesChanged"] is None
 
 
+def test_start_up_warnings_on_stdout_are_not_packages():
+    """Pre-release review 2026-10-10: two identical warning sets read as {} -- "nothing else
+    moved" -- where the truth is "unknown"."""
+    b = backend()
+    b.run_raw.return_value = {"returncode": 0, "stderr": "", "stdout":
+                              "PHP Warning:  PHP Startup: Unable to load dynamic library 'imagick.so'\n"
+                              "Warning: foreach() argument must be of type array|object\n"}
+    assert bundles.installed_snapshot(b) is None
+    b.run_raw.return_value = snapshot_stdout({"contao/core-bundle": "5.7.14"}) | {
+        "stdout": "PHP Warning:  imagick\ncontao/core-bundle 5.7.14\n"}
+    assert bundles.installed_snapshot(b) == {"contao/core-bundle": "5.7.14"}
+
+
+def test_the_retry_reads_the_error_as_run_raw_builds_it():
+    """run_raw puts an excerpt into the message and the whole stderr into .stderr."""
+    from contao_ai_cli.utils.contao_backend import ContaoBackendError
+    b = backend()
+    b.run_raw.side_effect = [
+        ContaoBackendError("Shell command failed (exit 1). Stderr: cut",
+                           stderr='\n  The "--minimal-changes" option does not exist.  \n'),
+        {"returncode": 0, "stdout": "", "stderr": ""},
+    ]
+    bundles.composer_bundle(b, bundles.REQUIREMENTS["core"], "require")
+    assert b.run_raw.call_count == 2
+
+
+def test_a_timeout_is_not_retried():
+    import pytest
+    from contao_ai_cli.utils.contao_backend import ContaoBackendError
+    b = backend()
+    b.run_raw.side_effect = ContaoBackendError("Shell command timed out after 600 s")
+    with pytest.raises(ContaoBackendError):
+        bundles.composer_bundle(b, bundles.REQUIREMENTS["core"], "require")
+    assert b.run_raw.call_count == 1
+
+
+def test_a_bundle_missing_afterwards_says_what_moved_instead():
+    b = backend()
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, None):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error" and "dependenciesChanged" in result
+
+
 def test_a_held_back_update_names_what_moved_as_well():
     b = backend()
     with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), \
