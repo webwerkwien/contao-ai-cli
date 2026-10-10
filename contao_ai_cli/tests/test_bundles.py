@@ -333,6 +333,14 @@ def test_start_up_warnings_on_stdout_are_not_packages():
     assert bundles.installed_snapshot(b) == {"contao/core-bundle": "5.7.14"}
 
 
+def test_a_package_name_with_capitals_is_still_a_package():
+    """Second review: installed.json keeps the pretty name; Composer 1 allowed capitals.
+    Dropped from both snapshots, such a package would vanish from the diff silently."""
+    b = backend()
+    b.run_raw.return_value = snapshot_stdout({"Legacy/Old-Bundle": "1.0.0", "contao/core-bundle": "5.7.14"})
+    assert bundles.installed_snapshot(b) == {"Legacy/Old-Bundle": "1.0.0", "contao/core-bundle": "5.7.14"}
+
+
 def test_the_retry_reads_the_error_as_run_raw_builds_it():
     """run_raw puts an excerpt into the message and the whole stderr into .stderr."""
     from contao_ai_cli.utils.contao_backend import ContaoBackendError

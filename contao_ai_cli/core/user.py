@@ -56,7 +56,8 @@ def user_create(backend: ContaoBackend, username: str, password: str,
         raise ContaoBackendError(
             f"User '{username}' was created, but setting the requested password failed: {e}. "
             f"The account currently has a random password nobody holds — set one with "
-            f"`user password --username {username}` or delete the account."
+            f"`user password --username {username}` or delete the account.",
+            defect=getattr(e, "defect", None),
         ) from e
 
     return {"status": "created", "username": username, "output": result["stdout"]}

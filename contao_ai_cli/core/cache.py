@@ -27,7 +27,9 @@ def cache_clear(backend: ContaoBackend) -> dict:
         detail = json.loads(result.get("stdout") or "")["message"]
     except (json.JSONDecodeError, TypeError, KeyError):
         detail = (result.get("stderr") or result.get("stdout") or "")[:500]
-    raise ContaoBackendError(f"cache clear failed (exit {result.get('returncode')}): {detail}")
+    # With check=False the defect is not on run()'s raise -- carried along here (v1.3.0).
+    raise ContaoBackendError(f"cache clear failed (exit {result.get('returncode')}): {detail}",
+                             defect=ContaoBackend.server_defect(result.get("stdout") or ""))
 
 
 def cache_warmup(backend: ContaoBackend) -> dict:

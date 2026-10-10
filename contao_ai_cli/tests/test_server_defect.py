@@ -41,6 +41,35 @@ def test_a_refusal_and_an_older_core_name_none():
     assert failing_run(REFUSAL).defect is None
 
 
+def test_cache_clear_keeps_the_defect():
+    """Second review: `cache clear` runs with check=False and raised its own error,
+    without the field -- a crashed `contao:cache:clear` got no report."""
+    from contao_ai_cli.core import cache
+
+    backend = MagicMock()
+    backend.run.return_value = {"returncode": 1, "stderr": "", "stdout": json.dumps(
+        {"status": "error", "code": 1, "exception": "RuntimeException", "message": "RuntimeException: disk full"})}
+    backend.undefined_contao_command.return_value = None
+
+    with pytest.raises(ContaoBackendError) as e:
+        cache.cache_clear(backend)
+    assert e.value.defect == "RuntimeException"
+    assert "disk full" in str(e.value.message)
+
+
+def test_user_create_keeps_the_defect_of_the_password_step():
+    from contao_ai_cli.core import user
+
+    backend = MagicMock()
+    backend.run.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
+    with patch.object(user, "user_password",
+                      side_effect=ContaoBackendError("DriverException: …", defect="DriverException")):
+        with pytest.raises(ContaoBackendError) as e:
+            user.user_create(backend, "probe", "a long probe password", "Probe", "probe@example.org")
+    assert e.value.defect == "DriverException"
+    assert "was created" in str(e.value.message)
+
+
 def main_with(monkeypatch, argv, error):
     def fake_cli(*args, **kwargs):
         raise error

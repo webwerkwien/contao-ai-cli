@@ -31,7 +31,8 @@ REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES
 WITH_DEPENDENCIES = "--update-with-dependencies"
 MINIMAL_CHANGES = "--minimal-changes"
 _NO_MINIMAL_CHANGES = '"--minimal-changes" option does not exist'
-_PACKAGE_NAME = re.compile(r"[a-z0-9_.-]+/[a-z0-9_.-]+")
+# installed.json keeps a package's pretty name, case included (Composer 1 allowed capitals).
+_PACKAGE_NAME = re.compile(r"[a-z0-9_.-]+/[a-z0-9_.-]+", re.IGNORECASE)
 
 
 def get_bundle_latest_version(package: str) -> str | None:

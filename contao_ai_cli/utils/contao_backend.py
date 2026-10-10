@@ -398,7 +398,7 @@ class ContaoBackend:
                 f"{self._explain_failure(result.stdout, result.stderr)}"
                 f"{self.undefined_command_hint(result.stdout, result.stderr)}",
                 stderr=clean_stderr(result.stderr),
-                defect=self._server_defect(result.stdout),
+                defect=self.server_defect(result.stdout),
             )
 
         if json_output:
@@ -439,13 +439,14 @@ class ContaoBackend:
         return f"Stderr: {cleaned}" if cleaned else "No output from the server."
 
     @staticmethod
-    def _server_defect(stdout: str) -> str | None:
+    def server_defect(stdout: str) -> str | None:
         """The exception class the core bundle named for a defect, or None.
 
         Since core-bundle v1.3.0 an error answer that comes from a crash rather
         than a refusal carries `"exception": "<ShortClassName>"`. Up to then a
         failed query and "page not found" were the same `ContaoBackendError`, and
-        neither offered a report.
+        neither offered a report. Public because the commands that run with
+        `check=False` and raise themselves (`cache clear`) need it too.
         """
         try:
             payload = json.loads(stdout)
