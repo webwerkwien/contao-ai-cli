@@ -38,6 +38,7 @@ from contao_ai_cli.cli.cli_event import event
 from contao_ai_cli.cli.cli_comment import comment
 from contao_ai_cli.cli.cli_listing import listing
 from contao_ai_cli.cli.cli_version import version
+from contao_ai_cli.cli.cli_language import language
 from contao_ai_cli.cli.cli_file import file
 from contao_ai_cli.cli.cli_template import template
 from contao_ai_cli.cli.cli_form import form
@@ -132,6 +133,7 @@ cli.add_command(event)
 cli.add_command(comment)
 cli.add_command(listing)
 cli.add_command(version)
+cli.add_command(language)
 cli.add_command(undo)
 cli.add_command(settings)
 cli.add_command(file)
