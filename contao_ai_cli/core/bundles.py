@@ -22,6 +22,15 @@ BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 CONSTRAINTS = {"core": "^1.0", "backend": ">=0.1 <2.0"}
 REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES}
 
+# A bundle brings its own dependencies along. Without -w Composer may change only the
+# named package, so a release that raises one of them (backend v0.11.0 needs symfony/ai
+# ^0.14) resolved to the old version instead (c5, 2026-10-09). -w, not -W: root
+# requirements -- Contao itself -- stay where they are. --minimal-changes moves only the
+# transitive packages that have to move; Composer knows it since 2.7, older ones get -w alone.
+WITH_DEPENDENCIES = "--update-with-dependencies"
+MINIMAL_CHANGES = "--minimal-changes"
+_NO_MINIMAL_CHANGES = '"--minimal-changes" option does not exist'
+
 
 def get_bundle_latest_version(package: str) -> str | None:
     """Latest stable version from Packagist's /p2/ metadata (the source Composer resolves against)."""
@@ -56,7 +65,52 @@ def composer_bundle(backend, requirement: str, action: str, phar_path: str | Non
         raise ValueError(f"Unsupported composer action: {action!r}")
     composer = composer_command(backend, phar_path)
     target = requirement if action == "require" else requirement.split(":", 1)[0]
-    return backend.run_raw(f"{composer} {action} {shlex.quote(target)} --no-interaction", timeout=timeout)
+    command = f"{composer} {action} {shlex.quote(target)} --no-interaction"
+    if action != "require":
+        return backend.run_raw(command, timeout=timeout)
+    try:
+        return backend.run_raw(f"{command} {WITH_DEPENDENCIES} {MINIMAL_CHANGES}", timeout=timeout)
+    except ContaoBackendError as e:
+        # Matched on Composer's own wording, not on the flag: the flag can also show up in
+        # the report of a real resolution failure, and that must not be retried with the
+        # looser flags.
+        if _NO_MINIMAL_CHANGES not in f"{e} {e.stderr or ''}":
+            raise
+    return backend.run_raw(f"{command} {WITH_DEPENDENCIES}", timeout=timeout)
+
+
+def installed_snapshot(backend) -> dict[str, str] | None:
+    """Every installed package and its version, or None when installed.json cannot be read."""
+    php_code = (
+        'if($d=json_decode(@file_get_contents("vendor/composer/installed.json"),true)){'
+        'foreach($d["packages"] as $p)echo $p["name"]," ",$p["version"],"\\n";}'
+    )
+    # Any failure means "unknown", like get_installed_package_versions: the snapshot only
+    # adds to the answer and must never be what breaks an install.
+    try:
+        out = backend.run_raw(f"{shlex.quote(backend.php_path)} -r '{php_code}'")["stdout"]
+    except Exception:  # noqa: BLE001
+        return None
+    snapshot = {}
+    for line in out.splitlines():
+        name, _, version = line.strip().partition(" ")
+        if name and version:
+            snapshot[name] = version
+    return snapshot or None
+
+
+def dependency_changes(before: dict | None, after: dict | None, package: str) -> dict | None:
+    """What moved besides the bundle: {name: {"from": old, "to": new}}, None = not readable.
+
+    With -w a bundle update can move shared packages (symfony/*), so the answer names
+    them instead of leaving the caller to diff the lock file. None and {} are kept
+    apart on purpose: "could not tell" must not read as "nothing else changed".
+    """
+    if before is None or after is None:
+        return None
+    return {name: {"from": before.get(name), "to": after.get(name)}
+            for name in sorted(before.keys() | after.keys())
+            if name != package and before.get(name) != after.get(name)}
 
 
 def install_bundle(backend, name: str, action: str, allow_plugins: bool = False) -> dict:
@@ -114,6 +168,7 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
         # Both install and update run `require` with the range -- `composer update`
         # never leaves the constraint already on disk, which is exactly the boundary
         # an update needs to cross (see CONSTRAINTS).
+        snapshot_before = installed_snapshot(backend)
         composer_bundle(backend, requirement, "require",
                         manager["phar_path"] if manager["available"] else None)
         backend.run("cache:warmup --env=prod")
@@ -127,6 +182,7 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
         return failed
 
     after = get_installed_package_versions(backend, [package])[package]
+    also_changed = dependency_changes(snapshot_before, installed_snapshot(backend), package)
     if after is None:
         return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
                 "message": f"Composer finished, but {package} is not installed afterwards."}
@@ -137,14 +193,14 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
         # lock by then. Say so (pre-release review 2026-09-17: "nothing else was changed").
         return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
                 "installed": after, "previous": before, "changed": after != before,
-                "constraint": CONSTRAINTS[name],
+                "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed,
                 "message": f"Composer resolved {package} to {after}, not the newest {latest} -- another "
                            f"requirement (e.g. the PHP version or a locked dependency) holds it back. "
                            f"composer.json now requires {CONSTRAINTS[name]} and the lock file was updated."}
 
     result = {**base, "status": "ok", "changed": after != before, "installed": after,
               "previous": before, "via": "contao-manager" if manager["available"] else "composer",
-              "constraint": CONSTRAINTS[name]}
+              "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed}
     if written:
         result["allowPluginsWritten"] = written
     return result

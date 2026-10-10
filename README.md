@@ -131,7 +131,9 @@ Two things afterwards:
 time a session is used after a pause, without touching stdout or any JSON answer. Run
 `contao-ai-cli health` (or `--session <site> health`) to see what changed, then update with
 `contao-ai-cli self-update` (the CLI itself) and `bundle update core`/`bundle update backend`
-(the bundles on the server). Set `CONTAO_AI_CLI_NO_UPDATE_CHECK=1` to turn the check off
+(the bundles on the server). A bundle update brings the bundle's own dependencies along
+(`symfony/ai` for the backend bundle) and names every package that moved; it never updates
+Contao itself — if a bundle release needs a newer Contao, update Contao first. Set `CONTAO_AI_CLI_NO_UPDATE_CHECK=1` to turn the check off
 (CI, cron).
 
 ## Available command groups

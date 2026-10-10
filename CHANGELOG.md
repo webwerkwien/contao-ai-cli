@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.3.0 - 2026-10-10
+
+### Fixed
+
+- **`bundle update` brings the bundle's own dependencies along.** Composer was allowed to
+  change only the bundle itself, so a release that raises one of its dependencies resolved to
+  the version already installed: backend v0.11.0 needs `symfony/ai ^0.14`, and on a lock
+  holding 0.13 `bundle update backend` stayed on v0.10.0 (it said so, but the update had to be
+  done by hand). `install` and `update` now run `composer require` with
+  `--update-with-dependencies --minimal-changes`. Contao itself, a root requirement, stays
+  where it is. Measured on a copy of that lock: exactly the backend bundle and the nine
+  `symfony/ai` packages move; without `--minimal-changes` seven more would have. A Composer
+  older than 2.7 gets the run repeated without `--minimal-changes`.
+
+### Added
+
+- **`dependenciesChanged`** in the answer of `bundle install|update`: every other package that
+  moved, with its old and new version. `{}` means nothing else moved, `null` that the installed
+  packages could not be read.
+
 ## v1.2.0 - 2026-10-09
 
 The move commands need contao-ai-core-bundle **v1.2.0**; everything else works with v1.0.0

@@ -192,8 +192,26 @@ consent the agent asks the user for before passing that flag.
 
 **`install` and `update` both run `composer require "<pkg>:<range>"`, not `composer update`**
 — a `composer update` never leaves the constraint already on disk. The range is the one each
-bundle's README recommends: core `^1.0`, backend `>=0.1 <2.0` (v1.0.0; see below). The
-answer is `status: error` unless the version read back afterwards equals `latest` exactly;
+bundle's README recommends: core `^1.0`, backend `>=0.1 <2.0` (v1.0.0; see below).
+
+**The bundle brings its own dependencies along** (v1.3.0): the `require` carries
+`--update-with-dependencies --minimal-changes`. Without it Composer may change only the
+bundle itself, so a release that raises one of its dependencies resolved to the installed
+version — backend v0.11.0 needs `symfony/ai ^0.14`, and on a lock holding 0.13 `bundle update
+backend` stayed on v0.10.0 (2026-10-09). `-w`, not `-W`: root requirements — Contao itself —
+stay where they are, so a bundle update never lifts Contao on the side. `--minimal-changes`
+moves only what has to move; measured on a copy of that lock, it upgraded exactly the backend
+and the nine `symfony/ai` packages, where `-w` alone took seven more (Contao components,
+`doctrine/orm`). A Composer older than 2.7 does not know `--minimal-changes`; the CLI then
+repeats the run with `-w` alone, recognised by Composer's own "option does not exist" — never
+after a real resolution failure. What moved besides the bundle is in `dependenciesChanged`.
+
+If an update needs a newer **Contao** (the bundle requires it, or Composer blocks the locked
+Contao version for a security advisory, as `enshrined/svg-sanitize` 0.22 was blocked on
+2026-10-09), Composer refuses and `stderr` says why. Update Contao first — through the Contao
+Manager, or its passthrough with `"contao/*" --with-dependencies` — then the bundle.
+
+The answer is `status: error` unless the version read back afterwards equals `latest` exactly;
 if something else holds the newest back (a PHP requirement, a locked dependency), Composer
 still exits 0 with an older version — the error then names the installed and the newest
 version and says that `composer.json` and the lock were rewritten. If Packagist cannot be reached,
@@ -212,6 +230,7 @@ all — a probe failure used to fall through and be misreported as a missing
 | `missingAllowPlugins` | on refusal | the plugins composer.json does not allow yet |
 | `allowPluginsWritten` | when `--allow-plugins` wrote something | the plugins it wrote |
 | `constraint` | on success, and on an update held back below the newest | the constraint now in the project's `composer.json`: core `^1.0`, backend `>=0.1 <2.0` |
+| `dependenciesChanged` | **only when Composer actually ran** and the bundle was read back (v1.3.0) | every other package that moved: `{name: {"from": old, "to": new}}`, `null` on either side for one added or removed. `{}` = nothing else moved; `null` = the installed packages could not be read, so it is unknown — never "nothing" |
 | `stderr` | when Composer (or the cache warmup) failed and said something (v1.1.1) | the server's **whole** stderr, without PHP's start-up warnings. `message` holds an excerpt |
 
 **Read `stderr`, not only `message`, when Composer refuses.** `message` carries an excerpt,
