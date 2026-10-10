@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.3.1 - 2026-10-10
+
+### Documentation
+
+- **`ext --help` and `AGENTS.md` said `ext run` starts commands under `contao:` only.** A
+  command outside it is reachable when it declares an `#[AiContract]`, as the next
+  paragraph of both already said. The first sentence now says so too.
+
 ## v1.3.0 - 2026-10-10
 
 ### Fixed

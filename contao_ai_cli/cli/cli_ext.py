@@ -17,10 +17,11 @@ def ext():
 
     
     One limit, and it used to be missing from this text: `ext run` starts
-    commands under `contao:` only. Everything else — the framework's own
-    namespace, and a site bundle that registered its command elsewhere — is
-    listed and can be described, but not run. `doctrine:query:sql` is the reason
-    and the boundary is on running, not on naming.
+    commands under `contao:`, and others only when they declare an
+    `#[AiContract]` (below). Everything else — the framework's own namespace, and
+    a site bundle that registered its command elsewhere without one — is listed
+    and can be described, but not run. `doctrine:query:sql` is the reason and the
+    boundary is on running, not on naming.
 
     A plugin does NOT have to rename itself into `contao:` for this — a prefix of
     one's own is the convention (`cookiebar:` is a published Contao extension;

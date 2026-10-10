@@ -1306,9 +1306,10 @@ contao-ai-cli ext run contao:x:y --flag     # run it
 subtraction happens here on purpose: what the CLI wraps is the CLI's business,
 and a copy of that list on the server would drift from the original.
 
-**`ext run` starts commands under `contao:` only.** Everything else — the
-framework's own namespace, and a site bundle that registered its command
-elsewhere — is listed under `out_of_reach` and can be described, but not run.
+**`ext run` starts commands under `contao:`, and others only with an `#[AiContract]`
+(next paragraph).** Everything else — the framework's own namespace, and a site bundle
+that registered its command elsewhere without one — is listed under `out_of_reach` and
+can be described, but not run.
 `doctrine:query:sql` is the reason: a generic runner that reaches it puts every
 DCA rule, version and log entry back on the honour system. The boundary is on
 running, not on naming, so nothing is hidden from the listing.
