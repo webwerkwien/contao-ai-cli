@@ -23,6 +23,10 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 - **`dependenciesChanged`** in the answer of `bundle install|update`: every other package that
   moved, with its old and new version. `{}` means nothing else moved, `null` that the installed
   packages could not be read.
+- **A crash inside a core command gets an error report**, like a bridge answering 500.
+  core-bundle v1.3.0 marks such an answer with `"exception"`; the CLI writes the report
+  (row `ausnahme.server`) and passes the field on under `--json`. A refusal stays a plain
+  error line. With an older core nothing changes.
 
 ## v1.2.0 - 2026-10-09
 

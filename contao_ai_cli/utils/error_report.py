@@ -123,9 +123,10 @@ def _frames(exc: BaseException, known_secrets) -> list:
 def build(exc: BaseException, context: dict | None = None, known_secrets=()) -> str:
     """Render a report for one failure.
 
-    `context` may carry `befehl` (the invoked command name) and `status` (an HTTP
-    status from the bridge). Values from the user's arguments do not belong in
-    it -- pass the command name, never what was passed to it.
+    `context` may carry `befehl` (the invoked command name), `status` (an HTTP
+    status from the bridge) and `ausnahme.server` (the exception class the core
+    bundle named for a defect, v1.3.0). Values from the user's arguments do not
+    belong in it -- pass the command name, never what was passed to it.
     """
     context = context or {}
 
@@ -143,7 +144,7 @@ def build(exc: BaseException, context: dict | None = None, known_secrets=()) -> 
         summary.append(("ausnahme.datei", shorten_path(tb[-1].filename)))
         summary.append(("ausnahme.zeile", str(tb[-1].lineno)))
 
-    for key in ("befehl", "status"):
+    for key in ("befehl", "status", "ausnahme.server"):
         if context.get(key) is not None:
             summary.append((key, str(context[key])))
 

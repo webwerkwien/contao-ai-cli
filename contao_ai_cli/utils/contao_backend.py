@@ -184,11 +184,17 @@ class ContaoBackendError(click.ClickException):
     start-up noise but not cut. The message holds an excerpt that has to guess
     what matters; a caller that wants to judge for itself reads this instead.
     `None` where the failure produced no stderr worth keeping (a timeout).
+
+    `defect` (v1.3.0) is the server's exception class when the core bundle
+    marked the failure as a defect rather than a refusal (`"exception": …`,
+    core-bundle v1.3.0). `main()` then adds an error report, the way it does for
+    a bridge answering 500. `None` for every refusal and for an older core.
     """
 
-    def __init__(self, message: str, stderr: str | None = None):
+    def __init__(self, message: str, stderr: str | None = None, defect: str | None = None):
         super().__init__(message)
         self.stderr = stderr or None
+        self.defect = defect or None
 
 
 class ContaoBackend:
@@ -392,6 +398,7 @@ class ContaoBackend:
                 f"{self._explain_failure(result.stdout, result.stderr)}"
                 f"{self.undefined_command_hint(result.stdout, result.stderr)}",
                 stderr=clean_stderr(result.stderr),
+                defect=self._server_defect(result.stdout),
             )
 
         if json_output:
@@ -430,6 +437,22 @@ class ContaoBackend:
 
         cleaned = stderr_excerpt(stderr)
         return f"Stderr: {cleaned}" if cleaned else "No output from the server."
+
+    @staticmethod
+    def _server_defect(stdout: str) -> str | None:
+        """The exception class the core bundle named for a defect, or None.
+
+        Since core-bundle v1.3.0 an error answer that comes from a crash rather
+        than a refusal carries `"exception": "<ShortClassName>"`. Up to then a
+        failed query and "page not found" were the same `ContaoBackendError`, and
+        neither offered a report.
+        """
+        try:
+            payload = json.loads(stdout)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        exception = payload.get("exception") if isinstance(payload, dict) else None
+        return exception if isinstance(exception, str) and exception else None
 
     #: The three ways this can be said. The first two are Symfony's, from the
     #: console dispatcher; the second appears when nothing in the namespace

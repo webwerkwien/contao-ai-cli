@@ -222,17 +222,20 @@ def _json_requested(argv) -> bool:
     return False
 
 
-def _print_error(message: str, code: int, as_json: bool) -> None:
+def _print_error(message: str, code: int, as_json: bool, exception: str | None = None) -> None:
     """One error, in the form the caller asked for.
 
     Under `--json` the object goes to stdout, where the caller parses the
     answer, in the shape `connect` and `bundle` already used for their own
-    failures: `{"status": "error", "code": N, "message": "..."}`. Without it,
-    the familiar `Error: ...` line on stderr.
+    failures: `{"status": "error", "code": N, "message": "..."}`, plus
+    `"exception"` when the server named a defect (v1.3.0). Without it, the
+    familiar `Error: ...` line on stderr.
     """
     if as_json:
-        click.echo(json.dumps({"status": "error", "code": code, "message": message},
-                              ensure_ascii=False))
+        answer = {"status": "error", "code": code, "message": message}
+        if exception:
+            answer["exception"] = exception
+        click.echo(json.dumps(answer, ensure_ascii=False))
     else:
         click.echo(f"Error: {message}", err=True)
 
@@ -274,10 +277,17 @@ def main() -> None:
         # A user pressing Ctrl+C is not a defect and does not want a wall of text.
         raise SystemExit(130)
     except click.ClickException as exc:
+        defect = getattr(exc, "defect", None)
         if as_json:
-            _print_error(exc.format_message(), exc.exit_code, True)
+            _print_error(exc.format_message(), exc.exit_code, True, defect)
         else:
             exc.show()
+        # A crash on the server (core-bundle v1.3.0 names it) gets the report a
+        # bridge 500 gets; a refusal stays a message (v1.3.0).
+        if defect:
+            from contao_ai_cli.utils import error_report
+
+            error_report.emit(exc, {"ausnahme.server": defect})
         raise SystemExit(exc.exit_code)
     except click.Abort:
         # A declined confirmation, or Ctrl+C at a prompt (Click converts it).

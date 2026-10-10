@@ -26,6 +26,9 @@ ALLOWED_LABELS = {
     "ausnahme.klasse",
     "ausnahme.datei",
     "ausnahme.zeile",
+    # v1.3.0: the class name the core bundle named for a defect -- a class name,
+    # nothing from the arguments or the site.
+    "ausnahme.server",
     "befehl",
     "status",
 }
