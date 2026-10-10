@@ -627,6 +627,26 @@ console's language) — set them with `--set nl_subscribe=…` for a site in ano
 language. *Until v0.27.0 a subscribe module had no mail text, and the first subscription
 in the front end answered HTTP 500.*
 
+### Writes run Contao's callbacks, as in the back end (core-bundle v1.4.0)
+
+Creating, saving, copying, moving and deleting call the DCA callbacks Contao's back end
+calls (`oncreate`, `onsubmit`, `oncopy`, `oncut`, `ondelete`, and the save callbacks of the
+fields you set). What extensions attach there now happens for CLI writes too:
+
+- `page create` of a regular page gets its first article, as in the back end; the answer
+  names it in `articles`.
+- A deleted page leaves the site search, a copied record gets what an extension copies
+  along, an extension's own rules (a Consho price, a changelanguage duplicate check) apply.
+- **A callback that refuses rolls the write back.** The answer is a refusal that names the
+  callback; nothing was written.
+
+Some callbacks need a back-end user. For those the core uses the user **`contao-ai`**,
+created by a migration on the first update to v1.4.0: an admin that **cannot log in**
+(disabled, no password) and is hidden in the back end's user list. It exists only for the
+length of a callback; the operator in version and log stays the SSH user. Do not enable
+it, give it a password or delete it — the migration recreates it, and the callbacks
+cannot run without it.
+
 ### News, events and FAQ entries are created unpublished
 
 As in the back end, and like pages and articles: a created entry is **offline** until you
@@ -1281,6 +1301,30 @@ exit 0.
 ⚠️ **All listings now need contao-ai-core-bundle on the target.** They used to run through
 `doctrine:query:sql`, which is plain Contao.
 
+### Translation links: `language link` and `language check` (core-bundle v1.4.0)
+
+With **terminal42/contao-changelanguage** installed, the language switcher knows which
+page, article, news item, event or FAQ is the translation of which. Cloning a second
+language (above) does not set these links; `language link` does:
+
+```bash
+# the EN page 201 is the translation of the DE page 1
+contao-ai-cli --json language link --table tl_page --id 201 --main 1
+# an archive first, then its entries
+contao-ai-cli --json language link --table tl_news_archive --id 6 --main 4
+contao-ai-cli --json language link --table tl_news --id 4 --main 3
+# remove a link
+contao-ai-cli --json language link --table tl_page --id 201 --main 0
+# what is missing or broken, per root of another language (reads only)
+contao-ai-cli --json language check --root 83
+```
+
+- **The order matters, as in the back end:** a page before its articles, an archive
+  before its entries. The target must be one the back end would offer — published, in the
+  fallback tree, not linked twice. A refusal says which of these failed.
+- The write goes through the core: version, the package's own checks, cache invalidation.
+- Without the package on the server the group answers that the command does not exist.
+
 ## Available command groups
 
 `article`, `backup`, `bridge`, `cache`, `comment`, `contao`, `content`, `debug`, `event`, `faq`, `file`, `form`, `layout`, `listing`, `mailer`, `member`, `member-group`, `messenger`, `news`, `newsletter`, `page`, `record`, `schema`, `search`, `security`, `settings`, `template`, `undo`, `user`, `user-group`, `version`
@@ -1472,10 +1516,15 @@ Two caveats. `tl_log` is purged by Contao's cron after **7 days** — it answers
 happened this week", not "who changed this in May". And failed commands are not
 logged, because a rejected `--set` changed nothing.
 
-**Version snapshots (`tl_version`)** are the durable trace, for the ten tables the
-core bundle covers (`tl_page`, `tl_article`, `tl_content`, `tl_news`, `tl_calendar_events`,
-`tl_faq`, `tl_files`, `tl_layout`, `tl_member`, `tl_user`). Deletions additionally land
-in `tl_undo` and stay restorable from the back end's *Restore* module.
+**Version snapshots (`tl_version`)** are the durable trace, for every table whose DCA
+keeps versions (`enableVersioning`), written by Contao's own `Versions` class since
+core-bundle v1.4.0 — the same entries the back end writes, with the SSH user as author and
+a link to the edit form. Deletions additionally land in `tl_undo` and stay restorable from
+the back end's *Restore* module.
+
+**`version restore` since core-bundle v1.4.0** runs Contao's restore: the record stays
+where it is (before, it moved back to the parent and position it had then), and an
+extension can refuse — Consho does for its order tables. A refusal changes nothing.
 
 ### None of it happens if you go around this CLI
 

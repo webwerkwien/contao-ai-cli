@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.4.0 - 2026-10-10
+
+### Added
+
+- **`language link` and `language check` — translation links of
+  terminal42/contao-changelanguage.** `link --table --id --main` links a page, article,
+  news item, event or FAQ, or an archive, to its counterpart in the main language;
+  `--main 0` removes the link. `check [--root]` reports, read-only, unlinked, invalid and
+  duplicate links per root of another language. Needs core-bundle v1.4.0 and the package
+  on the server.
+
+### Documentation
+
+- **What core-bundle v1.4.0 changes for every write** (`AGENTS.md`): the DCA callbacks run
+  as in the back end (a new page gets its first article, a refusing callback rolls the
+  write back), the hidden user `contao-ai` that makes this possible, versions written by
+  Contao for every table that keeps them, and a `version restore` that no longer moves a
+  record back.
+
 ## v1.3.1 - 2026-10-10
 
 ### Documentation
