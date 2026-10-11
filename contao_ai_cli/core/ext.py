@@ -370,7 +370,11 @@ def contract_warning(contract: dict | None) -> str:
     if "writes" in statement:
         lines.append(f"  writes        {'yes' if statement['writes'] else 'no'}")
 
-    if (trace := statement.get("trace")):
+    if statement.get("trace") == []:
+        # Said outright, and not the same as saying nothing: the core bundle asks
+        # for `trace: []` exactly so a caller can tell the two apart here.
+        lines.append("  trail         none — the command declares it leaves no trail")
+    elif (trace := statement.get("trace")):
         when = statement.get("trace_when")
         # The period is read from the installation, not declared — and it is
         # the difference between a trail that outlives the question and one

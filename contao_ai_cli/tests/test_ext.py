@@ -427,6 +427,15 @@ class TestExtRunWarningWithAContract:
         """A declaration that failed validation promises nothing."""
         assert ext_mod.contract_warning({"problems": ["trace must be a list"]}) == ""
 
+    def test_an_explicitly_empty_trail_is_said_not_dropped(self):
+        """`trace: []` means "leaves nothing behind"; a missing trace means "not
+        stated". Up to v1.4.0 both printed no trail line and looked the same."""
+        stated = ext_mod.contract_warning({"checked_with_statement": {"writes": True, "trace": []}})
+        silent = ext_mod.contract_warning({"checked_with_statement": {"writes": True}})
+
+        assert "trail         none" in stated
+        assert "trail" not in silent
+
 
 class TestTheWarningDoesNotContradictItself:
     """

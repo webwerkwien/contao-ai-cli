@@ -1438,7 +1438,7 @@ An extension can carry an `#[AiContract]` attribute (see the core bundle's READM
 ```
 
 Read it as the command's own word. Nothing in this CLI checks any of it, and the text
-says so — the wrapped commands' guarantees still do not apply. Three things are worth
+says so — the wrapped commands' guarantees still do not apply. Four things are worth
 treating differently:
 
 - **`IRREVERSIBLE`** is the line to stop at. A database write has `tl_undo`; this has
@@ -1449,6 +1449,8 @@ treating differently:
 - **The retention** beside a trail is read from the installation, not declared. `tl_log`
   and `tl_version` are 7 days against 90, so "leaves a log entry" and "leaves a version"
   are not interchangeable assurances.
+- **`trail  none`** (since v1.4.1) is a statement: the command declared `trace: []`, it
+  leaves no trail. No `trail` line at all means the command did not say — not the same.
 
 When a command declares nothing, the older blanket warning applies unchanged — that is
 the normal case, not a fault.

@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.4.1 - 2026-10-11
+
+Works with every contao-ai-core-bundle it worked with before.
+
+### Fixed
+
+- **`ext run` says so when a command declares that it leaves no trail.** An
+  `#[AiContract]` with `trace: []` printed no `trail` line — exactly like a command that
+  said nothing about its trail, although the core bundle asks for `trace: []` so a caller
+  can tell the two apart. The warning now reads `trail  none — the command declares it
+  leaves no trail`. Found in the review before core-bundle v1.4.2.
+
 ## v1.4.0 - 2026-10-11
 
 Works with every contao-ai-core-bundle it worked with before; the new `language` group
