@@ -4,7 +4,10 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## v1.4.0 - 2026-10-10
+## v1.4.0 - 2026-10-11
+
+Works with every contao-ai-core-bundle it worked with before; the new `language` group
+needs core-bundle **v1.4.0** and terminal42/contao-changelanguage on the server.
 
 ### Added
 
