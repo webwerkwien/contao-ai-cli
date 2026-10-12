@@ -433,10 +433,25 @@ class ContaoBackend:
             payload = None
 
         if isinstance(payload, dict) and payload.get("message"):
-            return str(payload["message"])
+            return str(payload["message"]) + ContaoBackend._contao_messages(payload)
 
         cleaned = stderr_excerpt(stderr)
         return f"Stderr: {cleaned}" if cleaned else "No output from the server."
+
+    @staticmethod
+    def _contao_messages(payload: dict) -> str:
+        """What the DCA callbacks told the editor, one line each (core-bundle v1.6.0).
+
+        A callback that refuses a write often says why through Contao's messages
+        (`Message::addError()`), and the core bundle answers them as `messages`.
+        A success prints its whole JSON, so they show there anyway; an error
+        printed only `message`, and the callback's reason was lost.
+        """
+        lines = []
+        for item in payload.get("messages") or []:
+            if isinstance(item, dict) and isinstance(item.get("text"), str) and item["text"].strip():
+                lines.append(f"\nContao {item.get('type') or 'info'}: {item['text'].strip()}")
+        return "".join(lines)
 
     @staticmethod
     def server_defect(stdout: str) -> str | None:
