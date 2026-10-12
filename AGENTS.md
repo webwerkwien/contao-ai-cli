@@ -766,7 +766,15 @@ contao-ai-cli --json schema resolve tl_content customTpl --set type=text        
 **`schema palette` before writing to a typed record for the first time** (v1.1.0; the same
 answer was `schema mandatory --set …` from core-bundle v0.16.0 on, and that spelling still
 works). It answers two things at once: the `fields` this kind of record actually has, and
-which of them are `mandatory`.
+which of them are `mandatory`. Since v1.6.0 `--set` is optional: a table without a type
+(`tl_member`) answers its one palette; a typed one without its type answers the selector
+alone, with a `hint` that names it (`tl_content chooses its palette by type: …`).
+
+**Look up, do not guess** (Michael, 2026-10-12). A refusal of a value names the values
+allowed and the command that lists them (since v1.6.0 as CLI commands — `schema resolve`,
+`schema palette`). Pick from that list; do not try spellings. A value from a fixed list —
+an element type, a page type, a module, a template — comes from `schema resolve <table>
+<field>` before the first write (core-bundle v1.6.1 refuses an invented palette selector).
 
 > ⚠️ **A field is not named after its element type.** Contao has *two* HTML content
 > elements: type `html` stores its markup in `html`, type `unfiltered_html` stores it in

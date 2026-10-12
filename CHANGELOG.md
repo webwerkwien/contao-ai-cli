@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.6.0 - 2026-10-12
+
+Works with every contao-ai-core-bundle it worked with before; the `selectors` hint is
+core-bundle v1.7.0's, the CLI names in refusals pay off from v1.6.1.
+
+### Added
+
+- **A refusal names the CLI command to look the value up**, not the core's console
+  command. core-bundle names `contao:dca:options tl_content type` and
+  `contao:dca:palette …`; the error now reads `contao-ai-cli schema sync tl_content`, then
+  `contao-ai-cli schema resolve tl_content type`, and `contao-ai-cli schema palette …`.
+  Part of "agents should not guess input" (Michael, 2026-10-12).
+
+### Changed
+
+- **`schema palette` without `--set`.** It refused before; a table without a type
+  selector has one palette, and `--set type=default` was the workaround (Consho session).
+  Now it asks the server. Where the table picks its palette by a field that has no value
+  yet (`tl_content`: `type`), the answer adds a `hint` naming it and how to get its values.
+- **`schema sync` says what its `mandatory_fields` are:** `eval.mandatory` as the DCA
+  declares it, palette or not (`tl_consho_shop.currency` is listed though no palette shows
+  it). A new `mandatory_note` says so and points to `schema palette`; the list itself is
+  unchanged, callers read it.
+
 ## v1.5.1 - 2026-10-12
 
 Works with every contao-ai-core-bundle it worked with before.

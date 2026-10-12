@@ -14,6 +14,15 @@ def schema():
     pass
 
 
+#: `mandatory_fields` is `eval.mandatory` as the DCA declares it, palette or not —
+#: `tl_consho_shop.currency` is listed though no palette shows it (Consho session,
+#: 2026-10-12). Said next to the list rather than by changing it: callers read the key.
+_MANDATORY_NOTE = (
+    "as the DCA declares them, whether or not a palette shows the field; "
+    "what a record must have: schema palette {table} (--set type=... for a typed record)"
+)
+
+
 @schema.command("sync")
 @click.argument("table", default="")
 @click.option("--json", "as_json", is_flag=True)
@@ -37,6 +46,7 @@ def schema_sync(ctx, table, as_json):
             "fetched": result["fetched"],
             "total_fields": len(fields),
             "mandatory_fields": mandatory,
+            "mandatory_note": _MANDATORY_NOTE.format(table=table),
         }
         _output(summary, as_json or ctx.obj.get("as_json"))
     else:
@@ -51,6 +61,7 @@ def schema_sync(ctx, table, as_json):
                     "status": "ok",
                     "total_fields": len(res["fields"]),
                     "mandatory_fields": mandatory,
+                    "mandatory_note": _MANDATORY_NOTE.format(table=tbl),
                 }
         _output(summary, as_json or ctx.obj.get("as_json"))
 
@@ -99,12 +110,30 @@ def schema_palette(ctx, table, set_fields, as_json):
     v1.1.0 and still works. It was not findable there (issue #56): nobody looking
     for the fields of a type searches under "mandatory".
     """
-    if not set_fields:
-        raise click.UsageError(
-            "schema palette needs the record: --set type=... (a table has one palette per type). "
-            "For every field that is mandatory somewhere in the table, use: schema mandatory " + table
-        )
-    ctx.invoke(schema_mandatory, table=table, set_fields=set_fields, as_json=as_json)
+    if set_fields:
+        ctx.invoke(schema_mandatory, table=table, set_fields=set_fields, as_json=as_json)
+        return
+
+    # Without --set (v1.6.0): a table without a type selector has one palette, and the
+    # server answers it — `--set type=default` was a workaround for a refusal here
+    # (Consho session, 2026-10-12). A typed table answers its selector alone; then say
+    # which value is missing instead of handing back a one-field "palette".
+    session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
+    data = dca_schema.palette(_get_backend(session_path), table, {})
+    if isinstance(data, dict) and data.get("status") == "ok":
+        missing = data.get("selectors") or _lone_selector(data.get("fields"))
+        if missing:
+            data["hint"] = (
+                f"{table} chooses its palette by {', '.join(missing)}: pass the record, "
+                f"e.g. schema palette {table} --set {missing[0]}=<value>; "
+                f"the values: schema sync {table}, then schema resolve {table} {missing[0]}"
+            )
+    _output(data, as_json or ctx.obj.get("as_json"))
+
+
+def _lone_selector(fields) -> list:
+    """A default palette of one field is a selector waiting for its value (`tl_content`: type)."""
+    return list(fields) if isinstance(fields, list) and len(fields) == 1 else []
 
 
 @schema.command("mandatory")

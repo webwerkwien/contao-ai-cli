@@ -48,17 +48,40 @@ class TestTheCommandExists:
                 calls.append(mod.palette.call_args[0][1:])
         assert calls[0] == calls[1]
 
-    def test_without_set_it_says_what_is_missing_and_where_to_go(self):
-        """A table has one palette per type; answering "the palette of tl_content" is meaningless."""
-        result = run(["palette", "tl_content"])
-        assert result.exit_code != 0
-        assert "--set type=" in result.output
-        assert "schema mandatory tl_content" in result.output
+    def test_without_set_a_typed_table_says_which_value_is_missing(self):
+        """Changed in v1.6.0 — Michael, 2026-10-12: "schema palette ohne --set erlauben".
 
-    def test_it_reaches_no_server_when_the_record_is_missing(self):
-        with patch("contao_ai_cli.cli.cli_schema._get_backend") as backend:
-            run(["palette", "tl_content"])
-        backend.assert_not_called()
+        Until then this refused without asking the server. A typed table answers its
+        selector alone (`tl_content`: ["type"]); the answer then says what to pass.
+        """
+        with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
+             patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
+            mod.palette.return_value = {"status": "ok", "table": "tl_content", "fields": ["type"], "mandatory": []}
+            result = run(["palette", "tl_content", "--json"])
+        assert result.exit_code == 0, result.output
+        mod.palette.assert_called_once()
+        assert mod.palette.call_args.args[1:] == ("tl_content", {})
+        assert "chooses its palette by type" in result.output
+        assert "schema palette tl_content --set type=<value>" in result.output
+        assert "schema resolve tl_content type" in result.output
+
+    def test_without_set_a_table_without_types_gets_its_palette(self):
+        """`schema palette tl_member` used to need `--set type=default` (Consho session)."""
+        with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
+             patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
+            mod.palette.return_value = {"status": "ok", "table": "tl_member", "fields": ["firstname", "lastname", "email"], "mandatory": ["email"]}
+            result = run(["palette", "tl_member", "--json"])
+        assert result.exit_code == 0, result.output
+        assert "firstname" in result.output
+        assert "hint" not in result.output
+
+    def test_the_selectors_the_server_names_win(self):
+        """A core that names the missing selectors is believed over the one-field guess."""
+        with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
+             patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
+            mod.palette.return_value = {"status": "ok", "fields": ["effect", "title"], "selectors": ["effect"]}
+            result = run(["palette", "tl_consho_cart_rule", "--json"])
+        assert "chooses its palette by effect" in result.output
 
     def test_the_old_spelling_still_works(self):
         """`schema mandatory --set …` is in the wild; it does not become an error."""

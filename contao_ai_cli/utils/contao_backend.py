@@ -433,10 +433,28 @@ class ContaoBackend:
             payload = None
 
         if isinstance(payload, dict) and payload.get("message"):
-            return str(payload["message"]) + ContaoBackend._contao_messages(payload)
+            return ContaoBackend.with_cli_names(str(payload["message"]) + ContaoBackend._contao_messages(payload))
 
         cleaned = stderr_excerpt(stderr)
         return f"Stderr: {cleaned}" if cleaned else "No output from the server."
+
+    #: The core names its own console commands as the lookup in a refusal; a caller of
+    #: this CLI types the CLI's (v1.6.0, "agents should not guess", Michael 2026-10-12).
+    _CLI_NAMES = (
+        (re.compile(r"`contao:dca:options ([A-Za-z0-9_]+) ([A-Za-z0-9_]+)`"),
+         r"`contao-ai-cli schema sync \1`, then `contao-ai-cli schema resolve \1 \2`"),
+        (re.compile(r"`contao:dca:palette ([A-Za-z0-9_]+)((?: --set [^`]+)?)`"),
+         r"`contao-ai-cli schema palette \1\2`"),
+        (re.compile(r"`contao:dca:schema ([A-Za-z0-9_]+)`"),
+         r"`contao-ai-cli schema sync \1` (then `schema show \1`)"),
+    )
+
+    @staticmethod
+    def with_cli_names(text: str) -> str:
+        """The core's console lookups in a message, as the CLI commands to type."""
+        for pattern, replacement in ContaoBackend._CLI_NAMES:
+            text = pattern.sub(replacement, text)
+        return text
 
     @staticmethod
     def _contao_messages(payload: dict) -> str:
