@@ -639,6 +639,14 @@ fields you set). What extensions attach there now happens for CLI writes too:
   along, an extension's own rules (a Consho price, a changelanguage duplicate check) apply.
 - **A callback that refuses rolls the write back.** The answer is a refusal that names the
   callback; nothing was written.
+- **What a callback tells the editor comes back as `messages`** (core-bundle v1.6.0):
+  `[{"type": "error", "text": "…"}]` — Contao's messages (`error`, `confirm`, `new`, `info`,
+  `raw`), in the answer of a success and of a refusal. A refused write prints them under
+  the error, one line each (`Contao error: …`, CLI v1.5.0); a refusing callback often
+  explains itself only there.
+- **Virtual fields** (Contao 5.7/6.0, core-bundle v1.6.0): a field without a column of its
+  own, kept in a JSON column (`jsonData`), is set and read like any field — `--set
+  playerCaption=…`, and `content read` shows `playerCaption`, not `jsonData`.
 
 Some callbacks need a back-end user. For those the core uses the user **`contao-ai`**,
 created by a migration on the first update to v1.4.0: an admin that **cannot log in**
