@@ -128,9 +128,8 @@ class TestConfirmDelete:
         ask.assert_not_called()
 
     def test_on_a_terminal_it_asks_and_defaults_to_no(self):
-        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
+        with patch("contao_ai_cli.cli.helpers.stdin_is_console", return_value=True), \
              patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=False) as ask:
-            stdin.isatty.return_value = True
             assert confirm_delete("page 1") is False
         assert ask.call_args.kwargs["default"] is False
 
@@ -155,11 +154,29 @@ class TestConfirmDelete:
         "no answer" as "proceed" — which is right for EOF — would then turn a
         deliberate Ctrl-C into "yes, delete it". So the cancel propagates.
         """
-        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
+        with patch("contao_ai_cli.cli.helpers.stdin_is_console", return_value=True), \
              patch("contao_ai_cli.cli.helpers.ask_yes_no", side_effect=click.Abort):
-            stdin.isatty.return_value = True
             with pytest.raises(click.Abort):
                 confirm_delete("page 1")
+
+    def test_the_null_device_gets_no_question_only_a_note(self, capsys):
+        """Consho session, 2026-10-12: PowerShell with stdin on the NUL device.
+
+        `isatty()` says True for it, the "[y/N]" stood on screen, and the delete went
+        ahead - documented, but it read like a "no" that was ignored. Without a
+        console there is no question now, only a note on stderr; stdout stays the
+        answer.
+        """
+        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
+             patch("contao_ai_cli.cli.helpers.stdin_is_console", return_value=False), \
+             patch("contao_ai_cli.cli.helpers.ask_yes_no") as ask:
+            stdin.isatty.return_value = True
+            assert confirm_delete("page 1") is True
+        ask.assert_not_called()
+        captured = capsys.readouterr()
+        assert "[y/N]" not in captured.err
+        assert "no terminal to ask, proceeding as documented; pass --yes" in captured.err
+        assert captured.out == ""
 
 
 class TestAskYesNo:

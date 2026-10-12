@@ -437,7 +437,9 @@ contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 # empty dns answers every domain (see "Page URLs, second languages, cloning").
 # Only a root may stand at the top level: without --pid, use --type root (core v1.2.0)
 contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
-contao-ai-cli --json article create --title "New Page" --pid 12
+# A regular page comes with its first article (`articles` in the answer) — put content
+# there. article create only for a further article, e.g. another layout column:
+contao-ai-cli --json article create --title "Sidebar" --pid 12 --column right
 
 # Content elements — the value formats, as schema does not show them
 contao-ai-cli --json content create --type headline --pid 7 --set headline="Title" --set headline_unit=h1
@@ -512,7 +514,12 @@ parent table is `tl_content`, share the id space). Nested elements of a containe
 > elements with it. The whole set lands in one `tl_undo` entry, so it stays recoverable
 > from the back end's *Restore* module. On a terminal the CLI asks first, the same as the
 > Contao back end does; `--yes` skips the prompt for non-interactive use. Without a
-> terminal a record delete proceeds — the record stays in `tl_undo`. Since v0.29.0 this
+> terminal a record delete proceeds — the record stays in `tl_undo`. Since v1.5.1 there is
+> then no `[y/N]` at all, only a note on stderr (`… no terminal to ask, proceeding as
+> documented; pass --yes to say so`): "terminal" means a console, and stdin on the null
+> device of a PowerShell or Git Bash call — which `isatty()` takes for one — is none.
+> Before, the question stood there and the delete went ahead, which read like an
+> ignored "no". Pass `--yes` anyway to make the intent explicit. Since v0.29.0 this
 > holds for **every** record delete, `user delete` and `member delete` included; until
 > v0.28.0 those two never asked. Only `file delete` and `template delete`, which have no
 > undo, refuse without `--yes` when nobody answers.
@@ -634,7 +641,8 @@ calls (`oncreate`, `onsubmit`, `oncopy`, `oncut`, `ondelete`, and the save callb
 fields you set). What extensions attach there now happens for CLI writes too:
 
 - `page create` of a regular page gets its first article, as in the back end; the answer
-  names it in `articles`.
+  names it in `articles`. **Put content into that article** (`content create --pid <id
+  from articles>`) — an `article create` afterwards leaves the page with two.
 - A deleted page leaves the site search, a copied record gets what an extension copies
   along, an extension's own rules (a Consho price, a changelanguage duplicate check) apply.
 - **A callback that refuses rolls the write back.** The answer is a refusal that names the

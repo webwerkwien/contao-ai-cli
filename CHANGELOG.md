@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.5.1 - 2026-10-12
+
+Works with every contao-ai-core-bundle it worked with before.
+
+### Fixed
+
+- **No `[y/N]` without a terminal.** A record delete without `--yes` proceeds when nobody
+  can answer — documented since v0.29.0, because the record stays in `tl_undo`. But called
+  from PowerShell or Git Bash with stdin on the null device, `isatty()` took that for a
+  terminal: the question stood on screen and the delete went ahead, which read like an
+  ignored "no" (found by the Consho session). Now a console is required for a question
+  (the check the bridge token prompt already used); without one there is only a note on
+  stderr, `… no terminal to ask, proceeding as documented; pass --yes to say so`. The
+  questions that default to no without a terminal (`newsletter subscriber-create`) use the
+  same check.
+- **`page create` says that the page has an article already.** A regular page comes with
+  its first article; the guide's example went on with `article create` for the same page,
+  which leaves two. The example and the command's help now say to put content into the
+  first one.
+
 ## v1.5.0 - 2026-10-12
 
 Works with every contao-ai-core-bundle it worked with before; the new part needs

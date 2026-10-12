@@ -790,11 +790,15 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
     """
     if assume_yes:
         return True
-    try:
-        interactive = sys.stdin.isatty()
-    except Exception:
-        interactive = False
-    if not interactive:
+    # A console, not just `isatty()`: the NUL device — stdin of a PowerShell or Git
+    # Bash call with nothing attached — passes for a terminal, and the "[y/N]" then
+    # stood on screen before the action went ahead, reading like a "no" that was
+    # ignored (Consho session, 2026-10-12). Without a console: no question, a note.
+    if not stdin_is_console():
+        click.echo(
+            f"    ({question} - no terminal to ask, proceeding as documented; pass --yes to say so)",
+            err=True,
+        )
         return True
 
     answered = ask_yes_no(question, default=False)
@@ -848,11 +852,8 @@ def confirm_escalation(question: str) -> bool:
     Anything else — no terminal, a terminal nobody is at, EOF — is a no, and the
     caller carries on with the harmless outcome instead of dying.
     """
-    try:
-        interactive = sys.stdin.isatty()
-    except Exception:
-        interactive = False
-    if not interactive:
+    # A console, not just `isatty()` (see confirm_action).
+    if not stdin_is_console():
         return False
     # None means nobody answered — a no here, where confirm_action reads the
     # same silence as a yes. That is the whole difference between the two.

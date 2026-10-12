@@ -73,7 +73,11 @@ def page_read_cmd(ctx, page_id, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json):
-    """Create a page via contao-ai-core-bundle."""
+    """Create a page via contao-ai-core-bundle.
+
+    A regular page comes with its first article, named under `articles` in the
+    answer - put content there rather than creating another article.
+    """
     _require_core_bundle(ctx, "page create")
     parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
