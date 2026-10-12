@@ -141,10 +141,11 @@ class TestConfirmDelete:
         command, so every `delete` without --yes failed in an agent harness.
         Silence has to land on the same answer as having no terminal at all.
         """
-        with patch("contao_ai_cli.cli.helpers.sys.stdin") as stdin, \
-             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=None):
-            stdin.isatty.return_value = True
+        # A console that passes the check (v1.5.1), and then nobody answers.
+        with patch("contao_ai_cli.cli.helpers.stdin_is_console", return_value=True), \
+             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=None) as ask:
             assert confirm_delete("page 1") is True
+        ask.assert_called_once()
 
     def test_ctrl_c_is_not_silence_and_must_never_become_yes(self):
         """The reason ask_yes_no exists at all.

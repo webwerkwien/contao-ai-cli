@@ -130,10 +130,11 @@ class TestTheActiveQuestion:
         The guarantee has to be "yes only when a human says yes", not "yes when
         isatty says there is a terminal".
         """
-        with patch("contao_ai_cli.cli.helpers.sys.stdin") as fake_stdin, \
-             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=None):
-            fake_stdin.isatty.return_value = True
+        # A console that passes the check (CLI v1.5.1), and then nobody answers.
+        with patch("contao_ai_cli.cli.helpers.stdin_is_console", return_value=True), \
+             patch("contao_ai_cli.cli.helpers.ask_yes_no", return_value=None) as ask:
             assert confirm_escalation("anything?") is False
+        ask.assert_called_once()
 
     def test_creating_without_a_flag_creates_an_inactive_recipient(self):
         b = backend()
