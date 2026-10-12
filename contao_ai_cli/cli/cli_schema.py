@@ -121,7 +121,9 @@ def schema_palette(ctx, table, set_fields, as_json):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     data = dca_schema.palette(_get_backend(session_path), table, {})
     if isinstance(data, dict) and data.get("status") == "ok":
-        missing = data.get("selectors") or _lone_selector(data.get("fields"))
+        # core-bundle v1.7.0 always answers `selectors` ([] when nothing is missing);
+        # only an older one, without the key, leaves the one-field palette to read.
+        missing = data["selectors"] if isinstance(data.get("selectors"), list) else _lone_selector(data.get("fields"))
         if missing:
             data["hint"] = (
                 f"{table} chooses its palette by {', '.join(missing)}: pass the record, "

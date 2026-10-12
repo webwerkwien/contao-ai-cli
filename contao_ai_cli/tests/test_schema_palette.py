@@ -12,6 +12,7 @@ back empty for an `unfiltered_html` element, because Contao has two HTML content
 elements and that one stores its markup in `unfilteredHtml`. The answer was
 correct and told the reader nothing.
 """
+import json
 import pathlib
 from unittest.mock import patch
 
@@ -81,7 +82,17 @@ class TestTheCommandExists:
              patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
             mod.palette.return_value = {"status": "ok", "fields": ["effect", "title"], "selectors": ["effect"]}
             result = run(["palette", "tl_consho_cart_rule", "--json"])
-        assert "chooses its palette by effect" in result.output
+        assert result.exit_code == 0, result.output
+        assert "chooses its palette by effect" in json.loads(result.output)["hint"]
+
+    def test_an_empty_selector_list_is_believed_over_a_one_field_palette(self):
+        """Fable review: a real one-field palette got "chooses its palette by title"."""
+        with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
+             patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
+            mod.palette.return_value = {"status": "ok", "fields": ["title"], "mandatory": ["title"], "selectors": []}
+            result = run(["palette", "tl_acme_tag", "--json"])
+        assert result.exit_code == 0, result.output
+        assert "hint" not in json.loads(result.output)
 
     def test_the_old_spelling_still_works(self):
         """`schema mandatory --set …` is in the wild; it does not become an error."""

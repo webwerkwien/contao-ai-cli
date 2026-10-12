@@ -767,8 +767,9 @@ contao-ai-cli --json schema resolve tl_content customTpl --set type=text        
 answer was `schema mandatory --set …` from core-bundle v0.16.0 on, and that spelling still
 works). It answers two things at once: the `fields` this kind of record actually has, and
 which of them are `mandatory`. Since v1.6.0 `--set` is optional: a table without a type
-(`tl_member`) answers its one palette; a typed one without its type answers the selector
-alone, with a `hint` that names it (`tl_content chooses its palette by type: …`).
+(`tl_member`) answers its one palette; a typed one asked without any `--set` answers the
+selector alone, with a `hint` that names it (`tl_content chooses its palette by type: …`,
+from core-bundle v1.7.0's `selectors`).
 
 **Look up, do not guess** (Michael, 2026-10-12). A refusal of a value names the values
 allowed and the command that lists them (since v1.6.0 as CLI commands — `schema resolve`,
