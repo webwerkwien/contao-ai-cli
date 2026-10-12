@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.5.0 - 2026-10-12
+
+Works with every contao-ai-core-bundle it worked with before; the new part needs
+core-bundle v1.6.0.
+
+### Added
+
+- **An error shows what the DCA callbacks told the editor.** core-bundle v1.6.0 answers
+  Contao's messages (`Message::addError()` …) as `messages`. A success prints its whole
+  JSON, so they appear there; an error printed only `message`, and a refusing callback's
+  reason was lost. Now one line each under the error: `Contao error: …`.
+
 ## v1.4.1 - 2026-10-11
 
 Works with every contao-ai-core-bundle it worked with before.
