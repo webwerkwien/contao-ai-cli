@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.7.0 - 2026-10-13
+
+Works with every contao-ai-core-bundle it worked with before; `ext run --operator` reaches
+the command from core-bundle v1.7.1 on. Findings from a fresh installation
+(showcase.conpai.eu).
+
+### Changed
+
+- **`bundle install|update` runs `contao:migrate` after Composer.** `bundle install
+  backend` answered ok while the bundle's columns in `tl_user` were still missing. The
+  answer has a new `migrate` field: migrations and schema changes executed, and the dump
+  Contao makes before it migrates (`backup`). Without interaction Contao leaves out
+  `DROP` statements. A failed migration is an error with `installed` still set and names
+  `contao-ai-cli contao migrate` for after the fix.
+
+### Fixed
+
+- **`backup restore` takes only a name `backup list` shows.** Contao's restore does not
+  refuse a name it does not list: a `.sql` for a `.sql.gz` played back the newest backup
+  and was reported as restored under the name asked for. A miss now restores nothing,
+  exits 1 and lists the available names.
+- **The Git Bash hint of `connect` for any folder.** It knew `var/`, `home/`, `web/` and a
+  few more, and only with a slash behind them: `--root /web`, `/html`, `/htdocs` or a
+  host's `public_html` failed without it. Now recognised by the Git directory in front —
+  the usual install locations and the Git installation on this machine.
+- **`ext run --operator` says what it does:** written to the log entry and, since
+  core-bundle v1.7.1, handed on to a command with an `--operator` option of its own (the
+  help said "for the log entry").
+
 ## v1.6.0 - 2026-10-12
 
 Works with every contao-ai-core-bundle it worked with before; the `selectors` hint is

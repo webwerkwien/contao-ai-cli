@@ -102,13 +102,50 @@ class TestBackup:
         result = backup_list(backend)
         assert result == {"output": "backup_a\nbackup_b"}
 
-    def test_backup_restore(self):
+    LISTED = ('[{"createdAt":"2026-10-13T11:11:48+00:00","size":5,"name":"backup__20261013111148.sql.gz"},'
+              '{"createdAt":"2026-10-09T12:24:23+00:00","size":5,"name":"nightly__20261009122423.sql.gz"}]')
+
+    def _backend(self, listed=LISTED):
         backend = MagicMock()
-        backend.run.return_value = {"stdout": "restored", "returncode": 0}
-        result = backup_restore(backend, "nightly.sql")
+        backend.run.side_effect = lambda cmd, **kw: {
+            "stdout": listed if cmd.startswith("contao:backup:list") else "restored", "returncode": 0}
+        return backend
+
+    def test_backup_restore(self):
+        backend = self._backend()
+        result = backup_restore(backend, "nightly__20261009122423.sql.gz")
         assert result["status"] == "restored"
-        assert result["backup"] == "nightly.sql"
-        assert backend.run.call_args[0][0] == "contao:backup:restore nightly.sql --no-interaction"
+        assert result["backup"] == "nightly__20261009122423.sql.gz"
+        assert backend.run.call_args_list[0][0][0] == "contao:backup:list --format=json"
+        assert backend.run.call_args[0][0] == "contao:backup:restore nightly__20261009122423.sql.gz --no-interaction"
+
+    def test_backup_restore_refuses_a_name_contao_does_not_list(self):
+        """showcase.conpai.eu, 2026-10-13: `.sql` for `.sql.gz` played back the newest backup."""
+        for name in ("nightly__20261009122423.sql", "backup", "backup__20261013111148.SQL.GZ"):
+            backend = self._backend()
+            result = backup_restore(backend, name)
+            assert result["status"] == "error" and result["code"] == 1, name
+            assert "nothing was restored" in result["message"]
+            assert "backup__20261013111148.sql.gz (newest)" in result["message"]
+            assert result["available"][0] == "backup__20261013111148.sql.gz"
+            assert all(not c[0][0].startswith("contao:backup:restore") for c in backend.run.call_args_list)
+
+    def test_backup_restore_command_exits_1_on_a_refusal(self):
+        from click.testing import CliRunner
+        from contao_ai_cli.cli.cli_backup import backup_restore as restore_cmd
+
+        with patch("contao_ai_cli.cli.cli_backup._get_backend", return_value=self._backend()):
+            refused = CliRunner().invoke(restore_cmd, ["nope.sql", "--json"], obj={})
+            done = CliRunner().invoke(restore_cmd, ["nightly__20261009122423.sql.gz", "--json"], obj={})
+        assert refused.exit_code == 1 and '"status": "error"' in refused.output
+        assert done.exit_code == 0 and '"status": "restored"' in done.output
+
+    def test_backup_restore_without_any_backup_or_a_readable_list_restores_nothing(self):
+        for listed, says in (("[]", "there are none"), ("not json", "could not be read")):
+            backend = self._backend(listed)
+            result = backup_restore(backend, "x.sql.gz")
+            assert result["status"] == "error" and says in result["message"]
+            assert backend.run.call_count == 1
 
 
 class TestCache:

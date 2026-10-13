@@ -50,11 +50,44 @@ def test_a_root_rewritten_by_git_bash_is_named_on_failure(tmp_path):
         assert "MSYS_NO_PATHCONV=1" in json.loads(invoke(tmp_path, backend, args).stdout)["message"], root
 
 
+def test_any_folder_behind_the_git_directory_gets_the_hint(tmp_path):
+    """showcase.conpai.eu, 2026-10-13: `--root /web` arrived as `C:/Program Files/Git/web`,
+    no slash behind it, and hosts use html/, htdocs/, public_html/ (Michael)."""
+    backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
+    with patch("contao_ai_cli.cli.cli_connect._local_git_roots", return_value=[]):
+        for root in ("C:/Program Files/Git/web", "C:/Program Files/Git/html", "C:/Program Files/Git/htdocs",
+                     "C:/Program Files (x86)/Git/home/u/public_html", "C:/Users/u/scoop/apps/git/current/httpdocs"):
+            args = ["--host", "h", "--user", "u", "--root", root, "--json"]
+            assert "MSYS_NO_PATHCONV=1" in json.loads(invoke(tmp_path, backend, args).stdout)["message"], root
+
+
+def test_git_installed_elsewhere_is_found_on_this_machine(tmp_path):
+    backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
+    with patch("contao_ai_cli.cli.cli_connect._local_git_roots", return_value=["E:/Tools/Git"]):
+        out = json.loads(invoke(tmp_path, backend, ["--host", "h", "--user", "u", "--root", "E:/Tools/Git/html", "--json"]).stdout)
+    assert "MSYS_NO_PATHCONV=1" in out["message"]
+
+
+def test_the_local_git_root_is_the_parent_with_usr_bin(tmp_path, monkeypatch):
+    git = tmp_path / "Git"
+    (git / "usr" / "bin").mkdir(parents=True)
+    (git / "mingw64" / "bin").mkdir(parents=True)
+    (git / "bin").mkdir()
+    exe = git / "mingw64" / "bin" / "git.exe"
+    exe.write_text("")
+    from contao_ai_cli.cli import cli_connect
+    monkeypatch.setenv("EXEPATH", str(git / "bin"))
+    monkeypatch.setattr(cli_connect.shutil, "which", lambda name: str(exe))
+    expected = str(git).replace("\\", "/")
+    assert cli_connect._local_git_roots() == [expected, expected]
+
+
 def test_a_real_windows_root_gets_no_git_bash_hint(tmp_path):
     backend = MagicMock(**{"run.side_effect": ContaoBackendError("refused")})
-    for root in ("C:/inetpub/contao", "/var/www/web", "D:/Projects/Git/site"):
-        args = ["--host", "h", "--user", "u", "--root", root, "--json"]
-        assert "MSYS" not in json.loads(invoke(tmp_path, backend, args).stdout)["message"]
+    with patch("contao_ai_cli.cli.cli_connect._local_git_roots", return_value=[]):
+        for root in ("C:/inetpub/contao", "/var/www/web", "D:/Projects/Git/site", "C:/Program Files/GitHub/x"):
+            args = ["--host", "h", "--user", "u", "--root", root, "--json"]
+            assert "MSYS" not in json.loads(invoke(tmp_path, backend, args).stdout)["message"]
 
 
 def test_reconnecting_keeps_the_bridge(tmp_path):

@@ -126,7 +126,9 @@ agent runs it directly, once it has host, user and root path from the person.
 **From Git Bash on Windows, set `MSYS_NO_PATHCONV=1`.** MSYS rewrites an argument that
 starts with `/` into a Windows path: `--root /var/www/web` reaches the CLI as
 `C:/Program Files/Git/var/www/web`, and the server answers `cd: … No such file or
-directory`. Since v0.27.0 the error message says so when the root carries the Git prefix.
+directory`. Since v0.27.0 the error message says so when the root carries the Git prefix;
+since v1.7.0 for any folder behind it (`/web`, `/html`, `/htdocs`, `…/public_html`),
+recognised by the usual Git install locations and the Git installation on this machine.
 
 > ⚠️ Never hardcode real hostnames, usernames, passwords, or key paths
 > in any committed file. Always ask the user for connection details.
@@ -205,6 +207,16 @@ and the nine `symfony/ai` packages, where `-w` alone took seven more (Contao com
 `doctrine/orm`). A Composer older than 2.7 does not know `--minimal-changes`; the CLI then
 repeats the run with `-w` alone, recognised by Composer's own "option does not exist" — never
 after a real resolution failure. What moved besides the bundle is in `dependenciesChanged`.
+
+**Then the database: `contao:migrate` runs after Composer** (v1.7.0), and `migrate` in the
+answer says what it did — `{"migrations": 1, "schemaChanges": 5, "backup": "backup__….sql.gz"}`.
+Up to v1.6.0 `bundle install backend` answered ok while the bundle's `tl_user` columns were
+still missing (2026-10-13). Contao dumps the database before it migrates (`backup`, `null`
+when there was nothing to do), and without interaction it leaves out `DROP` statements:
+columns and tables are added, nothing is deleted. A failed migration is
+`"status": "error"` with `installed` still set — the package is in place, the database is
+not; fix the cause and run `contao-ai-cli contao migrate`. A run that installs nothing
+(already installed, already newest) migrates nothing either.
 
 If an update needs a newer **Contao** (the bundle requires it, or Composer blocks the locked
 Contao version for a security advisory, as `enshrined/svg-sanitize` 0.22 was blocked on
@@ -750,7 +762,14 @@ bundle ran the plain `cache:clear` without a trace.
 ```bash
 contao-ai-cli backup create
 contao-ai-cli --json backup list
+contao-ai-cli --json backup restore backup__20261013111148.sql.gz
 ```
+
+**`backup restore` takes only a name `backup list` shows, exactly** (v1.7.0). Contao's own
+restore does not refuse a name it does not list: a `.sql` for a `.sql.gz` played back the
+newest backup and was reported under the name asked for (2026-10-13). A miss now restores
+nothing and exits 1 with `available` (the ten newest names). A restore replaces the whole
+database — confirm the name with the user before running it.
 
 ### Schema inspection (requires contao-ai-core-bundle)
 
@@ -1398,6 +1417,12 @@ target.** Both, deliberately: the warning reaches you before the effect, the log
 entry reaches whoever asks afterwards what happened. The entry says what was
 *started* — a foreign command may write without leaving any trace of its own, so
 the one thing that can be promised is the smaller one.
+
+**`--operator` reaches the command, not only the log entry** (core-bundle v1.7.1). A
+command that records who changed something — `tl_version`, its own history — defines
+an `--operator` option that takes a value; `ext run --operator <user>` hands the user on
+to it. Setting `--operator` inside the command line as well is refused unless it is
+exactly the same user. With an older core bundle the name goes into the log entry only.
 
 Two refusals, and they are not the same kind:
 

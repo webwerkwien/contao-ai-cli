@@ -378,3 +378,90 @@ def test_a_held_back_update_names_what_moved_as_well():
          versions("v0.19.0", "v0.19.5"):
         result = bundles.install_bundle(b, "core", "update")
     assert result["status"] == "error" and "dependenciesChanged" in result
+
+
+# --- contao:migrate after Composer (v1.7.0; showcase.conpai.eu, 2026-10-13) ---------------
+
+MIGRATE_OUTPUT = "\n".join([
+    '{"type":"backup-result","createdAt":"2026-10-13T16:00:00+00:00","size":1234,"name":"backup__20261013160000.sql.gz"}',
+    '{"type":"migration-pending","names":["Add the contao-ai user"],"hash":"x"}',
+    '{"type":"migration-result","message":"Added the contao-ai user","isSuccessful":true}',
+    '{"type":"schema-pending","commands":["ALTER TABLE tl_user ADD ai_model VARCHAR(64)"]}',
+    '{"type":"schema-execute","command":"ALTER TABLE tl_user ADD ai_model VARCHAR(64)"}',
+    '{"type":"schema-result","command":"ALTER TABLE tl_user ADD ai_model VARCHAR(64)","isSuccessful":true}',
+    '{"type":"schema-result","command":"ALTER TABLE tl_user ADD ai_x INT","isSuccessful":false,"message":"retried"}',
+])
+
+
+def migrating_backend(migrate_stdout="", migrate_error=None):
+    """run_raw answers the migrate call with its own output; everything else as before."""
+    b = backend()
+
+    def run_raw(command, timeout=None, **kwargs):
+        if "contao:migrate" in command:
+            if migrate_error:
+                raise migrate_error
+            return {"returncode": 0, "stdout": migrate_stdout, "stderr": ""}
+        return {"returncode": 0, "stdout": "", "stderr": ""}
+
+    b.run_raw.side_effect = run_raw
+    return b
+
+
+def migrate_calls(b):
+    return [c for c in b.run_raw.call_args_list if "contao:migrate" in c.args[0]]
+
+
+def test_an_install_runs_the_migrations_after_composer_and_reports_them():
+    b = migrating_backend(MIGRATE_OUTPUT)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "ok"
+    assert result["migrate"] == {"migrations": 1, "schemaChanges": 1, "backup": "backup__20261013160000.sql.gz"}
+    commands = [c.args[0] for c in b.run_raw.call_args_list]
+    composer_at = next(i for i, c in enumerate(commands) if " composer " in f" {c} ")
+    migrate_at = next(i for i, c in enumerate(commands) if "contao:migrate" in c)
+    assert composer_at < migrate_at
+    call = migrate_calls(b)[0]
+    assert "--no-interaction" in call.args[0] and "--format=ndjson" in call.args[0]
+    assert "--with-deletes" not in call.args[0] and "--no-backup" not in call.args[0]
+    assert call.kwargs["timeout"] == bundles.MIGRATE_TIMEOUT
+
+
+def test_an_update_runs_them_too_and_nothing_to_do_is_zero():
+    b = migrating_backend("")
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions("v1.7.1", "v1.7.2"), \
+         patch.object(bundles, "get_bundle_latest_version", return_value="1.7.2"):
+        result = bundles.install_bundle(b, "core", "update")
+    assert result["status"] == "ok"
+    assert result["migrate"] == {"migrations": 0, "schemaChanges": 0, "backup": None}
+    assert len(migrate_calls(b)) == 1
+
+
+def test_no_composer_run_means_no_migration():
+    b = migrating_backend(MIGRATE_OUTPUT)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions("v1.7.2"):
+        bundles.install_bundle(b, "core", "install")
+    assert migrate_calls(b) == []
+
+
+def test_a_failed_migration_keeps_the_install_but_is_an_error():
+    from contao_ai_cli.utils.contao_backend import ContaoBackendError
+
+    b = migrating_backend(migrate_error=ContaoBackendError("Shell command failed (exit 1). Stderr: Access denied"))
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error" and result["code"] == 1
+    assert result["installed"] == "v1.7.2"
+    assert "contao:migrate failed" in result["message"] and "Access denied" in result["message"]
+    assert "contao-ai-cli contao migrate" in result["message"]
+
+
+def test_a_problem_reported_by_contao_is_an_error_naming_the_dump():
+    out = MIGRATE_OUTPUT + '\n{"type":"error","message":"Table tl_user is locked"}'
+    b = migrating_backend(out)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error"
+    assert "Table tl_user is locked" in result["message"]
+    assert "backup__20261013160000.sql.gz" in result["message"]

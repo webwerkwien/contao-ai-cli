@@ -63,7 +63,9 @@ def ext_describe_cmd(ctx, name, as_json):
 
 @ext.command("run", context_settings={"ignore_unknown_options": True})
 @click.argument("command_line", nargs=-1, required=True)
-@click.option("--operator", default="", help="Acting user identifier for the log entry")
+@click.option("--operator", default="",
+              help="Acting user: written to the log entry and, since core-bundle v1.7.1, handed on to "
+                   "a command with an --operator option of its own")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def ext_run_cmd(ctx, command_line, operator, as_json):

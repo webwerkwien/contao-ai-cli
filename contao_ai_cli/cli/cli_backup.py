@@ -36,6 +36,9 @@ def backup_list(ctx, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def backup_restore(ctx, backup_name, as_json):
-    """Restore a database backup."""
+    """Restore a database backup, by a name `backup list` shows."""
     b = _get_backend(ctx.obj.get("session"))
-    _output(backup_mod.backup_restore(b, backup_name), as_json or ctx.obj.get("as_json"))
+    result = backup_mod.backup_restore(b, backup_name)
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if result.get("status") == "error":
+        ctx.exit(1)

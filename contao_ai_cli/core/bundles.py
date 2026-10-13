@@ -120,6 +120,47 @@ def dependency_changes(before: dict | None, after: dict | None, package: str) ->
             if name != package and before.get(name) != after.get(name)}
 
 
+# A migration dumps the database first; on a large site that alone outlasts run()'s 60 s.
+MIGRATE_TIMEOUT = 600
+
+
+def run_migrations(backend) -> dict:
+    """`contao:migrate` after Composer (v1.6.1), and what it did.
+
+    Until then `bundle install backend` answered ok while the bundle's columns in tl_user
+    were still missing (showcase.conpai.eu, 2026-10-13). Run, not merely reported: Contao
+    dumps the database before it migrates (`backup`, skipped when there is nothing to
+    do), and without interaction it leaves out DROP statements -- columns and tables are
+    added, nothing is deleted. ndjson is the same on 5.3, 5.7 and 6.0.
+    """
+    command = f"{shlex.quote(backend.php_path)} bin/console contao:migrate --no-interaction --format=ndjson"
+    try:
+        result = backend.run_raw(command, timeout=MIGRATE_TIMEOUT)
+    except ContaoBackendError as e:
+        return {"error": str(e)}
+
+    events = []
+    for line in result["stdout"].splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict):
+            events.append(event)
+
+    # Successful results only: Contao retries a failed schema statement and restarts on an
+    # unexpected pending migration; what finally fails exits non-zero (the except above).
+    report = {
+        "migrations": sum(1 for e in events if e.get("type") == "migration-result" and e.get("isSuccessful")),
+        "schemaChanges": sum(1 for e in events if e.get("type") == "schema-result" and e.get("isSuccessful")),
+        "backup": next((e.get("name") for e in events if e.get("type") == "backup-result"), None),
+    }
+    problems = [str(e.get("message")) for e in events if e.get("type") in ("error", "problem") and e.get("message")]
+    if problems:
+        report["error"] = "; ".join(problems)
+    return report
+
+
 def install_bundle(backend, name: str, action: str, allow_plugins: bool = False) -> dict:
     """
     Install or update a bundle and report only what can be read back afterwards.
@@ -196,20 +237,28 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
                 "dependenciesChanged": also_changed,
                 "message": f"Composer finished, but {package} is not installed afterwards."}
 
+    migrate = run_migrations(backend)
+
     if action == "update" and str(after).lstrip("v") != str(latest).lstrip("v"):
         # Composer exits 0 with an older version when something else holds the newest back
         # (a PHP requirement, a locked dependency) -- and has rewritten composer.json and the
         # lock by then. Say so (pre-release review 2026-09-17: "nothing else was changed").
         return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
                 "installed": after, "previous": before, "changed": after != before,
-                "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed,
+                "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed, "migrate": migrate,
                 "message": f"Composer resolved {package} to {after}, not the newest {latest} -- another "
                            f"requirement (e.g. the PHP version or a locked dependency) holds it back. "
                            f"composer.json now requires {CONSTRAINTS[name]} and the lock file was updated."}
 
     result = {**base, "status": "ok", "changed": after != before, "installed": after,
               "previous": before, "via": "contao-manager" if manager["available"] else "composer",
-              "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed}
+              "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed, "migrate": migrate}
     if written:
         result["allowPluginsWritten"] = written
+    if "error" in migrate:
+        # The package is in place, the database is not: not ok, but say what is done.
+        result.update(status="error", code=1,
+                      message=f"{package} {after} is installed, but contao:migrate failed: {migrate['error']} "
+                              f"-- run `contao-ai-cli contao migrate` once the cause is fixed"
+                              + (f" (Contao dumped the database first: {migrate['backup']})." if migrate.get("backup") else "."))
     return result

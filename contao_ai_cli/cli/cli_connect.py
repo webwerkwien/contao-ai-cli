@@ -1,7 +1,10 @@
 """
 connect, session-list, session-delete commands.
 """
+import os
 import re
+import shutil
+from pathlib import Path
 
 import click
 
@@ -29,23 +32,51 @@ def _host_key_notice(stderr: str) -> str | None:
     return None
 
 
+# Where Git for Windows usually lives: Program Files (also x86), a drive root, PortableGit
+# anywhere, scoop. MSYS maps / to that directory.
+_KNOWN_GIT_ROOT = re.compile(
+    r"^[A-Za-z]:/(?:Program Files(?: \(x86\))?/Git|Git|(?:.*/)?PortableGit|(?:.*/)?scoop/apps/git/[^/]+)/",
+    re.IGNORECASE)
+
+
+def _local_git_roots() -> list[str]:
+    """The Git for Windows directories on this machine, from EXEPATH and git on the PATH.
+
+    EXEPATH is Git's bin/, git.exe sits in cmd/ or mingw64/bin/: the root is the first
+    parent with a usr/bin/ of its own.
+    """
+    roots = []
+    for start in (os.environ.get("EXEPATH"), shutil.which("git")):
+        if not start:
+            continue
+        for parent in Path(start).parents if Path(start).suffix else [Path(start), *Path(start).parents]:
+            if (parent / "usr" / "bin").is_dir():
+                roots.append(str(parent).replace("\\", "/").rstrip("/"))
+                break
+    return roots
+
+
 def _msys_path_hint(root: str) -> str:
     """A hint when --root looks like Git Bash rewrote it, else ''.
 
     Measured on 2026-09-18: `connect --root /var/www/…` typed into Git Bash arrived as
     `C:/Program Files/Git/var/www/…` — MSYS turns an argument that starts with / into a
     Windows path. The server answered "cd: … No such file or directory" and nothing
-    said why. Only on failure and only for the Git prefix: a Windows server with a real
-    `C:\\…` root stays untouched.
+    said why. Only on failure.
+
+    Recognised by the Git directory in front, not by the folder behind it (v1.7.0): up to
+    then only var/, home/, web/ and a few more counted, and `/web` without a slash after
+    it, `/html`, `/htdocs` or a host's `public_html` got no hint (showcase.conpai.eu,
+    2026-10-13). A real Windows root that merely sits in some folder called Git stays
+    untouched; the wording says it is a guess.
     """
     normalized = root.replace("\\", "/")
-    # The Git install dir (Program Files, a drive root, PortableGit) followed by a Unix
-    # top-level directory — a real Windows root that merely sits in a folder called Git
-    # does not continue with var/, home/ and the like (review before v0.27.0).
-    if re.match(r"^[A-Za-z]:/(?:.*/)?(?:Portable)?Git/(?:var|home|srv|usr|opt|www|web|data|mnt|tmp|etc)/",
-                normalized, re.IGNORECASE):
-        return (" --root looks rewritten by Git Bash (MSYS turns a leading / into a Windows"
-                " path). Run the command with MSYS_NO_PATHCONV=1 set, or from another shell.")
+    rewritten = _KNOWN_GIT_ROOT.match(normalized) or any(
+        normalized.lower().startswith(git.lower() + "/") for git in _local_git_roots())
+    if rewritten:
+        return (" --root looks rewritten by Git Bash: if you typed a path starting with /, MSYS"
+                " turned it into a Windows path. Run the command with MSYS_NO_PATHCONV=1 set,"
+                " or from another shell.")
     return ""
 
 
