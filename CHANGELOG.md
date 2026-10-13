@@ -16,8 +16,9 @@ the command from core-bundle v1.7.1 on. Findings from a fresh installation
   backend` answered ok while the bundle's columns in `tl_user` were still missing. The
   answer has a new `migrate` field: migrations and schema changes executed, and the dump
   Contao makes before it migrates (`backup`). Without interaction Contao leaves out
-  `DROP` statements. A failed migration — Contao's error with exit 1, or a migration
-  reported as unsuccessful with exit 0 — is an error with `installed` still set and names
+  `DROP` statements. A failed migration — Contao's error with exit 1, a schema change that
+  still fails after Contao's retries, or a migration reported as unsuccessful with exit 0 —
+  is an error with `installed` still set, with Contao's reason, and names
   `contao-ai-cli contao migrate` for after the fix; Contao's warnings come along as
   `warnings`. `contao migrate` now waits up to 600 s instead of 60, for the dump.
 

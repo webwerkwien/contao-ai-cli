@@ -32,9 +32,10 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
     the pre-release review.
 
     So: no `--no-interaction` (with a name given `interact()` returns before any
-    question; SHELL_INTERACTIVE keeps an older Symfony from switching to non-interactive
-    without a terminal), the name checked against `contao:backup:list` first, and
-    Contao's own answer (`--format=json`, the backup it restored) compared afterwards.
+    question; Symfony 6.4 and 7.x stay interactive without a terminal), the name
+    checked against `contao:backup:list` first, and Contao's own answer
+    (`--format=json`, the backup it restored) compared afterwards -- which also catches
+    a Symfony that does switch to non-interactive on its own.
     """
     try:
         listed = json.loads(backend.run("contao:backup:list --format=json")["stdout"] or "[]")
@@ -48,7 +49,7 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
                            f"`backup list`, exactly"
                            + (f", e.g. {names[0]} (newest)." if names else " -- there are none.")}
 
-    cmd = (f"SHELL_INTERACTIVE=1 {shlex.quote(backend.php_path)} bin/console contao:backup:restore "
+    cmd = (f"{shlex.quote(backend.php_path)} bin/console contao:backup:restore "
            f"{shlex.quote(backup_name)} --format=json")
     result = backend.run_raw(cmd, timeout=RESTORE_TIMEOUT, check=False)
     answer = None

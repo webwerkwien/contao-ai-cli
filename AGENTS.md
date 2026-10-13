@@ -214,7 +214,9 @@ Up to v1.6.0 `bundle install backend` answered ok while the bundle's `tl_user` c
 still missing (2026-10-13). Contao dumps the database before it migrates (`backup`, `null`
 when there was nothing to do), and without interaction it leaves out `DROP` statements:
 columns and tables are added, nothing is deleted. A failed migration — Contao's `error`
-with exit 1, or a migration reported unsuccessful with exit 0 — is `"status": "error"` with
+with exit 1, a schema change that still fails after Contao's retries (its `schema-result`
+carries the reason), or a migration reported unsuccessful with exit 0 — is
+`"status": "error"` with
 `installed` still set: the package is in place, the database is not; fix the cause and run
 `contao-ai-cli contao migrate`. Contao's warnings (non-strict SQL mode, row size) are in
 `migrate.warnings`. A run that installs nothing (already installed, already newest)

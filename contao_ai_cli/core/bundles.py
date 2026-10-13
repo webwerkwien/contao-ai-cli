@@ -137,8 +137,9 @@ def run_migrations(backend) -> dict:
     exit 1, and the reason is on stdout -- hence `check=False`. A migration that fails
     yields `isSuccessful: false` and Contao carries on with exit 0; that is an error here
     too. Not a restart: "Expected … got …" (UnexpectedPendingMigrationException) makes
-    Contao run the migrations again. A failed schema statement is retried; only what
-    fails for good ends in `error`.
+    Contao run the migrations again. A failed schema statement is retried; one that
+    still fails ends the run with exit 1 and no error event -- its own `schema-result`
+    carries the reason.
     """
     command = f"{shlex.quote(backend.php_path)} bin/console contao:migrate --no-interaction --format=ndjson"
     try:
@@ -168,6 +169,15 @@ def run_migrations(backend) -> dict:
     problems += [f"migration failed: {e.get('message')}" for e in events
                  if e.get("type") == "migration-result" and not e.get("isSuccessful")
                  and not str(e.get("message", "")).startswith("Expected ")]
+    if result["returncode"] != 0:
+        # A schema statement that still fails after Contao's retries exits 1 without an
+        # error event; its reason is in the last failed schema-result (second review).
+        succeeded = {e.get("command") for e in events if e.get("type") == "schema-result" and e.get("isSuccessful")}
+        failed = {}
+        for e in events:
+            if e.get("type") == "schema-result" and not e.get("isSuccessful") and e.get("command") not in succeeded:
+                failed[e.get("command")] = f"schema change failed: {e.get('command')}: {e.get('message', '')}".rstrip(": ")
+        problems += list(failed.values())
     if result["returncode"] != 0 and not problems:
         problems.append(f"exit {result['returncode']}" + (f": {stderr_excerpt(result['stderr'])}" if result["stderr"] else ""))
     if problems:

@@ -493,6 +493,23 @@ def test_a_restart_on_an_unexpected_pending_migration_is_no_error():
     assert result["migrate"]["warnings"] == ["Running MySQL in non-strict mode can cause corrupt data."]
 
 
+def test_a_schema_change_that_fails_for_good_names_its_reason():
+    """Second review: Contao exits 1 without an error event; the reason is in schema-result.
+    A statement that failed once and then went through is no error."""
+    out = "\n".join([
+        '{"type":"schema-result","command":"ALTER TABLE tl_a ADD x INT","isSuccessful":false,"message":"retry"}',
+        '{"type":"schema-result","command":"ALTER TABLE tl_a ADD x INT","isSuccessful":true}',
+        '{"type":"schema-result","command":"ALTER TABLE tl_user ADD y TEXT","isSuccessful":false,"message":"Row size too large"}',
+    ])
+    b = migrating_backend(out, returncode=1)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error"
+    assert "schema change failed: ALTER TABLE tl_user ADD y TEXT: Row size too large" in result["message"]
+    assert "tl_a" not in result["message"]
+    assert result["migrate"]["schemaChanges"] == 1
+
+
 def test_a_failed_exit_without_any_event_names_stderr():
     b = migrating_backend("", returncode=255, stderr="PHP Fatal error: Allowed memory size exhausted")
     with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):

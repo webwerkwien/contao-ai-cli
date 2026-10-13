@@ -127,3 +127,23 @@ def test_run_raw_decodes_utf8_not_locale_default():
         b.run_raw("ls")
     kwargs = mock_run.call_args.kwargs
     assert kwargs.get("encoding") == "utf-8"
+
+
+def test_run_raw_check_false_returns_a_failed_run_with_its_stdout():
+    """v1.7.0: contao:migrate --format=ndjson and contao:backup:restore --format=json say on
+    stdout why they failed; raising kept only stderr."""
+    b = make_backend()
+    failed = MagicMock(returncode=1, stdout='{"type":"error","message":"locked"}\n', stderr="")
+    with patch("contao_ai_cli.utils.contao_backend.subprocess.run", return_value=failed):
+        result = b.run_raw("php bin/console contao:migrate", check=False)
+        assert result == {"returncode": 1, "stdout": '{"type":"error","message":"locked"}', "stderr": ""}
+        with pytest.raises(ContaoBackendError):
+            b.run_raw("php bin/console contao:migrate")
+
+
+def test_run_passes_its_timeout_on():
+    b = make_backend()
+    ok = MagicMock(returncode=0, stdout="", stderr="")
+    with patch("contao_ai_cli.utils.contao_backend.subprocess.run", return_value=ok) as run:
+        b.run("contao:migrate --no-interaction", timeout=600)
+    assert run.call_args.kwargs["timeout"] == 600

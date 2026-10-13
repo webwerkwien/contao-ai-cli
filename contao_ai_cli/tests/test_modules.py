@@ -138,7 +138,15 @@ class TestBackup:
         backup_restore(backend, "nightly__20261009122423.sql.gz")
         cmd = backend.run_raw.call_args[0][0]
         assert "--no-interaction" not in cmd and " -n" not in cmd
-        assert cmd.startswith("SHELL_INTERACTIVE=1 ")
+
+    def test_backup_restore_finds_contaos_answer_between_php_noise(self):
+        """On c5 PHP start-up warnings land on stdout (imagick); the JSON is one line of several."""
+        noisy = ("PHP Warning:  Module 'imagick' already loaded in Unknown on line 0\n"
+                 '{"createdAt":"2026-10-09T12:24:23+00:00","size":5,"name":"nightly__20261009122423.sql.gz"}\n'
+                 "PHP Notice:  something after")
+        backend = self._backend(restored=lambda cmd, **kw: {"returncode": 0, "stderr": "", "stdout": noisy})
+        result = backup_restore(backend, "nightly__20261009122423.sql.gz")
+        assert result["status"] == "restored"
 
     def test_backup_restore_says_so_when_contao_restored_another_backup(self):
         backend = self._backend(restored=self._contao("backup__20261013111148.sql.gz"))
@@ -311,6 +319,7 @@ class TestContaoOps:
         result = migrate(backend, dry_run=True)
         assert result["dry_run"] is True
         assert backend.run.call_args[0][0] == "contao:migrate --no-interaction --dry-run"
+        assert backend.run.call_args.kwargs["timeout"] == 600, "the dump before migrating needs more than 60 s"
 
     def test_maintenance_status_enabled(self):
         backend = MagicMock()
