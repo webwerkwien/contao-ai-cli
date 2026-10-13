@@ -7,7 +7,7 @@ could not reach it at all (2026-09-17).
 import click
 
 from contao_ai_cli.core import bundles as bundles_mod, session as session_mod
-from contao_ai_cli.core.status import bridge_step
+from contao_ai_cli.core.status import bridge_step, cli_prefix
 from .cli_health import _session_name as _session_arg
 from .helpers import _get_backend, _output
 
@@ -60,10 +60,7 @@ def _run(ctx, name, action, allow_plugins, as_json):
     if name == "backend" and result.get("installed"):
         cfg = session_mod.load_session(session_path)
         if not (cfg.get("bridge_url") and cfg.get("bridge_token")):
-            session_name = ctx.obj.get("session")
-            prefix = (f"contao-ai-cli --session {_session_arg(session_name)}"
-                      if session_name and _session_arg(session_name) else "contao-ai-cli")
-            result["nextSteps"] = [bridge_step(prefix)]
+            result["nextSteps"] = [bridge_step(cli_prefix(_session_arg(ctx.obj.get("session"))))]
     _output(result, as_json or ctx.obj.get("as_json"))
     if result["status"] == "error":
         ctx.exit(1)

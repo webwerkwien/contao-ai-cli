@@ -148,7 +148,7 @@ def next_steps(state: dict, session_name: str | None, always_backup: bool = True
     `health` asks too (v1.8.0) with `always_backup=False`: a backup leads the list only
     when a `bundle` step follows, not on every look at the status.
     """
-    prefix = f"contao-ai-cli --session {session_name}" if session_name else "contao-ai-cli"
+    prefix = cli_prefix(session_name)
     backup = {"command": f"{prefix} backup create", "optional": False,
               "reason": "A database backup before anything is written."}
     steps = [backup]
@@ -176,9 +176,24 @@ def next_steps(state: dict, session_name: str | None, always_backup: bool = True
         steps.append(bridge_step(prefix))
 
     # Of the steps above only `bundle …` writes on the server; self-update and the bridge do not.
-    if not always_backup and not any(" bundle " in f" {s['command']} " for s in steps):
-        steps.remove(backup)
+    # Before an optional install only, the backup is optional too (review v1.8.0).
+    if not always_backup:
+        bundles = [s for s in steps if s["command"].startswith(f"{prefix} bundle ")]
+        if not bundles:
+            steps.remove(backup)
+        elif all(s["optional"] for s in bundles):
+            backup["optional"] = True
     return steps
+
+
+def cli_prefix(session_name: str | None) -> str:
+    """`contao-ai-cli --session <name>` for a suggested command, quoted when the name or
+    path has a space -- a Windows user directory often does (review v1.8.0). Double quotes
+    work in bash, PowerShell and cmd alike."""
+    if not session_name:
+        return "contao-ai-cli"
+    arg = f'"{session_name}"' if any(c.isspace() for c in session_name) else session_name
+    return f"contao-ai-cli --session {arg}"
 
 
 def bridge_step(prefix: str = "contao-ai-cli") -> dict:

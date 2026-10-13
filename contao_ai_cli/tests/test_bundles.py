@@ -535,6 +535,16 @@ def test_installing_the_backend_names_the_optional_bridge_until_it_is_configured
         assert len(steps) == expected, cfg
         if steps:
             assert steps[0]["optional"] is True and "--token-stdin" in steps[0]["command"]
+            # Review v1.8.0: without --session the token would land in the default session.
+            assert steps[0]["command"].startswith(f"contao-ai-cli --session {session} bridge configure")
+
+    # A failed install suggests nothing for a bundle that is not there.
+    session.write_text(_json.dumps({"host": "h"}), encoding="utf-8")
+    failed = {"status": "error", "code": 1, "message": "Composer failed"}
+    with patch.object(cli_bundle, "_get_backend", return_value=MagicMock()), \
+         patch.object(cli_bundle.bundles_mod, "install_bundle", return_value=failed):
+        out = CliRunner().invoke(cli_bundle.bundle, ["install", "backend", "--json"], obj={"session": str(session)})
+    assert "nextSteps" not in _json.loads(out.output)
 
 
 def test_the_core_flag_is_set_when_installed_even_if_the_migration_failed(tmp_path):

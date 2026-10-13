@@ -99,3 +99,17 @@ def test_health_leads_with_a_backup_only_before_a_bundle_step():
 def test_connect_keeps_its_backup_first():
     assert commands(next_steps(state(core="0.19.0", backend="0.3.0", bridge="ready"), "shop")) == [
         "contao-ai-cli --session shop backup create"]
+
+
+def test_a_session_with_a_space_is_quoted_in_suggested_commands():
+    """Review v1.8.0: a Windows user directory with a space split the suggested command."""
+    steps = next_steps(state(core=None), r"C:\Users\Max Muster\.contao-ai-cli\shop.json")
+    assert steps[0]["command"] == r'contao-ai-cli --session "C:\Users\Max Muster\.contao-ai-cli\shop.json" backup create'
+    assert next_steps(state(core=None), "shop")[0]["command"] == "contao-ai-cli --session shop backup create"
+
+
+def test_before_an_optional_install_only_the_backup_is_optional_too():
+    steps = next_steps(state(core="0.19.0"), "shop", always_backup=False)
+    assert commands(steps) == ["contao-ai-cli --session shop backup create",
+                               "contao-ai-cli --session shop bundle install backend"]
+    assert [s["optional"] for s in steps] == [True, True]
