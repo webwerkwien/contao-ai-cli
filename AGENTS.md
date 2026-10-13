@@ -355,6 +355,19 @@ output changes because of this line.
   process list on both ends of the connection — prefer one of the two above when
   either is possible.
 
+**The bridge is optional — say so** (v1.8.0). Only `bridge clone` and `bridge rewrite` use
+it; the back-end chat and every other command of this CLI work without a token. Generating
+the token in the back end is only the first half; the second is `bridge configure`. Until
+then `bridge.state` is `not_configured`, which is not a fault. `connect`, `health --json`
+and a successful `bundle install|update backend` (while the session has no bridge) name it
+as an optional next step. Offer it, do not push it.
+
+### `health --json` has `nextSteps` (new in v1.8.0)
+
+The same list `connect` answers with, in the same shape. A `backup create` leads it only
+when a `bundle …` step follows; on a site that is up to date the list can be empty or hold
+only optional steps.
+
 ### `health --json` has a `backend` key (new in v0.21.0)
 
 The backend-bundle counterpart of `core`: `installed`, `latest`, `update_available`.

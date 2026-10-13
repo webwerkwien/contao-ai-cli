@@ -195,3 +195,26 @@ class TestVersionComparison:
         assert version_tuple("dev-main") == ()
         assert version_tuple("") == ()
         assert version_tuple(None) == ()
+
+
+def test_health_json_carries_the_next_steps(tmp_path, monkeypatch):
+    """v1.8.0: `bridge: not_configured` alone said neither what to do nor that it is optional."""
+    import json as _json
+    from click.testing import CliRunner
+    from contao_ai_cli.cli import cli_health
+    from contao_ai_cli.core import session as session_mod
+
+    monkeypatch.setattr(session_mod, "DEFAULT_SESSION_FILE", str(tmp_path / "session.json"))
+    state = {"cli": {"installed": "1.7.1", "latest": "1.7.1", "up_to_date": True},
+             "contao": {"installed": "5.7.15"},
+             "core": {"reachable": True, "installed": "v1.7.3", "latest": "1.7.3", "update_available": False,
+                      "up_to_date": True},
+             "backend": {"installed": "v0.16.3"},
+             "bridge": {"state": "not_configured", "installed": True, "configured": False},
+             "composer": {"via": "contao-manager", "command": "x"}}
+    with patch.object(cli_health, "collect_status", return_value=state):
+        out = CliRunner().invoke(cli_health.health, [], obj={"as_json": True, "session": str(tmp_path / "showcase.json")})
+    data = _json.loads(out.output)
+    assert [s["command"] for s in data["nextSteps"]] == [
+        "contao-ai-cli --session showcase bridge configure --url https://<site> --token-stdin --test"]
+    assert data["nextSteps"][0]["optional"] is True

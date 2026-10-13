@@ -84,7 +84,8 @@ access and answer questions in the chat.
 5. **Connect.** `contao-ai-cli connect --host … --user … --root … --name <site> --json`.
    Relay `warning` word for word. Go through `nextSteps` one at a time and ask before each —
    `optional: true` steps only if the user wants them.
-6. **Backend bundle (optional, bulk jobs).** After `bundle install backend`, the user generates a
+6. **Backend bundle (optional, bulk jobs).** The back-end chat works right after `bundle install
+   backend`. Only for `bridge clone` / `bridge rewrite` from the terminal, the user also generates a
    token in the Contao back end (User profile → AI agent → CLI bridge token). Let them choose:
    type it themselves at the hidden prompt of `contao-ai-cli --session <site> bridge configure --url https://…`,
    or paste it in the chat and you pipe it: `… bridge configure --url https://… --token-stdin --test`.
@@ -365,8 +366,9 @@ The bridge line distinguishes three states, because the next step differs:
   `composer require "webwerkwien/contao-ai-backend-bundle:>=0.1 <2.0"`
   (the explicit constraint keeps later releases reachable — a plain
   `composer require` of a 0.x package caps at the next minor).
-- **installed, not configured** — the bundle is there, but this session has no token.
-  Fix with `contao-ai-cli bridge configure --url … --token …`.
+- **installed, not configured** — the bundle is there, but this session has no token. Not a
+  fault: the chat works, only `bridge clone`/`rewrite` need it. Set it up with
+  `contao-ai-cli bridge configure --url … --token-stdin --test`.
 - **ready** — both.
 
 ## Audit trail

@@ -518,6 +518,25 @@ def test_a_failed_exit_without_any_event_names_stderr():
     assert "Allowed memory size" in result["message"]
 
 
+def test_installing_the_backend_names_the_optional_bridge_until_it_is_configured(tmp_path):
+    """v1.8.0 (showcase.conpai.eu): the token half of the bridge was nowhere to be read."""
+    import json as _json
+    from click.testing import CliRunner
+    from contao_ai_cli.cli import cli_bundle
+
+    done = {"status": "ok", "installed": "v0.16.3", "changed": True}
+    for cfg, expected in (({"host": "h"}, 1), ({"host": "h", "bridge_url": "https://x", "bridge_token": "5.t"}, 0)):
+        session = tmp_path / "shop.json"
+        session.write_text(_json.dumps(cfg), encoding="utf-8")
+        with patch.object(cli_bundle, "_get_backend", return_value=MagicMock()), \
+             patch.object(cli_bundle.bundles_mod, "install_bundle", return_value=dict(done)):
+            out = CliRunner().invoke(cli_bundle.bundle, ["install", "backend", "--json"], obj={"session": str(session)})
+        steps = _json.loads(out.output).get("nextSteps", [])
+        assert len(steps) == expected, cfg
+        if steps:
+            assert steps[0]["optional"] is True and "--token-stdin" in steps[0]["command"]
+
+
 def test_the_core_flag_is_set_when_installed_even_if_the_migration_failed(tmp_path):
     """Review v1.7.0: the flag stayed false and every core command answered "not installed"."""
     import json as _json

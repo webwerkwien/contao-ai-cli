@@ -142,11 +142,16 @@ def collect_status(session_path: str) -> dict:
             "composer": composer_status}
 
 
-def next_steps(state: dict, session_name: str | None) -> list[dict]:
-    """What to do after `connect`, in order. The agent confirms each one in chat."""
+def next_steps(state: dict, session_name: str | None, always_backup: bool = True) -> list[dict]:
+    """What to do after `connect`, in order. The agent confirms each one in chat.
+
+    `health` asks too (v1.8.0) with `always_backup=False`: a backup leads the list only
+    when a `bundle` step follows, not on every look at the status.
+    """
     prefix = f"contao-ai-cli --session {session_name}" if session_name else "contao-ai-cli"
-    steps = [{"command": f"{prefix} backup create", "optional": False,
-              "reason": "A database backup before anything is written."}]
+    backup = {"command": f"{prefix} backup create", "optional": False,
+              "reason": "A database backup before anything is written."}
+    steps = [backup]
 
     core = state.get("core", {})
     if core.get("reachable"):
@@ -168,7 +173,24 @@ def next_steps(state: dict, session_name: str | None) -> list[dict]:
         steps.append({"command": f"{prefix} bundle install backend", "optional": True,
                       "reason": "Only for bulk jobs: clone page trees, rewrite or translate whole archives in one call. Ask the user."})
     elif bridge.get("state") == "not_configured":
-        steps.append({"command": f"{prefix} bridge configure --url https://<site>", "optional": True,
-                      "reason": "The backend bundle is installed but has no token. The user generates it in the back end (User profile -> AI agent -> CLI bridge token)."})
+        steps.append(bridge_step(prefix))
 
+    # Of the steps above only `bundle …` writes on the server; self-update and the bridge do not.
+    if not always_backup and not any(" bundle " in f" {s['command']} " for s in steps):
+        steps.remove(backup)
     return steps
+
+
+def bridge_step(prefix: str = "contao-ai-cli") -> dict:
+    """The optional second half of the bridge (v1.8.0).
+
+    Generating the token in the back end looked like the whole setup: `health` then said
+    `not_configured` and nothing said what was missing (showcase.conpai.eu, 2026-10-13).
+    Optional, and said why: only `bridge clone`/`bridge rewrite` from the terminal use it
+    -- the back-end chat and every SSH command work without it. The token goes on stdin,
+    not into the command line, where the process list would show it.
+    """
+    return {"command": f"{prefix} bridge configure --url https://<site> --token-stdin --test", "optional": True,
+            "reason": "Only needed for `bridge clone` / `bridge rewrite` from the terminal; the back-end chat and "
+                      "all other commands work without it. The user generates the token in the back end (User "
+                      "profile -> AI agent -> CLI bridge token -> Generate) and pastes it when asked."}

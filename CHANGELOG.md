@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.8.0 - 2026-10-13
+
+Works with every contao-ai-core-bundle it worked with before; backend-bundle v0.16.3 shows
+the same step under the generated token.
+
+### Added
+
+- **`health --json` has `nextSteps`**, the same list `connect` answers with. A
+  `backup create` leads it only when a `bundle …` step follows.
+- **`bundle install|update backend` names the bridge as an optional next step** while the
+  session has none.
+
+### Changed
+
+- **The bridge step says that it is optional and what for.** Generating the token in the
+  back end looked like the whole setup, and `bridge: not_configured` then read like a fault
+  (showcase.conpai.eu). The step and the `health` text now say: only `bridge clone` /
+  `bridge rewrite` from the terminal need it, the back-end chat and every other command work
+  without it; the token goes on stdin (`--token-stdin --test`), not into the command line.
+
 ## v1.7.0 - 2026-10-13
 
 Works with every contao-ai-core-bundle it worked with before; `ext run --operator` reaches

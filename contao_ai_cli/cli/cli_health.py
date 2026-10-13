@@ -13,8 +13,20 @@ a token, and the two need opposite next steps.
 import click
 
 from contao_ai_cli.core import session as session_mod
-from contao_ai_cli.core.status import _bridge_state, collect_status  # noqa: F401 - _bridge_state kept importable here for test_health.py
+from pathlib import Path
+
+from contao_ai_cli.core.status import _bridge_state, collect_status, next_steps  # noqa: F401 - _bridge_state kept importable here for test_health.py
 from .helpers import BACKEND_BUNDLE, _output
+
+
+def _session_name(session_path: str | None) -> str | None:
+    """What `--session` should say in a suggested command: the name for a session in the
+    default directory, the path for any other file, nothing for the default session."""
+    if not session_path or Path(session_path) == Path(session_mod.DEFAULT_SESSION_FILE):
+        return None
+    if Path(session_path).parent == Path(session_mod.DEFAULT_SESSION_FILE).parent:
+        return Path(session_path).stem
+    return session_path
 
 
 @click.command()
@@ -29,7 +41,10 @@ def health(ctx):
     core_status, bridge_status = result["core"], result["bridge"]
 
     if as_json:
-        _output(result, True)
+        # The same list `connect` answers with (v1.8.0): `not_configured` alone did not say
+        # what to do, nor that it is optional (showcase.conpai.eu, 2026-10-13).
+        _output({**result, "nextSteps": next_steps(result, _session_name(ctx.obj.get("session")),
+                                                    always_backup=False)}, True)
         return
 
     # Pretty text output
@@ -105,10 +120,10 @@ def health(ctx):
                 "server to answer it", fg="red",
             ))
     elif state == "not_configured":
-        click.echo(click.style(
-            "  Bridge    installed, not configured"
-            "   -> contao-ai-cli bridge configure --url ... --token ...", fg="yellow",
-        ))
+        # Not yellow: nothing is missing for the chat or any SSH command (v1.8.0).
+        click.echo("  Bridge    installed, not configured (optional, only for bridge clone/rewrite)")
+        click.echo("            -> token in the back end: User profile -> AI agent -> CLI bridge token,")
+        click.echo("               then: contao-ai-cli bridge configure --url https://<site> --token-stdin --test")
     else:
         click.echo(click.style(
             "  Bridge    not configured   (server not reached, install state unknown)",

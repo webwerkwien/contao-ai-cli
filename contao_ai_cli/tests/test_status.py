@@ -68,3 +68,34 @@ def test_collect_status_survives_a_missing_session(tmp_path):
     assert result["core"]["reachable"] is False
     assert result["contao"] == {"installed": None}
     assert result["bridge"]["state"] == "unknown"
+
+
+# --- v1.8.0: the second half of the bridge, optional (showcase.conpai.eu, 2026-10-13) ----
+
+def test_an_unconfigured_bridge_is_an_optional_step_with_the_token_on_stdin():
+    step = [s for s in next_steps(state(core="0.19.0", backend="0.3.0", bridge="not_configured"), "shop")
+            if "bridge configure" in s["command"]][0]
+    assert step["optional"] is True
+    assert step["command"] == "contao-ai-cli --session shop bridge configure --url https://<site> --token-stdin --test"
+    assert "--token " not in step["command"]
+    assert "bridge clone" in step["reason"] and "chat" in step["reason"]
+    assert "CLI bridge token" in step["reason"]
+
+
+def test_health_leads_with_a_backup_only_before_a_bundle_step():
+    calm = next_steps(state(core="0.19.0", backend="0.3.0", bridge="not_configured"), "shop", always_backup=False)
+    assert not any("backup create" in c for c in commands(calm))
+    assert any("bridge configure" in c for c in commands(calm))
+
+    update = next_steps(state(core="0.18.0", core_update=True, backend="0.3.0", bridge="ready"), "shop",
+                        always_backup=False)
+    assert commands(update)[:2] == ["contao-ai-cli --session shop backup create",
+                                    "contao-ai-cli --session shop bundle update core"]
+
+    assert commands(next_steps(state(cli_up=False, core="0.19.0", backend="0.3.0", bridge="ready"), "shop",
+                               always_backup=False)) == ["contao-ai-cli self-update"]
+
+
+def test_connect_keeps_its_backup_first():
+    assert commands(next_steps(state(core="0.19.0", backend="0.3.0", bridge="ready"), "shop")) == [
+        "contao-ai-cli --session shop backup create"]
