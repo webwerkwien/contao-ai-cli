@@ -193,4 +193,5 @@ def bridge_step(prefix: str = "contao-ai-cli") -> dict:
     return {"command": f"{prefix} bridge configure --url https://<site> --token-stdin --test", "optional": True,
             "reason": "Only needed for `bridge clone` / `bridge rewrite` from the terminal; the back-end chat and "
                       "all other commands work without it. The user generates the token in the back end (User "
-                      "profile -> AI agent -> CLI bridge token -> Generate) and pastes it when asked."}
+                      "profile -> AI agent -> CLI bridge token -> Generate), then either runs the same command "
+                      "without --token-stdin in a terminal (hidden prompt) or pastes it in chat for you to pipe in."}
