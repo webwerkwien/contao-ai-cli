@@ -393,7 +393,7 @@ MIGRATE_OUTPUT = "\n".join([
 ])
 
 
-def migrating_backend(migrate_stdout="", migrate_error=None):
+def migrating_backend(migrate_stdout="", migrate_error=None, returncode=0, stderr=""):
     """run_raw answers the migrate call with its own output; everything else as before."""
     b = backend()
 
@@ -401,7 +401,7 @@ def migrating_backend(migrate_stdout="", migrate_error=None):
         if "contao:migrate" in command:
             if migrate_error:
                 raise migrate_error
-            return {"returncode": 0, "stdout": migrate_stdout, "stderr": ""}
+            return {"returncode": returncode, "stdout": migrate_stdout, "stderr": stderr}
         return {"returncode": 0, "stdout": "", "stderr": ""}
 
     b.run_raw.side_effect = run_raw
@@ -457,11 +457,61 @@ def test_a_failed_migration_keeps_the_install_but_is_an_error():
     assert "contao-ai-cli contao migrate" in result["message"]
 
 
-def test_a_problem_reported_by_contao_is_an_error_naming_the_dump():
+def test_an_error_reported_by_contao_with_exit_1_keeps_its_reason_and_the_dump():
+    """Contao emits error/problem only with exit 1 (MigrateCommand); the reason is on stdout."""
     out = MIGRATE_OUTPUT + '\n{"type":"error","message":"Table tl_user is locked"}'
-    b = migrating_backend(out)
+    b = migrating_backend(out, returncode=1)
     with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
         result = bundles.install_bundle(b, "core", "install")
     assert result["status"] == "error"
     assert "Table tl_user is locked" in result["message"]
     assert "backup__20261013160000.sql.gz" in result["message"]
+    assert migrate_calls(b)[0].kwargs["check"] is False
+
+
+def test_a_failed_migration_with_exit_0_is_an_error():
+    """Contao carries on after a migration with isSuccessful false and exits 0."""
+    out = '{"type":"migration-result","message":"Could not add the user","isSuccessful":false}'
+    b = migrating_backend(out)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error"
+    assert "migration failed: Could not add the user" in result["message"]
+
+
+def test_a_restart_on_an_unexpected_pending_migration_is_no_error():
+    out = "\n".join([
+        '{"type":"migration-result","message":"Expected \\"A\\" got \\"B\\".","isSuccessful":false}',
+        '{"type":"migration-result","message":"Ran B","isSuccessful":true}',
+        '{"type":"warning","message":"Running MySQL in non-strict mode can cause corrupt data."}',
+    ])
+    b = migrating_backend(out)
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "ok"
+    assert result["migrate"]["migrations"] == 1
+    assert result["migrate"]["warnings"] == ["Running MySQL in non-strict mode can cause corrupt data."]
+
+
+def test_a_failed_exit_without_any_event_names_stderr():
+    b = migrating_backend("", returncode=255, stderr="PHP Fatal error: Allowed memory size exhausted")
+    with patch.object(bundles, "detect_contao_manager", return_value=MANAGED), versions(None, "v1.7.2"):
+        result = bundles.install_bundle(b, "core", "install")
+    assert result["status"] == "error" and "exit 255" in result["message"]
+    assert "Allowed memory size" in result["message"]
+
+
+def test_the_core_flag_is_set_when_installed_even_if_the_migration_failed(tmp_path):
+    """Review v1.7.0: the flag stayed false and every core command answered "not installed"."""
+    import json as _json
+    from click.testing import CliRunner
+    from contao_ai_cli.cli import cli_bundle
+
+    session = tmp_path / "s.json"
+    session.write_text(_json.dumps({"host": "h", "core_bundle_available": False}), encoding="utf-8")
+    failed = {"status": "error", "code": 1, "installed": "v1.7.2", "message": "migrate failed"}
+    with patch.object(cli_bundle, "_get_backend", return_value=MagicMock()), \
+         patch.object(cli_bundle.bundles_mod, "install_bundle", return_value=failed):
+        result = CliRunner().invoke(cli_bundle.bundle, ["install", "core", "--json"], obj={"session": str(session)})
+    assert result.exit_code == 1
+    assert _json.loads(session.read_text(encoding="utf-8"))["core_bundle_available"] is True

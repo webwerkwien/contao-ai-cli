@@ -16,15 +16,21 @@ the command from core-bundle v1.7.1 on. Findings from a fresh installation
   backend` answered ok while the bundle's columns in `tl_user` were still missing. The
   answer has a new `migrate` field: migrations and schema changes executed, and the dump
   Contao makes before it migrates (`backup`). Without interaction Contao leaves out
-  `DROP` statements. A failed migration is an error with `installed` still set and names
-  `contao-ai-cli contao migrate` for after the fix.
+  `DROP` statements. A failed migration — Contao's error with exit 1, or a migration
+  reported as unsuccessful with exit 0 — is an error with `installed` still set and names
+  `contao-ai-cli contao migrate` for after the fix; Contao's warnings come along as
+  `warnings`. `contao migrate` now waits up to 600 s instead of 60, for the dump.
 
 ### Fixed
 
-- **`backup restore` takes only a name `backup list` shows.** Contao's restore does not
-  refuse a name it does not list: a `.sql` for a `.sql.gz` played back the newest backup
-  and was reported as restored under the name asked for. A miss now restores nothing,
-  exits 1 and lists the available names.
+- **`backup restore` restored the newest backup on Contao 5.7 and 6.0, whatever name it
+  was given**, and reported the name asked for. Contao reads the name only when the
+  command runs interactively, and the CLI always passed `--no-interaction`; 5.3 was not
+  affected. Found as "a `.sql` played back the newest backup" on a fresh installation.
+  Now without `--no-interaction` (with a name given Contao asks nothing), the name is
+  checked against `backup list` first — a miss restores nothing and exits 1 with the
+  available names — and the backup Contao reports as restored is compared with the one
+  asked for; a mismatch is an error saying which backup the database now holds.
 - **The Git Bash hint of `connect` for any folder.** It knew `var/`, `home/`, `web/` and a
   few more, and only with a slash behind them: `--root /web`, `/html`, `/htdocs` or a
   host's `public_html` failed without it. Now recognised by the Git directory in front —

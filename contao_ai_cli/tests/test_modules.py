@@ -105,10 +105,20 @@ class TestBackup:
     LISTED = ('[{"createdAt":"2026-10-13T11:11:48+00:00","size":5,"name":"backup__20261013111148.sql.gz"},'
               '{"createdAt":"2026-10-09T12:24:23+00:00","size":5,"name":"nightly__20261009122423.sql.gz"}]')
 
-    def _backend(self, listed=LISTED):
+    @staticmethod
+    def _contao(name):
+        """Contao 5.7/6.0 under --no-interaction: the name is ignored, the newest is restored."""
+        return lambda cmd, **kw: {
+            "returncode": 0, "stderr": "",
+            "stdout": json.dumps({"createdAt": "2026-10-13T11:11:48+00:00", "size": 5,
+                                  "name": "backup__20261013111148.sql.gz" if "--no-interaction" in cmd else name})}
+
+    def _backend(self, listed=LISTED, restored=None):
         backend = MagicMock()
-        backend.run.side_effect = lambda cmd, **kw: {
-            "stdout": listed if cmd.startswith("contao:backup:list") else "restored", "returncode": 0}
+        backend.php_path = "php"
+        backend.run.side_effect = lambda cmd, **kw: {"stdout": listed, "returncode": 0}
+        backend.run_raw.side_effect = restored or (lambda cmd, **kw: self._contao(
+            cmd.split("contao:backup:restore ")[1].split(" ")[0])(cmd, **kw))
         return backend
 
     def test_backup_restore(self):
@@ -117,7 +127,30 @@ class TestBackup:
         assert result["status"] == "restored"
         assert result["backup"] == "nightly__20261009122423.sql.gz"
         assert backend.run.call_args_list[0][0][0] == "contao:backup:list --format=json"
-        assert backend.run.call_args[0][0] == "contao:backup:restore nightly__20261009122423.sql.gz --no-interaction"
+        restore = backend.run_raw.call_args
+        assert "contao:backup:restore nightly__20261009122423.sql.gz --format=json" in restore[0][0]
+        assert restore[1]["timeout"] == 600 and restore[1]["check"] is False
+
+    def test_backup_restore_never_passes_no_interaction(self):
+        """Pre-release review v1.7.0: Contao 5.7/6.0 read the name only in interact(),
+        which --no-interaction skips -- up to v1.6.0 every restore took the newest."""
+        backend = self._backend()
+        backup_restore(backend, "nightly__20261009122423.sql.gz")
+        cmd = backend.run_raw.call_args[0][0]
+        assert "--no-interaction" not in cmd and " -n" not in cmd
+        assert cmd.startswith("SHELL_INTERACTIVE=1 ")
+
+    def test_backup_restore_says_so_when_contao_restored_another_backup(self):
+        backend = self._backend(restored=self._contao("backup__20261013111148.sql.gz"))
+        result = backup_restore(backend, "nightly__20261009122423.sql.gz")
+        assert result["status"] == "error" and result["restored"] == "backup__20261013111148.sql.gz"
+        assert "the database now holds" in result["message"]
+
+    def test_backup_restore_reports_contaos_own_error(self):
+        backend = self._backend(restored=lambda cmd, **kw: {
+            "returncode": 1, "stderr": "", "stdout": '{"error":"Dump does not exist."}'})
+        result = backup_restore(backend, "nightly__20261009122423.sql.gz")
+        assert result["status"] == "error" and "Dump does not exist." in result["message"]
 
     def test_backup_restore_refuses_a_name_contao_does_not_list(self):
         """showcase.conpai.eu, 2026-10-13: `.sql` for `.sql.gz` played back the newest backup."""
@@ -128,7 +161,7 @@ class TestBackup:
             assert "nothing was restored" in result["message"]
             assert "backup__20261013111148.sql.gz (newest)" in result["message"]
             assert result["available"][0] == "backup__20261013111148.sql.gz"
-            assert all(not c[0][0].startswith("contao:backup:restore") for c in backend.run.call_args_list)
+            backend.run_raw.assert_not_called()
 
     def test_backup_restore_command_exits_1_on_a_refusal(self):
         from click.testing import CliRunner

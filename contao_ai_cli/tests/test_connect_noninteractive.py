@@ -64,8 +64,29 @@ def test_any_folder_behind_the_git_directory_gets_the_hint(tmp_path):
 def test_git_installed_elsewhere_is_found_on_this_machine(tmp_path):
     backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
     with patch("contao_ai_cli.cli.cli_connect._local_git_roots", return_value=["E:/Tools/Git"]):
-        out = json.loads(invoke(tmp_path, backend, ["--host", "h", "--user", "u", "--root", "E:/Tools/Git/html", "--json"]).stdout)
-    assert "MSYS_NO_PATHCONV=1" in out["message"]
+        # Windows paths are case-insensitive; MSYS writes the drive as it likes.
+        for root in ("E:/Tools/Git/html", "e:/tools/git/html"):
+            out = json.loads(invoke(tmp_path, backend, ["--host", "h", "--user", "u", "--root", root, "--json"]).stdout)
+            assert "MSYS_NO_PATHCONV=1" in out["message"], root
+
+
+def test_on_linux_and_macos_a_failed_root_gets_no_git_bash_hint(tmp_path, monkeypatch):
+    """Review v1.7.0: git in /usr/bin made "/" the Git root, and every --root matched."""
+    from contao_ai_cli.cli import cli_connect
+    monkeypatch.delenv("EXEPATH", raising=False)
+    monkeypatch.setattr(cli_connect.shutil, "which", lambda name: "/usr/bin/git")
+    monkeypatch.setattr(cli_connect, "Path", _PosixTree)
+    assert cli_connect._local_git_roots() == []
+    backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
+    out = json.loads(invoke(tmp_path, backend, ["--host", "h", "--user", "u", "--root", "/var/www/typo", "--json"]).stdout)
+    assert "MSYS" not in out["message"]
+
+
+class _PosixTree(__import__("pathlib").PurePosixPath):
+    """A Linux file system where /usr/bin exists, on any machine running the suite."""
+
+    def is_dir(self):
+        return str(self) in ("/", "/usr", "/usr/bin")
 
 
 def test_the_local_git_root_is_the_parent_with_usr_bin(tmp_path, monkeypatch):

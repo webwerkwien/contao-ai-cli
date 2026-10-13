@@ -300,7 +300,8 @@ class ContaoBackend:
         args += ["--", f"{self.user}@{self.host}"]
         return args
 
-    def run_raw(self, shell_command: str, timeout: int = 60, stdin_data: str | None = None) -> dict:
+    def run_raw(self, shell_command: str, timeout: int = 60, stdin_data: str | None = None,
+                check: bool = True) -> dict:
         """
         Run an arbitrary shell command on the remote server via SSH.
         Does NOT prepend 'php bin/console' — use for ls, find, etc.
@@ -308,6 +309,10 @@ class ContaoBackend:
 
         `stdin_data` is written to the remote command's standard input. See
         `run()` for why that channel exists and why it is not the default.
+
+        `check=False` returns a failed run instead of raising, as `run()` does: a
+        command that reports on stdout — `contao:migrate --format=ndjson` — says why it
+        failed there, and raising kept only stderr (v1.7.0).
         """
         full_cmd = f"cd {shlex.quote(self.contao_root)} && {shell_command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
@@ -326,7 +331,7 @@ class ContaoBackend:
             "stdout": result.stdout.strip(),
             "stderr": result.stderr.strip(),
         }
-        if result.returncode != 0:
+        if check and result.returncode != 0:
             # shell_command may contain passwords — omit it from the error message
             excerpt = stderr_excerpt(result.stderr)
             raise ContaoBackendError(
@@ -337,7 +342,7 @@ class ContaoBackend:
         return output
 
     def run(self, command: str, json_output: bool = False, check: bool = True,
-            stdin_data: str | None = None) -> dict:
+            stdin_data: str | None = None, timeout: int = 60) -> dict:
         """
         Run a Contao console command via SSH.
         Returns dict with keys: returncode, stdout, stderr
@@ -375,7 +380,7 @@ class ContaoBackend:
                 encoding="utf-8",
                 errors="replace",
                 env=env,
-                timeout=60,
+                timeout=timeout,
                 # Default stays DEVNULL: ssh would otherwise drain the caller's
                 # stdin. A `while read id; do contao-ai-cli … ; done < ids.txt`
                 # loop then silently runs exactly once and still reports
@@ -383,7 +388,7 @@ class ContaoBackend:
                 **_stdin_kwargs(stdin_data),
             )
         except subprocess.TimeoutExpired:
-            raise ContaoBackendError("SSH command timed out after 60s")
+            raise ContaoBackendError(f"SSH command timed out after {timeout}s")
 
         output = {
             "returncode": result.returncode,

@@ -47,7 +47,9 @@ def _run(ctx, name, action, allow_plugins, as_json):
     name = _resolve(name, action)
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     result = bundles_mod.install_bundle(_get_backend(session_path), name, action, allow_plugins)
-    if name == "core" and result["status"] == "ok":
+    # Installed is what counts, not ok: after a failed contao:migrate the core is there, and
+    # a flag left false refused every core command as "not installed" (review v1.7.0).
+    if name == "core" and result.get("installed"):
         cfg = session_mod.load_session(session_path)
         cfg["core_bundle_available"] = True
         session_mod.save_session(cfg, session_path)

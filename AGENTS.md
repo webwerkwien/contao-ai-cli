@@ -213,10 +213,12 @@ answer says what it did — `{"migrations": 1, "schemaChanges": 5, "backup": "ba
 Up to v1.6.0 `bundle install backend` answered ok while the bundle's `tl_user` columns were
 still missing (2026-10-13). Contao dumps the database before it migrates (`backup`, `null`
 when there was nothing to do), and without interaction it leaves out `DROP` statements:
-columns and tables are added, nothing is deleted. A failed migration is
-`"status": "error"` with `installed` still set — the package is in place, the database is
-not; fix the cause and run `contao-ai-cli contao migrate`. A run that installs nothing
-(already installed, already newest) migrates nothing either.
+columns and tables are added, nothing is deleted. A failed migration — Contao's `error`
+with exit 1, or a migration reported unsuccessful with exit 0 — is `"status": "error"` with
+`installed` still set: the package is in place, the database is not; fix the cause and run
+`contao-ai-cli contao migrate`. Contao's warnings (non-strict SQL mode, row size) are in
+`migrate.warnings`. A run that installs nothing (already installed, already newest)
+migrates nothing either.
 
 If an update needs a newer **Contao** (the bundle requires it, or Composer blocks the locked
 Contao version for a security advisory, as `enshrined/svg-sanitize` 0.22 was blocked on
@@ -765,11 +767,14 @@ contao-ai-cli --json backup list
 contao-ai-cli --json backup restore backup__20261013111148.sql.gz
 ```
 
-**`backup restore` takes only a name `backup list` shows, exactly** (v1.7.0). Contao's own
-restore does not refuse a name it does not list: a `.sql` for a `.sql.gz` played back the
-newest backup and was reported under the name asked for (2026-10-13). A miss now restores
-nothing and exits 1 with `available` (the ten newest names). A restore replaces the whole
-database — confirm the name with the user before running it.
+**`backup restore` restores exactly the backup named, or nothing** (v1.7.0). Up to v1.6.0 it
+restored the *newest* backup on Contao 5.7 and 6.0 whatever the name: Contao reads the name
+only in `interact()`, and the CLI passed `--no-interaction` (5.3 reads it regardless). Now:
+no `--no-interaction`; the name must be one `backup list` shows, exactly — a miss restores
+nothing and exits 1 with `available` (the ten newest names); and the backup Contao reports
+as restored (`--format=json`) is compared with the name — a mismatch is an error with
+`restored`, the backup the database now holds. A restore replaces the whole database —
+confirm the name with the user before running it.
 
 ### Schema inspection (requires contao-ai-core-bundle)
 

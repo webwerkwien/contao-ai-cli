@@ -9,7 +9,7 @@ from contao_ai_cli.cli.helpers import (
     detect_contao_manager, get_installed_package_versions,
     get_missing_allow_plugins, is_newer_version, set_allow_plugins,
 )
-from contao_ai_cli.utils.contao_backend import ContaoBackendError
+from contao_ai_cli.utils.contao_backend import ContaoBackendError, stderr_excerpt
 
 BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 
@@ -125,17 +125,24 @@ MIGRATE_TIMEOUT = 600
 
 
 def run_migrations(backend) -> dict:
-    """`contao:migrate` after Composer (v1.6.1), and what it did.
+    """`contao:migrate` after Composer (v1.7.0), and what it did.
 
     Until then `bundle install backend` answered ok while the bundle's columns in tl_user
     were still missing (showcase.conpai.eu, 2026-10-13). Run, not merely reported: Contao
     dumps the database before it migrates (`backup`, skipped when there is nothing to
     do), and without interaction it leaves out DROP statements -- columns and tables are
     added, nothing is deleted. ndjson is the same on 5.3, 5.7 and 6.0.
+
+    Read from Contao's MigrateCommand (pre-release review): `error`/`problem` come with
+    exit 1, and the reason is on stdout -- hence `check=False`. A migration that fails
+    yields `isSuccessful: false` and Contao carries on with exit 0; that is an error here
+    too. Not a restart: "Expected … got …" (UnexpectedPendingMigrationException) makes
+    Contao run the migrations again. A failed schema statement is retried; only what
+    fails for good ends in `error`.
     """
     command = f"{shlex.quote(backend.php_path)} bin/console contao:migrate --no-interaction --format=ndjson"
     try:
-        result = backend.run_raw(command, timeout=MIGRATE_TIMEOUT)
+        result = backend.run_raw(command, timeout=MIGRATE_TIMEOUT, check=False)
     except ContaoBackendError as e:
         return {"error": str(e)}
 
@@ -148,14 +155,21 @@ def run_migrations(backend) -> dict:
         if isinstance(event, dict):
             events.append(event)
 
-    # Successful results only: Contao retries a failed schema statement and restarts on an
-    # unexpected pending migration; what finally fails exits non-zero (the except above).
     report = {
         "migrations": sum(1 for e in events if e.get("type") == "migration-result" and e.get("isSuccessful")),
         "schemaChanges": sum(1 for e in events if e.get("type") == "schema-result" and e.get("isSuccessful")),
         "backup": next((e.get("name") for e in events if e.get("type") == "backup-result"), None),
     }
+    warnings = [str(e["message"]) for e in events if e.get("type") == "warning" and e.get("message")]
+    if warnings:
+        report["warnings"] = warnings
+
     problems = [str(e.get("message")) for e in events if e.get("type") in ("error", "problem") and e.get("message")]
+    problems += [f"migration failed: {e.get('message')}" for e in events
+                 if e.get("type") == "migration-result" and not e.get("isSuccessful")
+                 and not str(e.get("message", "")).startswith("Expected ")]
+    if result["returncode"] != 0 and not problems:
+        problems.append(f"exit {result['returncode']}" + (f": {stderr_excerpt(result['stderr'])}" if result["stderr"] else ""))
     if problems:
         report["error"] = "; ".join(problems)
     return report

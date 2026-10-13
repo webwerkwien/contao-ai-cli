@@ -53,7 +53,9 @@ def migrate(backend: ContaoBackend, dry_run: bool = False) -> dict:
     cmd = "contao:migrate --no-interaction"
     if dry_run:
         cmd += " --dry-run"
-    result = backend.run(cmd)
+    # Contao dumps the database before it migrates; 60 s is too short for that on a
+    # large site (v1.7.0, the same limit as after `bundle install`).
+    result = backend.run(cmd, timeout=600)
     return {"status": "ok", "dry_run": dry_run, "output": result["stdout"]}
 
 

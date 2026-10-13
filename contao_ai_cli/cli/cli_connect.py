@@ -49,9 +49,14 @@ def _local_git_roots() -> list[str]:
     for start in (os.environ.get("EXEPATH"), shutil.which("git")):
         if not start:
             continue
-        for parent in Path(start).parents if Path(start).suffix else [Path(start), *Path(start).parents]:
+        path = Path(start)
+        for parent in [path, *path.parents] if path.is_dir() else path.parents:
             if (parent / "usr" / "bin").is_dir():
-                roots.append(str(parent).replace("\\", "/").rstrip("/"))
+                root = str(parent).replace("\\", "/").rstrip("/")
+                # Only a Windows directory: on Linux and macOS git sits in /usr/bin, and
+                # the root "/" would have matched every --root (review v1.7.0).
+                if re.match(r"^[A-Za-z]:/.", root):
+                    roots.append(root)
                 break
     return roots
 
@@ -71,6 +76,8 @@ def _msys_path_hint(root: str) -> str:
     untouched; the wording says it is a guess.
     """
     normalized = root.replace("\\", "/")
+    if not re.match(r"^[A-Za-z]:/", normalized):
+        return ""
     rewritten = _KNOWN_GIT_ROOT.match(normalized) or any(
         normalized.lower().startswith(git.lower() + "/") for git in _local_git_roots())
     if rewritten:
