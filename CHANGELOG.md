@@ -4,7 +4,11 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## Unreleased
+## v1.9.0 - 2026-10-14
+
+Cloning forms, newsletter channels, modules and layouts, and `--with-recipients`, needs
+contao-ai-core-bundle v1.8.0. Everything else works with every core-bundle it worked with
+before.
 
 ### Added
 
@@ -15,6 +19,13 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 - **`record clone --with-recipients`** copies the recipients of a newsletter channel.
   Off by default, and the guide says to ask the operator first: recipients consented to
   the source channel, not to its copy.
+
+### Known
+
+- Against a core-bundle older than v1.8.0, `--with-recipients` fails with Symfony's
+  *The "--with-recipients" option does not exist*, and a new table answers *Kein Cloner
+  für Tabelle …* — the same sentence as a missing optional bundle. `health` shows the
+  installed version.
 
 ## v1.8.2 - 2026-10-14
 
