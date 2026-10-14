@@ -368,8 +368,9 @@ class ContaoBackend:
         documents `--password` as *"not recommended for security reasons"* and
         offers the prompt instead.
 
-        It is deliberately not the default. Without it stdin stays DEVNULL,
-        because ssh otherwise drains the caller's own stdin: a
+        It is deliberately not the default. Without it stdin is an empty input
+        closed at once (DEVNULL until v1.9.0, see `_stdin_kwargs`), because ssh
+        otherwise drains the caller's own stdin: a
         `while read id; do contao-ai-cli … ; done < ids.txt` loop then runs exactly
         once and still reports success (found 2026-08-29).
         """
@@ -390,10 +391,10 @@ class ContaoBackend:
                 errors="replace",
                 env=env,
                 timeout=timeout,
-                # Default stays DEVNULL: ssh would otherwise drain the caller's
-                # stdin. A `while read id; do contao-ai-cli … ; done < ids.txt`
-                # loop then silently runs exactly once and still reports
-                # success — 2026-08-29.
+                # Never the caller's stdin, which ssh would drain: a
+                # `while read id; do contao-ai-cli … ; done < ids.txt` loop then
+                # silently runs exactly once and still reports success —
+                # 2026-08-29. An empty input by default, see _stdin_kwargs.
                 **_stdin_kwargs(stdin_data),
             )
         except subprocess.TimeoutExpired:
@@ -587,6 +588,11 @@ class ContaoBackend:
                     f'{installed}; {latest} is available. {"An option" if kind == "option" else "A command"} '
                     f'added after {installed} looks exactly like this from here.\n'
                     f'Check with: contao-ai-cli --session <name> health'
+                )
+            if kind == "option":
+                return (
+                    f'This server runs contao-ai-core-bundle {installed}, so the version is not '
+                    f'the reason — the command has no option "{command}".'
                 )
             return (
                 f'This server runs contao-ai-core-bundle {installed}, so the version is not '

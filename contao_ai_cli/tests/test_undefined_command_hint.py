@@ -175,3 +175,8 @@ class TestAnUnknownOption:
 
         assert "contao:page:tree" in hint
         assert "A command added after" in hint
+
+    def test_against_the_newest_bundle_the_option_is_ruled_out_in_its_own_words(self):
+        hint = ContaoBackend.version_hint("--with-recipients", "v1.8.0", "1.8.0", "option")
+
+        assert 'the command has no option "--with-recipients"' in hint

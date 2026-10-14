@@ -351,6 +351,9 @@ class TestExtRunVersionHint:
 
         assert b.undefined_command_hint.called
         assert "Command not found" in b.undefined_command_hint.call_args[0][0]
+        # v1.9.1: no option hint here — the line is the caller's, the option often an
+        # extension's. Unbound until the Fable review: removing it left every test green.
+        assert b.undefined_command_hint.call_args.kwargs == {"options": False}
 
     def test_no_hint_key_when_there_is_nothing_to_say(self):
         b = self._backend('{"status":"error"}', hint="")
