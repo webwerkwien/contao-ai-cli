@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## Unreleased
+## v1.8.2 - 2026-10-14
 
 Works with every contao-ai-core-bundle it worked with before.
 
