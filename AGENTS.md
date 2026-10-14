@@ -1377,20 +1377,29 @@ parts of a second language that are not pages:
 | `--source-table` | comes along | not taken from the source |
 |---|---|---|
 | `tl_form` | all fields, in their order | `alias` (new from the title), `formID` (empty) |
-| `tl_newsletter_channel` | its newsletters | `sent` (every copy is unsent), `alias`; the **recipients** unless `--with-recipients` |
+| `tl_newsletter_channel` | its newsletters, each unsent and with a new alias | the **recipients**, unless `--with-recipients` |
 | `tl_module`, `tl_layout` | — | nothing; the clone stays in the same theme |
 
 Only the name is taken from `--modifications` (`title` for forms and channels, `name` for
 modules and layouts). **References stay as in the source**: a cloned form still redirects to
 the same `jumpTo` page, a cloned layout shows the same modules. The answer lists those
 fields in `references`; point them at the new language with `form update`, `module update`,
-`layout update` or `newsletter channel-update`. `not_copied` names what was reset, and
-`children` counts the copied child rows per table.
+`layout update` or `newsletter channel-update`. `not_copied` names what was reset on the
+cloned record itself (child rows are not listed). `children` counts the copied child rows
+per table; modules and layouts have none, and the key is absent there.
+
+```bash
+# German copy of newsletter channel 3, without its recipients
+contao-ai-cli --json record clone --source-table tl_newsletter_channel --source-id 3 \
+  --modifications '{"title":"Newsletter DE"}'
+contao-ai-cli --json newsletter channel-update <new id> --set jumpTo=<German page id>
+```
 
 **Ask the operator before `--with-recipients`.** Contao's own copy takes the recipients
 along, this one does not: they consented to the source channel, and after a clone into
 another language they would receive newsletters they never subscribed to. Copied recipients
-keep `active` and come out without `addedOn`, so Contao lists them as added manually.
+keep `active` and come out without `addedOn`, so Contao lists them as added manually. The
+answer says which it was in `recipients_copied`.
 
 There is no theme clone: Contao's copies the theme's modules and layouts, but the copied
 layouts still point at the modules of the old theme.

@@ -134,6 +134,30 @@ class TestRecordClone:
         assert cmd.startswith("contao:record:clone --source-table=tl_newsletter_channel --source-id=3")
         assert "--with-recipients" in cmd
 
+    def test_the_command_passes_the_flag_and_the_operator_where_they_belong(self, monkeypatch):
+        """Through Click, not around it: a swapped argument would send --operator=True."""
+        from contao_ai_cli.cli import cli_record
+
+        b = self.clone_backend()
+        monkeypatch.setattr(cli_record, "_get_backend", lambda path: b)
+        monkeypatch.setattr(cli_record, "_require_core_bundle", lambda ctx, what: None)
+
+        result = CliRunner().invoke(cli_record.record, [
+            "clone", "--source-table", "tl_newsletter_channel", "--source-id", "3",
+            "--with-recipients", "--operator", "k.jones",
+        ], obj={"session": None, "as_json": True})
+
+        assert result.exit_code == 0, result.output
+        cmd = b.run.call_args[0][0]
+        assert "--with-recipients" in cmd
+        assert "--operator=k.jones" in cmd
+
+        b.run.reset_mock()
+        CliRunner().invoke(cli_record.record, [
+            "clone", "--source-table", "tl_newsletter_channel", "--source-id", "3",
+        ], obj={"session": None, "as_json": True})
+        assert "--with-recipients" not in b.run.call_args[0][0]
+
     def test_the_flag_is_on_the_command(self):
         result = CliRunner().invoke(cli, ["record", "clone", "--help"])
         assert "--with-recipients" in result.output

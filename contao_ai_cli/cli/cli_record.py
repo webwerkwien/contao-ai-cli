@@ -105,5 +105,5 @@ def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, wit
     _require_core_bundle(ctx, "record clone")
     b = _get_backend(ctx.obj.get("session"))
     _output(record_mod.record_clone(b, source_table, source_id, modifications, recursive, operator,
-                                    with_recipients),
+                                    with_recipients=with_recipients),
             as_json or ctx.obj.get("as_json"))
