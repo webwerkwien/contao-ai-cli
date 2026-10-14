@@ -131,3 +131,47 @@ class TestTheCoreBundlesOwnPhrasing:
     def test_the_message_is_found_on_stdout_too(self):
         """outputError writes JSON to stdout; stderr carries PHP noise."""
         assert ContaoBackend.undefined_contao_command(self.NOT_FOUND) == "contao:new:thing"
+
+
+class TestAnUnknownOption:
+    """
+    An option added in a later core bundle fails like a command added later (v1.9.1).
+
+    `record clone --with-recipients` against core v1.7.4 answered only *The
+    "--with-recipients" option does not exist.* Same shape, same missing context.
+    """
+
+    SYMFONY = 'The "--with-recipients" option does not exist.'
+
+    @staticmethod
+    def backend(monkeypatch):
+        from unittest.mock import patch
+        from contao_ai_cli.cli import helpers
+
+        monkeypatch.setattr(helpers, "get_installed_package_versions",
+                            lambda backend, names: {helpers.CORE_BUNDLE: "v1.7.4"})
+        monkeypatch.setattr(helpers, "get_core_bundle_latest_version", lambda: "1.8.0")
+        with patch.object(ContaoBackend, "_find_ssh", return_value="/usr/bin/ssh"), \
+             patch.object(ContaoBackend, "_default_key", return_value="/k"):
+            return ContaoBackend(host="example.com", user="deploy", contao_root="/var/www", key_path="/k")
+
+    def test_the_option_is_recognised(self):
+        assert ContaoBackend.unknown_option(self.SYMFONY) == "--with-recipients"
+        assert ContaoBackend.unknown_option("SQLSTATE[42S02]") is None
+
+    def test_a_line_this_cli_built_gets_the_version_hint(self, monkeypatch):
+        hint = self.backend(monkeypatch).undefined_command_hint("", self.SYMFONY)
+
+        assert '"--with-recipients" is missing' in hint
+        assert "v1.7.4" in hint and "v1.8.0" in hint
+        assert "An option added after v1.7.4" in hint
+
+    def test_ext_run_does_not_blame_the_core_bundle_for_an_extensions_option(self, monkeypatch):
+        """The line is the caller's there, and the option often an extension's."""
+        assert self.backend(monkeypatch).undefined_command_hint("", self.SYMFONY, options=False) == ""
+
+    def test_a_missing_command_is_still_named_first(self, monkeypatch):
+        hint = self.backend(monkeypatch).undefined_command_hint("", NOT_DEFINED + "\n" + self.SYMFONY)
+
+        assert "contao:page:tree" in hint
+        assert "A command added after" in hint

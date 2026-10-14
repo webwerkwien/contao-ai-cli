@@ -285,7 +285,8 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
     # `ext describe` to ask about a command it did not have, and got no version
     # context at all.
     if 0 != result["returncode"]:
-        hint = backend.undefined_command_hint(result["stdout"], result.get("stderr", ""))
+        # No option hint: the line is the caller's, the option often an extension's.
+        hint = backend.undefined_command_hint(result["stdout"], result.get("stderr", ""), options=False)
         if hint:
             envelope["hint"] = hint.strip()
 
