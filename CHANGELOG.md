@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## Unreleased
+## v1.8.1 - 2026-10-14
 
 Documents core-bundle v1.7.4; nothing changes in the commands.
 
