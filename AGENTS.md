@@ -1340,6 +1340,14 @@ a clone with `{"fallback":"1"}` is refused while another root of that domain sti
 source, so a root cloned without `"fallback":""` was a second main language on the same
 domain, and the cloned pages were as published as their source.
 
+**Giving the existing root a prefix checks every page below it.** A root's prefix is part
+of every URL in its tree, so `page update <root> --set urlPrefix=en` runs Contao's alias
+check on each page and is refused by the first one Contao would refuse, e.g.
+*"Page 16: Numeric aliases are not supported!"*. The Contao demo ships its error pages with
+the aliases `401` and `404`, imported past the back end. Look at the aliases of the whole
+tree first, purely numeric ones in particular, and rename such pages before the prefix
+change; the refusal names the page, and nothing is written.
+
 For a root, `language`, `urlPrefix`, `urlSuffix`, `fallback` and `dns` are accepted; for any
 other page only `title`, `pageTitle`, `description`, `published`, `hide`. Anything else comes
 back in `ignored_modifications`. A root cloned without its own prefix or domain is refused.

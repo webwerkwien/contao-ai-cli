@@ -17,6 +17,9 @@ Documents core-bundle v1.7.4; nothing changes in the commands.
   translation links point to the main language's tree). Cloned pages come out unpublished
   from core-bundle v1.7.4 on, as the guide had long said; before, they were as published
   as their source. `record clone --help` says the same.
+- **Giving an existing root a prefix checks every page below it**, and a numeric alias such
+  as the Contao demo's `401`/`404` refuses it. The guide says so, and to look at the aliases
+  of the tree first (found on showcase.conpai.eu).
 
 ## v1.8.0 - 2026-10-13
 
