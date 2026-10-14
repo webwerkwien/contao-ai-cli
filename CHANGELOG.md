@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+### Fixed
+
+- **A server command that reads STDIN waited for the 60-second timeout on Windows.** The
+  CLI starts Windows' own `ssh.exe` and gave it `stdin=DEVNULL`; that ssh never passes the
+  end of NUL on to the server. Measured on 2026-10-14: `stream_get_contents(STDIN)` hung
+  with DEVNULL and answered `""` in 0.6 s with an empty input. This was the "60 s hang"
+  of `ext run` seen from the Consho session, blamed on the server at first, and it
+  affected every command. An empty input closed at once keeps ssh off the caller's stdin
+  as before. `ext run --help` and the guide now say that nothing is passed on STDIN and
+  that secrets go over SSH by a person, never through contao-ai.
+
+### Added
+
+- **An unknown option gets the version hint an unknown command gets.** Against an older
+  core-bundle, `record clone --with-recipients` answered only *The "--with-recipients"
+  option does not exist.*; lines this CLI builds now name the installed and the newest
+  core-bundle there too. `ext run` does not: the line is the caller's, and the option
+  often belongs to an extension.
+
 ## v1.9.0 - 2026-10-14
 
 Cloning forms, newsletter channels, modules and layouts, and `--with-recipients`, needs
