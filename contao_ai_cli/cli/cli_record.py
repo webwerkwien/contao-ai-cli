@@ -88,6 +88,10 @@ def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, ope
     Overrides the cloner refuses come back as `ignored_modifications` rather
     than vanishing — before v0.2.15 they vanished, and two pages meant to stay
     unpublished went live.
+
+    Cloned pages come out unpublished and never as the main language
+    (core-bundle v1.7.4). Before cloning a root into another language, ask the
+    operator which language is the main one.
     """
     _require_core_bundle(ctx, "record clone")
     b = _get_backend(ctx.obj.get("session"))

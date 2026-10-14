@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+Documents core-bundle v1.7.4; nothing changes in the commands.
+
+### Changed
+
+- **The guide asks for the main language before a root is cloned.** "Page URLs, second
+  languages, cloning" showed one way only, the clone as the second language with
+  `"fallback":""`, and an agent read it as the rule. Which language is the main one is the
+  operator's decision; the guide now shows both ways, and why the choice matters (the
+  translation links point to the main language's tree). Cloned pages come out unpublished
+  from core-bundle v1.7.4 on, as the guide had long said; before, they were as published
+  as their source. `record clone --help` says the same.
+
 ## v1.8.0 - 2026-10-13
 
 Works with every contao-ai-core-bundle it worked with before; backend-bundle v0.16.3 shows

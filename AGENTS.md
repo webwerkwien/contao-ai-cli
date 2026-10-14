@@ -1315,19 +1315,38 @@ root with an empty `dns`.
 
 **A second language is a second root on the same domain with its own prefix.** Clone the
 existing tree, then translate the pages below (the clone sets the root's language in one
-step, not the titles and aliases of its children):
+step, not the titles and aliases of its children).
+
+**Ask the operator first which language is the main one** (`fallback`). Do not assume the
+existing root stays it, nor that the clone becomes it. It decides which tree the
+translation links (`language link`, below) point to, and which root answers a visitor
+whose language matches none. A clone never becomes the main language by itself:
 
 ```bash
+# the clone is the second language, the existing root stays the main one
 contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
-  --modifications '{"title":"conpai.eu EN","language":"en","urlPrefix":"en","fallback":""}'
+  --modifications '{"title":"conpai.eu EN","language":"en","urlPrefix":"en"}'
+
+# the clone becomes the main language: clone as above, then move `fallback`
+contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
+  --modifications '{"title":"conpai.eu DE","language":"de","urlPrefix":"de"}'
+contao-ai-cli --json page update 132 --set fallback=
+contao-ai-cli --json page update <new root id> --set fallback=1
 ```
+
+Contao allows **one main language per domain**. `page update` runs Contao's own check;
+a clone with `{"fallback":"1"}` is refused while another root of that domain still has it
+(core-bundle v1.7.4). Up to core-bundle v1.7.3 the clone copied `fallback` from its
+source, so a root cloned without `"fallback":""` was a second main language on the same
+domain, and the cloned pages were as published as their source.
 
 For a root, `language`, `urlPrefix`, `urlSuffix`, `fallback` and `dns` are accepted; for any
 other page only `title`, `pageTitle`, `description`, `published`, `hide`. Anything else comes
 back in `ignored_modifications`. A root cloned without its own prefix or domain is refused.
-Everything below is copied — articles, content, layout, CSP. **Pages and articles come out
-unpublished; content elements keep their visibility** (core-bundle v0.22.0), exactly as
-Contao's "copy with subpages" does — a hidden element stays hidden, a visible one shows as
+Everything below is copied — articles, content, layout, CSP, `robots`. **Pages and articles
+come out unpublished; content elements keep their visibility** (pages since core-bundle
+v1.7.4, the rest since v0.22.0), exactly as Contao's "copy with subpages" does. Pass
+`{"published":"1"}` to publish the cloned root right away; its subpages stay unpublished. A hidden element stays hidden, a visible one shows as
 soon as its page and article are published. Up to v0.21.1 every cloned element was hidden,
 and a published clone showed an empty page. Subpages store no language; the root keeps its
 own or the one from `--modifications`.
