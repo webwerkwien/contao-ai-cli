@@ -77,6 +77,10 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     A wrapped command is refused here: the wrapper converts fields, checks them
     against the DCA and shapes the answer, so the bare command would answer
     differently under the same name.
+
+    Nothing is passed on STDIN: a command that reads it gets an empty input.
+    Secrets (codes, passwords, keys) never go through contao-ai — type them
+    over SSH yourself, e.g. `php bin/console <command> < codes.txt`.
     """
     _require_core_bundle(ctx, "ext run")
 

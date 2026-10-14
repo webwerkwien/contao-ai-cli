@@ -72,9 +72,18 @@ def _stdin_kwargs(stdin_data: str | None) -> dict:
     Two callers needed the same choice and `subprocess.run()` refuses `input=`
     and `stdin=` together, so getting it wrong in one of them would have been a
     silent divergence rather than an error.
+
+    Without data: an empty pipe that is closed at once, not `stdin=DEVNULL`
+    (v1.9.1). Both keep ssh off the caller's stdin (the bulk loop of 2026-08-29),
+    but Windows' own `C:\\Windows\\System32\\OpenSSH\\ssh.exe` — the one
+    `_find_ssh()` prefers — never passes the end of NUL on to the server. A
+    remote command reading STDIN then waited until our timeout: measured on
+    2026-10-14, `stream_get_contents(STDIN)` hung with DEVNULL and answered ""
+    in 0.6 s with `input=""`. That was the "60 s hang" of `ext run` the Consho
+    session saw, blamed on the server at first.
     """
     if stdin_data is None:
-        return {"stdin": subprocess.DEVNULL}
+        return {"input": ""}
     return {"input": stdin_data}
 
 
@@ -527,8 +536,22 @@ class ContaoBackend:
 
         return None
 
+    _UNKNOWN_OPTION = re.compile(r'The "(--[A-Za-z0-9][A-Za-z0-9_-]*)" option does not exist')
+
+    @classmethod
+    def unknown_option(cls, text: str) -> str | None:
+        """
+        The option Symfony says the command does not have, or None (v1.9.1).
+
+        Against core-bundle v1.7.4, `record clone --with-recipients` answered only
+        *The "--with-recipients" option does not exist.* — the same shape as a
+        command added in a later release, and just as unexplained.
+        """
+        match = cls._UNKNOWN_OPTION.search(text or "")
+        return match.group(1) if match else None
+
     @staticmethod
-    def version_hint(command: str, installed: str | None, latest: str | None) -> str | None:
+    def version_hint(command: str, installed: str | None, latest: str | None, kind: str = "command") -> str | None:
         """
         Why that command might be missing, said only as far as it is known.
 
@@ -561,8 +584,8 @@ class ContaoBackend:
             if is_newer_version(latest, installed):
                 return (
                     f'"{command}" is missing on this server, which runs contao-ai-core-bundle '
-                    f'{installed}; {latest} is available. A command added after {installed} '
-                    f'looks exactly like this from here.\n'
+                    f'{installed}; {latest} is available. {"An option" if kind == "option" else "A command"} '
+                    f'added after {installed} looks exactly like this from here.\n'
                     f'Check with: contao-ai-cli --session <name> health'
                 )
             return (
@@ -584,18 +607,28 @@ class ContaoBackend:
 
         return None
 
-    def undefined_command_hint(self, stdout: str = "", stderr: str = "") -> str:
+    def undefined_command_hint(self, stdout: str = "", stderr: str = "", options: bool = True) -> str:
         """The hint as a trailing line, or nothing at all.
 
         Both streams, because the two sources speak on different ones: Symfony
         writes to stderr, the core bundle's own `outputError` writes JSON to
         stdout. Reading only stderr is what made `ext describe` silent.
 
+        `options`: an unknown option gets the same hint (v1.9.1), for lines this
+        CLI built against the core bundle. `ext run` passes False: there the line
+        is the caller's, and the option often belongs to an extension's command,
+        about which the core bundle's version says nothing.
+
         Costs one extra SSH round trip, and only on a failure that is being
         reported anyway. Any error while working that out is swallowed: a
         diagnosis that fails must not replace the diagnosis that succeeded.
         """
         command = self.undefined_contao_command(f"{stdout}\n{stderr}")
+        kind = "command"
+
+        if command is None and options:
+            command = self.unknown_option(f"{stdout}\n{stderr}")
+            kind = "option"
 
         if command is None:
             return ""
@@ -605,7 +638,7 @@ class ContaoBackend:
                 CORE_BUNDLE, get_core_bundle_latest_version, get_installed_package_versions,
             )
             installed = get_installed_package_versions(self, [CORE_BUNDLE]).get(CORE_BUNDLE)
-            hint = self.version_hint(command, installed, get_core_bundle_latest_version())
+            hint = self.version_hint(command, installed, get_core_bundle_latest_version(), kind)
         except Exception:
             return ""
 

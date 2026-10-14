@@ -12,8 +12,10 @@ ssh drained the rest of the ID list on the first iteration and the loop had
 nothing left to read. Nothing failed — which is what made it dangerous. It was
 caught only by counting rows in the database afterwards.
 
-Every subprocess this module starts therefore gets stdin=DEVNULL. None of these
-commands has anything to read from stdin in the first place.
+Every subprocess this module starts therefore gets its own stdin. None of these
+commands has anything to read from stdin in the first place. For ssh that is an
+empty input closed at once (v1.9.1), not DEVNULL: Windows' ssh.exe never passes
+the end of NUL on, and a remote command reading STDIN waited for our timeout.
 """
 import subprocess
 from unittest.mock import MagicMock, patch
@@ -51,9 +53,11 @@ def test_remote_commands_do_not_inherit_stdin(invoke):
     with patch("subprocess.run", return_value=completed()) as run:
         invoke(backend)
 
-    assert run.call_args.kwargs.get("stdin") is subprocess.DEVNULL, (
-        "Without stdin=DEVNULL, ssh eats the caller's input — see the silent "
-        "single-record bulk run of 2026-08-29."
+    kwargs = run.call_args.kwargs
+    assert kwargs.get("input") == "" and "stdin" not in kwargs, (
+        "Without its own stdin, ssh eats the caller's input — see the silent "
+        "single-record bulk run of 2026-08-29. An empty input, not DEVNULL: "
+        "Windows' ssh.exe never passes the end of NUL on (v1.9.1)."
     )
 
 
@@ -72,8 +76,8 @@ def test_every_subprocess_call_in_the_module_pins_stdin():
     Since 2026-09-02 two call sites route the decision through
     `_stdin_kwargs()`, because passwords now go to the remote command on stdin
     and `subprocess.run()` refuses `input=` and `stdin=` together. That helper
-    counts as pinning: it returns `stdin=DEVNULL` whenever no data was given, so
-    the default this test was written to protect is unchanged.
+    counts as pinning: it returns an empty `input=` whenever no data was given
+    (`stdin=DEVNULL` until v1.9.0), so the caller's stdin stays untouched.
 
     What is NOT accepted is a bare call with neither — which is exactly what the
     first version of that refactor produced, and this test caught it.
@@ -114,10 +118,10 @@ def test_every_subprocess_call_in_the_module_pins_stdin():
     assert not offenders, f"subprocess.run() with unpinned stdin at line(s) {offenders}"
 
 
-def test_the_stdin_helper_defaults_to_devnull():
+def test_the_stdin_helper_defaults_to_an_empty_input():
     """The helper is only acceptable above because of this."""
     from contao_ai_cli.utils.contao_backend import _stdin_kwargs
 
-    assert _stdin_kwargs(None) == {"stdin": subprocess.DEVNULL}
+    assert _stdin_kwargs(None) == {"input": ""}
     assert _stdin_kwargs("secret\n") == {"input": "secret\n"}
     assert "stdin" not in _stdin_kwargs("secret\n"), "input= and stdin= together raise ValueError"

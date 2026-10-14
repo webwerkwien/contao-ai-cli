@@ -1523,6 +1523,14 @@ value with a line break. The CLI quotes each such token the way the server's
 such a value fell apart into several arguments (*Too many arguments*); nothing was
 written. Don't add your own quotes inside the value: they would arrive as part of it.
 
+**`ext run` passes nothing on STDIN, and secrets never go through contao-ai.** A command
+that reads STDIN gets an empty input and answers at once with its own message. Codes,
+passwords and keys belong to a person typing them over SSH (`php bin/console <command>
+< codes.txt`), not to an agent: to hand one on, it would have to sit in the agent's
+context. Up to v1.9.0 such a command waited for the 60-second timeout on Windows:
+Windows' own `ssh.exe` never passed the end of an empty input on to the server. Every
+command of this CLI was affected, not only `ext run`.
+
 Two refusals, and they are not the same kind:
 
 - **A command this CLI wraps is refused here.** Not for safety — it would run
