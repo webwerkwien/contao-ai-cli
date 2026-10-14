@@ -110,3 +110,31 @@ class TestRecordGroupIsRegistered:
     def test_list_requires_a_table(self):
         result = CliRunner().invoke(cli, ["record", "list"])
         assert result.exit_code != 0
+
+
+class TestRecordClone:
+    """`record clone` passes the table through; the server decides what has a cloner."""
+
+    @staticmethod
+    def clone_backend():
+        b = MagicMock()
+        b.run.return_value = {"stdout": '{"status": "ok", "id": 9}'}
+        return b
+
+    def test_recipients_are_not_asked_for_unless_given(self):
+        """Recipients consented to the source channel (core-bundle v1.8.0)."""
+        b = self.clone_backend()
+        record_mod.record_clone(b, "tl_newsletter_channel", 3)
+        assert "--with-recipients" not in b.run.call_args[0][0]
+
+    def test_with_recipients_reaches_the_server(self):
+        b = self.clone_backend()
+        record_mod.record_clone(b, "tl_newsletter_channel", 3, with_recipients=True)
+        cmd = b.run.call_args[0][0]
+        assert cmd.startswith("contao:record:clone --source-table=tl_newsletter_channel --source-id=3")
+        assert "--with-recipients" in cmd
+
+    def test_the_flag_is_on_the_command(self):
+        result = CliRunner().invoke(cli, ["record", "clone", "--help"])
+        assert "--with-recipients" in result.output
+        assert "tl_form" in result.output

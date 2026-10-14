@@ -1371,6 +1371,30 @@ Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
 " (Kopie)"; translate both afterwards with `page update`. The cloned root goes behind the
 last root.
 
+**Forms, newsletter channels, modules and layouts clone too** (core-bundle v1.8.0), for the
+parts of a second language that are not pages:
+
+| `--source-table` | comes along | not taken from the source |
+|---|---|---|
+| `tl_form` | all fields, in their order | `alias` (new from the title), `formID` (empty) |
+| `tl_newsletter_channel` | its newsletters | `sent` (every copy is unsent), `alias`; the **recipients** unless `--with-recipients` |
+| `tl_module`, `tl_layout` | — | nothing; the clone stays in the same theme |
+
+Only the name is taken from `--modifications` (`title` for forms and channels, `name` for
+modules and layouts). **References stay as in the source**: a cloned form still redirects to
+the same `jumpTo` page, a cloned layout shows the same modules. The answer lists those
+fields in `references`; point them at the new language with `form update`, `module update`,
+`layout update` or `newsletter channel-update`. `not_copied` names what was reset, and
+`children` counts the copied child rows per table.
+
+**Ask the operator before `--with-recipients`.** Contao's own copy takes the recipients
+along, this one does not: they consented to the source channel, and after a clone into
+another language they would receive newsletters they never subscribed to. Copied recipients
+keep `active` and come out without `addedOn`, so Contao lists them as added manually.
+
+There is no theme clone: Contao's copies the theme's modules and layouts, but the copied
+layouts still point at the modules of the old theme.
+
 **A create without an alias gets Contao's alias** (core-bundle v0.17.0) — pages, articles,
 news, events, newsletters, and FAQ questions from core-bundle v0.28.0: from the title, with
 the language and allowed characters of the root. Every one of these answers with the alias

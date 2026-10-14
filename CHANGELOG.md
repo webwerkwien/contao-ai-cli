@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+### Added
+
+- **`record clone` for forms, newsletter channels, modules and layouts** (needs
+  contao-ai-core-bundle v1.8.0). The table list in `--help` names them; the guide has a
+  table of what comes along and what is reset, and how to point the references at the new
+  language afterwards.
+- **`record clone --with-recipients`** copies the recipients of a newsletter channel.
+  Off by default, and the guide says to ask the operator first: recipients consented to
+  the source channel, not to its copy.
+
 ## v1.8.2 - 2026-10-14
 
 Works with every contao-ai-core-bundle it worked with before.

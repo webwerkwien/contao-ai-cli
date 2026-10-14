@@ -67,7 +67,7 @@ def dca_schema(backend: ContaoBackend, table: str) -> dict:
 
 def record_clone(backend: ContaoBackend, source_table: str, source_id: int,
                  modifications: str = "", recursive: bool = False,
-                 operator: str = "") -> dict:
+                 operator: str = "", with_recipients: bool = False) -> dict:
     """Clone a container record and everything under it, in one server call.
 
     Routes to whichever registered EntityCloner supports the table; a table
@@ -85,6 +85,10 @@ def record_clone(backend: ContaoBackend, source_table: str, source_id: int,
     cloner refuses come back as `ignored_modifications` — before v0.2.15 they
     vanished silently, which is how two pages meant to stay unpublished went
     live.
+
+    `with_recipients` (core-bundle v1.8.0) copies the recipients of a newsletter
+    channel along. Off by default: they consented to the source channel, not to
+    its copy. The server refuses it for any other table.
     """
     cmd = (
         f"contao:record:clone --source-table={shlex.quote(source_table)} "
@@ -94,6 +98,8 @@ def record_clone(backend: ContaoBackend, source_table: str, source_id: int,
         cmd += f" --modifications={shlex.quote(modifications)}"
     if recursive:
         cmd += " --recursive"
+    if with_recipients:
+        cmd += " --with-recipients"
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
     return run_json_or_raw(backend, cmd)

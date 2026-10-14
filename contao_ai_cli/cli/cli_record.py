@@ -71,15 +71,20 @@ def record_schema_cmd(ctx, table, as_json):
 
 
 @record.command("clone")
-@click.option("--source-table", required=True, help="Container table, e.g. tl_news_archive")
+@click.option("--source-table", required=True,
+              help="tl_page, tl_news_archive, tl_calendar, tl_faq_category; from core-bundle v1.8.0 also "
+                   "tl_form, tl_newsletter_channel, tl_module, tl_layout")
 @click.option("--source-id", required=True, type=int, help="ID of the source container record")
 @click.option("--modifications", default="",
               help="JSON object of overrides for the root record, e.g. {\"title\":\"Kopie\"}")
 @click.option("--recursive", is_flag=True, help="Walk container-of-container hierarchies (e.g. the whole subpage tree)")
+@click.option("--with-recipients", is_flag=True,
+              help="tl_newsletter_channel only (core-bundle v1.8.0): copy the recipients too. Ask the operator "
+                   "first — they consented to the source channel, not to the copy")
 @click.option("--operator", default="", help="Acting user identifier for the audit log")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, operator, as_json):
+def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, with_recipients, operator, as_json):
     """Clone a container record and everything under it, in one server call.
 
     The cascade runs in one transaction on the server, so a caller sees a single
@@ -92,8 +97,13 @@ def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, ope
     Cloned pages come out unpublished and never as the main language
     (core-bundle v1.7.4). Before cloning a root into another language, ask the
     operator which language is the main one.
+
+    Forms come with their fields, newsletter channels with their newsletters
+    (unsent), modules and layouts stay in their theme (core-bundle v1.8.0).
+    References stay as in the source; the answer lists them in `references`.
     """
     _require_core_bundle(ctx, "record clone")
     b = _get_backend(ctx.obj.get("session"))
-    _output(record_mod.record_clone(b, source_table, source_id, modifications, recursive, operator),
+    _output(record_mod.record_clone(b, source_table, source_id, modifications, recursive, operator,
+                                    with_recipients),
             as_json or ctx.obj.get("as_json"))
