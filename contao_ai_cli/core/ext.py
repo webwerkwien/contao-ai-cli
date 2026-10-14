@@ -177,6 +177,34 @@ def ext_describe(backend: ContaoBackend, name: str) -> dict:
     )
 
 
+_NEEDS_QUOTES = re.compile(r"""[\s"'\\]""")
+
+
+def string_input_line(tokens) -> str:
+    r"""
+    Join argv tokens into the one line `contao:ai:run` reads, so that each token
+    arrives as one token (v1.8.2).
+
+    The server parses the line with Symfony's `StringInput`, which splits on
+    whitespace outside quotes. Until v1.8.1 the tokens were joined with a bare
+    space, so `--set "title=Zwei Wörter"` arrived as two tokens and the command
+    answered *Too many arguments* (Consho session, 2026-10-14: a list value with
+    a line break). A token is quoted the way `StringInput` reads it back: inside
+    double quotes, with `\` and `"` escaped, because the server runs the quoted
+    content through `stripcslashes()` — an unescaped backslash would turn `\n`
+    into a line break there. Tokens without whitespace, quotes or backslashes
+    stay as they are, so the command name and plain values read as before.
+    """
+    return " ".join(_quote_for_string_input(str(token)) for token in tokens)
+
+
+def _quote_for_string_input(token: str) -> str:
+    if token and not _NEEDS_QUOTES.search(token):
+        return token
+
+    return '"' + token.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> dict:
     """
     Run an unwrapped command through contao:ai:run, inside an envelope.

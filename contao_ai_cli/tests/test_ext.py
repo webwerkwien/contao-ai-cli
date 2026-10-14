@@ -506,3 +506,84 @@ class TestTheTrailLineReadsAsASentence:
         line = self._line(None)
         assert "tl_log kept 7 days" in line
         assert "written" not in line
+
+
+class TestStringInputLine:
+    """
+    `ext run` sends one line that the server parses with Symfony's StringInput
+    (v1.8.2). Until v1.8.1 the tokens were joined with a bare space, so a value
+    with a space or a line break arrived as several arguments and the command
+    answered *Too many arguments* (Consho session, 2026-10-14).
+
+    The round trip goes through the real StringInput where PHP and a vendor
+    directory with symfony/console are at hand — the line is read by the code
+    that reads it on the server, not by a copy of its rules here.
+    """
+
+    TOKENS = [
+        "consho:product:update", "26", "--set", "licensePackages=example/one\nexample/two",
+        "--set", "title=Zwei Wörter", 'Zitat "innen"', r"C:\pfad\neu", "tab\there", "",
+        "--flag", "end\\",
+    ]
+
+    def _vendor(self):
+        import pathlib
+        import shutil
+
+        if shutil.which("php") is None:
+            return None
+        root = pathlib.Path(__file__).resolve().parents[3]
+        for repo in ("contao-ai-core-bundle", "contao-ai-backend-bundle"):
+            autoload = root / repo / "vendor" / "autoload.php"
+            if autoload.is_file():
+                return autoload
+        return None
+
+    def test_plain_tokens_stay_as_they_are(self):
+        assert ext_mod.string_input_line(["contao:some-plugin:sync", "--dry-run", "42"]) == \
+            "contao:some-plugin:sync --dry-run 42"
+
+    def test_a_token_with_whitespace_is_quoted_whole(self):
+        assert ext_mod.string_input_line(["x", "--set", "title=Zwei Wörter"]) == 'x --set "title=Zwei Wörter"'
+
+    def test_backslash_and_quote_are_escaped_for_stripcslashes(self):
+        # a literal backslash before n must not become a line break on the server
+        assert ext_mod.string_input_line(['a"b', r"c\n"]) == r'"a\"b" "c\\n"'
+
+    def test_the_real_string_input_reads_every_token_back(self):
+        import json as json_mod
+        import subprocess
+
+        import pytest
+
+        autoload = self._vendor()
+        if autoload is None:
+            pytest.skip("php or a vendor directory with symfony/console is not available")
+
+        script = (
+            "require $argv[1];"
+            r"$in = new Symfony\Component\Console\Input\StringInput($argv[2]);"
+            r"$p = new ReflectionProperty(Symfony\Component\Console\Input\ArgvInput::class, 'tokens');"
+            "echo json_encode($p->getValue($in));"
+        )
+        line = ext_mod.string_input_line(self.TOKENS)
+        result = subprocess.run(
+            ["php", "-r", script, str(autoload), line],
+            capture_output=True, text=True, encoding="utf-8", check=True, stdin=subprocess.DEVNULL,
+        )
+
+        assert json_mod.loads(result.stdout) == self.TOKENS
+
+    def test_ext_run_sends_the_quoted_line(self):
+        import shlex
+
+        b = backend('{"status":"ok"}')
+        with patch("contao_ai_cli.cli.cli_ext._get_backend", return_value=b), \
+             patch("contao_ai_cli.cli.cli_ext._require_core_bundle"):
+            result = CliRunner().invoke(cli, [
+                "ext", "run", "consho:product:update", "26", "--set", "licensePackages=example/one\nexample/two",
+            ])
+
+        assert result.exit_code == 0, result.output
+        sent_line = [a for a in shlex.split(sent(b)) if a.startswith("--command-line=")][0]
+        assert sent_line == '--command-line=consho:product:update 26 --set "licensePackages=example/one\nexample/two"'

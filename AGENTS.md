@@ -1483,6 +1483,13 @@ an `--operator` option that takes a value; `ext run --operator <user>` hands the
 to it. Setting `--operator` inside the command line as well is refused unless it is
 exactly the same user. With an older core bundle the name goes into the log entry only.
 
+**Values with spaces, line breaks, quotes or backslashes arrive whole** (v1.8.2). Pass
+them as one shell argument, as for any command — `--set "title=Zwei Wörter"`, or a list
+value with a line break. The CLI quotes each such token the way the server's
+`StringInput` reads it back. Up to v1.8.1 the tokens were joined with a bare space and
+such a value fell apart into several arguments (*Too many arguments*); nothing was
+written. Don't add your own quotes inside the value: they would arrive as part of it.
+
 Two refusals, and they are not the same kind:
 
 - **A command this CLI wraps is refused here.** Not for safety — it would run

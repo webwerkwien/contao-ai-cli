@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+Works with every contao-ai-core-bundle it worked with before.
+
+### Fixed
+
+- **`ext run` split values with spaces or line breaks into several arguments.** The
+  tokens were joined with a bare space, and the server reads the line with Symfony's
+  `StringInput`, which splits on whitespace outside quotes: `--set "title=Zwei Wörter"`
+  or a list value with a line break answered *Too many arguments*, and nothing was
+  written (reported from the Consho session). Each token with whitespace, a quote or a
+  backslash is now quoted the way `StringInput` reads it back; backslashes and quotes are
+  escaped, because the server runs quoted content through `stripcslashes()`. A test
+  reads the line back through the real `StringInput`. Secrets in such tokens are still
+  blanked in the log.
+
 ## v1.8.1 - 2026-10-14
 
 Documents core-bundle v1.7.4; nothing changes in the commands.

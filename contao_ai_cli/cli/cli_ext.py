@@ -80,8 +80,10 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     """
     _require_core_bundle(ctx, "ext run")
 
-    line = " ".join(command_line)
-    name = line.split(" ", 1)[0]
+    # Quoted per token as the server's StringInput reads it (v1.8.2); a plain
+    # join split values with spaces or line breaks into several arguments.
+    line = ext_mod.string_input_line(command_line)
+    name = command_line[0]
 
     # Which commands this CLI wraps is the CLI's own knowledge, so this one
     # stays local.
