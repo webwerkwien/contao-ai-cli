@@ -4,10 +4,9 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## Unreleased
+## v1.10.0 - 2026-10-15
 
-The theme clone and `listing data` through the server need contao-ai-core-bundle v1.9.0;
-against an older one `listing data` falls back to its own SQL as before.
+Needs contao-ai-core-bundle v1.9.0 for the theme clone, theme export/import, example websites and `listing data` through the server (an older core-bundle keeps `listing data` on its SQL path); contao-ai-backend-bundle v0.19.0 for `bridge clone` of forms, channels, modules and layouts and `--with-recipients`.
 
 ### Added
 
