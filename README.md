@@ -148,6 +148,7 @@ so it cannot drift from what the CLI actually offers.
 |---|---|---|
 | `article` | `create` `delete` `list` `move` `publish` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
+| `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
 | `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
@@ -178,7 +179,7 @@ so it cannot drift from what the CLI actually offers.
 | `security` | `hash-password` | Security helpers |
 | `settings` | `read` `update` | Global settings — `localconfig.php`, not a table |
 | `template` | `delete` `list` `read` `write` | Twig and PHP templates |
-| `theme` | `create` `delete` `list` `read` `update` | Themes — the root of the theme layer |
+| `theme` | `create` `delete` `export` `import` `list` `read` `update` | Themes — the root of the theme layer; `.cto` export and import (core-bundle v1.9.0) |
 | `undo` | `list` `read` `restore` | Deleted records — the counterpart to `version restore` |
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
 | `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |

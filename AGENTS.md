@@ -777,6 +777,42 @@ cache"* to `tl_log` (cron action, `source = CLI`, the operator) — as Contao's 
 The answer is `{status: "cleared", output, logged}`; `logged: false` means an older core
 bundle ran the plain `cache:clear` without a trace.
 
+### Theme export, theme import, example websites (core-bundle v1.9.0)
+
+```bash
+contao-ai-cli --json theme export 1 --to relaunch.cto          # Contao's .cto, downloaded
+contao-ai-cli --json theme import relaunch.cto                  # preview only
+contao-ai-cli --json theme import relaunch.cto --yes            # after the operator said yes
+contao-ai-cli --json example-website import demo.sql --mode data              # preview
+contao-ai-cli --json example-website import demo.sql --mode data --admins existing --yes
+```
+
+The server runs Contao's own theme manager, so ids, image sizes and file paths are mapped
+as in the back end; the CLI uploads to `system/tmp` and removes the file afterwards.
+
+- **`theme import` previews first and imports only with a yes** — at a terminal it asks;
+  without one (you) the preview is the answer (`"imported": false`), and `--yes` imports.
+  Show the operator the preview before you pass `--yes`: an import has no undo, creates
+  records and **overwrites files** in `files/` and `templates/` (`overwrites`). Also in the
+  preview: `missing_fields` (fields this database lacks — their values are dropped, Contao's
+  own warning; typical when a bundle like news is missing), `lost_theme_elements` (layout
+  slots that will be empty: a `.cto` holds no theme elements, Contao's import leaves those
+  slots empty), and `example_websites` inside the archive, which this command does not
+  import. A theme name that exists gets a number appended by Contao.
+- **`theme export`** writes `<theme name>.cto` here unless `--to` says otherwise. Theme
+  elements are not part of a `.cto` (Contao's format).
+- **`example-website import` can replace or empty the whole database.** `--mode` has no
+  default — `full` runs every statement of the file (DROP and CREATE included), `data`
+  empties every `tl_` table and runs the INSERTs, `data_no_truncate` runs only the INSERTs.
+  The preview says how many tables `data` empties. A database backup is made first, always;
+  the answer names it, and `backup restore <name>` is the way back — **until the next backup
+  made the same day**: Contao keeps one per day (`backup_note`). When administrators exist
+  and the file brings users, ask the operator and pass `--admins both` (keep them next to
+  the imported ones) or `--admins existing` (keep only them); without it the command stops
+  after the preview. On the same username the existing account wins; `contao-ai` is put back
+  either way. `nextSteps` names what follows: `contao migrate` after `full`, `contao filesync`
+  after `full`/`data` (tl_files was emptied), `cache clear`.
+
 ### Backup
 
 ```bash

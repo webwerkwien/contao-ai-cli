@@ -43,6 +43,7 @@ from contao_ai_cli.cli.cli_file import file
 from contao_ai_cli.cli.cli_template import template
 from contao_ai_cli.cli.cli_form import form
 from contao_ai_cli.cli.cli_backup import backup
+from contao_ai_cli.cli.cli_example_website import example_website
 from contao_ai_cli.cli.cli_debug import debug
 from contao_ai_cli.cli.cli_messenger import messenger
 from contao_ai_cli.cli.cli_mailer import mailer
@@ -140,6 +141,7 @@ cli.add_command(file)
 cli.add_command(template)
 cli.add_command(form)
 cli.add_command(backup)
+cli.add_command(example_website)
 cli.add_command(debug)
 cli.add_command(messenger)
 cli.add_command(mailer)

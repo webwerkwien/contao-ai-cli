@@ -4,9 +4,10 @@ theme group — Manage Contao themes (tl_theme).
 import click
 
 from contao_ai_cli.core import theme as theme_mod
+from contao_ai_cli.core import theme_archive as archive_mod
 from .helpers import (
     _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
-    dispatch_update, parse_set_fields,
+    confirm_escalation, dispatch_update, parse_set_fields,
 )
 
 
@@ -88,3 +89,64 @@ def theme_delete_cmd(ctx, theme_id, yes, as_json):
         raise click.Abort()
     b = _get_backend(ctx.obj.get("session"))
     _output(theme_mod.theme_delete(b, theme_id), as_json or ctx.obj.get("as_json"))
+
+
+@theme.command("export")
+@click.argument("theme_id", type=int)
+@click.option("--to", "local_path", default=None, help="Local file to write (default: <theme name>.cto here)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def theme_export_cmd(ctx, theme_id, local_path, as_json):
+    """Export a theme as Contao's .cto and download it (core-bundle v1.9.0).
+
+    Contao's own export: theme, image sizes, modules, layouts and the theme's files and
+    templates. Theme elements are not part of a .cto. The copy on the server is removed.
+    """
+    _require_core_bundle(ctx, "theme export")
+    b = _get_backend(ctx.obj.get("session"))
+    try:
+        result = archive_mod.theme_export(b, theme_id, local_path)
+    except archive_mod.ArchiveError as e:
+        raise click.ClickException(str(e))
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if result.get("status") == "error":
+        ctx.exit(1)
+
+
+@theme.command("import")
+@click.argument("local_file", type=click.Path(dir_okay=False))
+@click.option("--yes", "-y", "assume_yes", is_flag=True,
+              help="Import after the preview without asking; an agent passes it only after asking the operator")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def theme_import_cmd(ctx, local_file, assume_yes, as_json):
+    """Import a theme from Contao's .cto (core-bundle v1.9.0).
+
+    First a preview: the theme, rows per table, the files in files/ and templates/ it
+    would OVERWRITE, fields this database lacks, layout slots that will stay empty (a .cto
+    holds no theme elements). An import has no undo. At a terminal you are asked; without
+    one the preview is the answer, and `--yes` imports. Example websites (.sql) have
+    their own command: `example-website import`.
+    """
+    _require_core_bundle(ctx, "theme import")
+    as_json = as_json or ctx.obj.get("as_json")
+    b = _get_backend(ctx.obj.get("session"))
+    try:
+        with archive_mod.Upload(b, local_file) as remote:
+            preview = archive_mod.theme_import(b, remote, confirm=False)
+            if preview.get("status") != "preview":
+                _output(preview, as_json)
+                ctx.exit(1)
+            if not assume_yes and not confirm_escalation(
+                    f"Import theme {', '.join(preview.get('themes') or [])}? "
+                    f"{len(preview.get('overwrites') or [])} existing file(s) would be overwritten."):
+                _output({**preview, "imported": False,
+                         "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
+                        as_json)
+                return
+            result = archive_mod.theme_import(b, remote, confirm=True)
+    except archive_mod.ArchiveError as e:
+        raise click.ClickException(str(e))
+    _output(result, as_json)
+    if result.get("status") != "ok":
+        ctx.exit(1)

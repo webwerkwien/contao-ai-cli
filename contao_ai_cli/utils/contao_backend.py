@@ -660,6 +660,13 @@ class ContaoBackend:
 
     def scp_upload(self, local_path: str, remote_path: str) -> dict:
         """Upload a local file to the remote server via SCP."""
+        return self._scp(local_path, f"{self.user}@{self.host}:{remote_path}")
+
+    def scp_download(self, remote_path: str, local_path: str, timeout: int = 300) -> dict:
+        """Download a file from the remote server via SCP (v1.10.0, theme export)."""
+        return self._scp(f"{self.user}@{self.host}:{remote_path}", local_path, timeout)
+
+    def _scp(self, source: str, target: str, timeout: int = 120) -> dict:
         scp = shutil.which("scp")
         if sys.platform == "win32":
             native_scp = r"C:\Windows\System32\OpenSSH\scp.exe"
@@ -676,7 +683,7 @@ class ContaoBackend:
         # Same reasoning as _ssh_args(). Measured as not exploitable here — the
         # injected option eats the source operand and scp aborts with usage —
         # but "the payload happens not to fit" is not a defence.
-        args += ["--", local_path, f"{self.user}@{self.host}:{remote_path}"]
+        args += ["--", source, target]
 
         env = os.environ.copy()
         env["MSYS_NO_PATHCONV"] = "1"
@@ -684,9 +691,9 @@ class ContaoBackend:
 
         try:
             result = subprocess.run(args, capture_output=True, encoding="utf-8", errors="replace",
-                                    env=env, timeout=120, stdin=subprocess.DEVNULL)
+                                    env=env, timeout=timeout, stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired:
-            raise ContaoBackendError("SSH command timed out after 120s")
+            raise ContaoBackendError(f"SSH command timed out after {timeout}s")
         return {
             "returncode": result.returncode,
             "stdout": result.stdout.strip(),

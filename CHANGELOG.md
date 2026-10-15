@@ -15,6 +15,15 @@ against an older one `listing data` falls back to its own SQL as before.
   sizes and theme elements; the copies point at each other (core-bundle v1.9.0). Contao's
   back end offers no theme copy at all (only export and import); the answer says so in
   `note`. See the guide.
+- **`theme export <id>` and `theme import <file.cto>`** (core-bundle v1.9.0): Contao's own
+  theme manager on the server, the file moved by scp and removed from `system/tmp`
+  afterwards. The import previews first (files it would overwrite, missing fields, layout
+  slots that stay empty because a `.cto` holds no theme elements) and imports only after
+  a yes at a terminal or with `--yes`.
+- **`example-website import <file> --mode full|data|data_no_truncate`** (core-bundle v1.9.0):
+  Contao's example websites, after a preview and a yes, with a database backup first. With
+  existing administrators and users in the file, `--admins both|existing` decides who
+  stays. `nextSteps` names migrate, file sync and cache clear as the mode needs them.
 - **`listing data` goes through `contao:listing:data`** (core-bundle v1.9.0): the module's
   own query run server-side, JSON instead of an ASCII table, sensitive fields masked, with
   the module's sort and `--limit`/`--offset`. With that, no read command parses
