@@ -1420,10 +1420,12 @@ chat the server itself asks before it copies them.
 
 **A whole theme** (core-bundle v1.9.0): `record clone --source-table tl_theme --source-id
 <id>` copies its modules, layouts, image sizes and theme elements, and points the copies at
-each other — the module list of every layout, reader modules, image sizes. Contao's own copy
-leaves all of them on the old theme, so editing the copy changed the live site. References
-out of the theme stay: no page uses the copied layouts until someone assigns them, so the
-clone changes nothing on the site by itself. `remapped` says what was bent
+each other — the module list of every layout, root-dependent modules, reader modules, theme
+element aliases, image sizes. **Contao itself has no theme copy in the back end** (only
+export and import of a `.cto` file), so tell the user this is a step the CLI adds; the
+answer carries the same sentence in `note`. References out of the theme stay: no page uses
+the copied layouts until someone assigns them, so the clone changes nothing on the site by
+itself. `remapped` says what was bent
 (`"tl_layout.modules": 5`), `references` what still points out (the template folder in
 `templates` is shared, not copied). The name is `<name> (Kopie)`, counted on when taken;
 `--modifications '{"name": "…"}'` with a name already taken is refused.

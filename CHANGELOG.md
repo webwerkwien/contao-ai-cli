@@ -12,8 +12,9 @@ against an older one `listing data` falls back to its own SQL as before.
 ### Added
 
 - **`record clone --source-table tl_theme`** clones a theme with its modules, layouts, image
-  sizes and theme elements; the copies point at each other (core-bundle v1.9.0). See the
-  guide.
+  sizes and theme elements; the copies point at each other (core-bundle v1.9.0). Contao's
+  back end offers no theme copy at all (only export and import); the answer says so in
+  `note`. See the guide.
 - **`listing data` goes through `contao:listing:data`** (core-bundle v1.9.0): the module's
   own query run server-side, JSON instead of an ASCII table, sensitive fields masked, with
   the module's sort and `--limit`/`--offset`. With that, no read command parses
