@@ -658,9 +658,9 @@ class ContaoBackend:
         except json.JSONDecodeError:
             return result["stdout"]
 
-    def scp_upload(self, local_path: str, remote_path: str) -> dict:
+    def scp_upload(self, local_path: str, remote_path: str, timeout: int = 120) -> dict:
         """Upload a local file to the remote server via SCP."""
-        return self._scp(local_path, f"{self.user}@{self.host}:{remote_path}")
+        return self._scp(local_path, f"{self.user}@{self.host}:{remote_path}", timeout)
 
     def scp_download(self, remote_path: str, local_path: str, timeout: int = 300) -> dict:
         """Download a file from the remote server via SCP (v1.10.0, theme export)."""

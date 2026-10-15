@@ -21,7 +21,14 @@ def backend(*answers):
     b.run.side_effect = [{"stdout": json.dumps(a), "returncode": 0 if a.get("status") != "error" else 1} for a in answers]
     b.run_raw.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
     b.scp_upload.return_value = {"returncode": 0}
-    b.scp_download.side_effect = lambda remote, local, *a: open(local, "wb").write(b"PK") and {"returncode": 0}
+    b.undefined_command_hint.return_value = ""
+
+    def download(remote, local, *a):
+        with open(local, "wb") as f:
+            f.write(b"PK")
+        return {"returncode": 0}
+
+    b.scp_download.side_effect = download
     return b
 
 
@@ -38,6 +45,28 @@ class TestExport:
         assert result["status"] == "ok" and result["size"] == 2
         assert b.scp_download.call_args[0][0] == "/var/www/site/system/tmp/ab12.cto"
         assert "rm -f system/tmp/ab12.cto" in raw_commands(b)
+
+    def test_an_existing_file_of_the_default_name_is_not_overwritten(self, tmp_path, monkeypatch):
+        """Review before v1.10.0: a second export replaced the first without a word."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "Demo-Theme.cto").write_bytes(b"earlier")
+        b = backend({"status": "ok", "file": "system/tmp/ab12.cto", "size": 2, "theme": "Demo Theme", "note": "n"})
+        with pytest.raises(theme_archive.ArchiveError, match="exists here already"):
+            theme_archive.theme_export(b, 1)
+        assert (tmp_path / "Demo-Theme.cto").read_bytes() == b"earlier"
+        assert "rm -f system/tmp/ab12.cto" in raw_commands(b), "the server's copy goes either way"
+
+    def test_the_last_json_line_is_the_answer(self):
+        b = MagicMock()
+        b.undefined_command_hint.return_value = ""
+        result = {"stdout": 'PHP Warning: imagick\n{"status":"ok","n":1}', "returncode": 0}
+        assert theme_archive._answer(b, result) == {"status": "ok", "n": 1}
+
+    def test_a_missing_command_carries_the_version_hint(self):
+        b = MagicMock()
+        b.undefined_command_hint.return_value = "\n  core-bundle v1.8.1 is installed; v1.9.0 has it."
+        with pytest.raises(theme_archive.ArchiveError, match="v1.9.0 has it"):
+            theme_archive._answer(b, {"stdout": "", "stderr": 'Command "contao:theme:export" is not defined.', "returncode": 1})
 
     def test_an_unexpected_path_is_not_downloaded(self, tmp_path):
         b = backend({"status": "ok", "file": "../../etc/passwd", "theme": "x"})
@@ -77,7 +106,33 @@ class TestImportCommand:
         remote = b.scp_upload.call_args[0][1]
         assert remote.startswith("/var/www/site/system/tmp/contao-ai-") and remote.endswith(".cto")
         assert b.run.call_args[0][0].endswith(" --confirm")
-        assert any(c.startswith("rm -f system/tmp/contao-ai-") for c in raw_commands(b))
+        # The exact file, not a prefix a neighbouring rm would satisfy too (review).
+        relative = remote.removeprefix("/var/www/site/")
+        assert f"rm -f {relative}" in raw_commands(b)
+        assert "cache clear" in json.loads(result.output)["nextSteps"][0]["command"]
+
+    def test_a_failed_upload_leaves_nothing_behind(self, tmp_path):
+        b2 = backend()
+        b2.scp_upload.return_value = {"returncode": 1, "stderr": "connection lost"}
+        archive = tmp_path / "x.cto"
+        archive.write_bytes(b"PK")
+        with pytest.raises(theme_archive.ArchiveError, match="Upload failed"):
+            with theme_archive.Upload(b2, str(archive), theme_archive.THEME_EXTENSIONS):
+                pass
+        relative = b2.scp_upload.call_args[0][1].removeprefix("/var/www/site/")
+        assert f"rm -f {relative}" in raw_commands(b2)
+
+    def test_a_wrong_file_type_is_refused_before_the_upload(self, monkeypatch, tmp_path):
+        from contao_ai_cli.cli import cli_theme
+
+        b = backend()
+        monkeypatch.setattr(cli_theme, "_get_backend", lambda path: b)
+        monkeypatch.setattr(cli_theme, "_require_core_bundle", lambda ctx, what: None)
+        sql = tmp_path / "site.sql"
+        sql.write_text("INSERT")
+        result = CliRunner().invoke(cli_theme.theme, ["import", str(sql)], obj={"session": None, "as_json": True})
+        assert result.exit_code != 0 and ".cto" in result.output
+        b.scp_upload.assert_not_called()
 
     def test_a_person_at_a_terminal_decides(self, monkeypatch, tmp_path):
         result, b = self.invoke(monkeypatch, tmp_path, [], self.PREVIEW, console=True, answer=False)
@@ -107,6 +162,14 @@ class TestExampleWebsiteCommand:
         result, b = self.invoke(monkeypatch, tmp_path, ["--yes"])
         assert result.exit_code == 2 and "--mode" in result.output
         b.scp_upload.assert_not_called()
+
+    def test_without_a_yes_nothing_is_imported(self, monkeypatch, tmp_path):
+        """Review before v1.10.0: the command that can empty the database had no test for it."""
+        result, b = self.invoke(monkeypatch, tmp_path, ["--mode", "data", "--admins", "existing"], self.PREVIEW)
+        out = json.loads(result.output)
+        assert out["status"] == "preview" and out["imported"] is False
+        assert b.run.call_count == 1
+        assert "--confirm" not in b.run.call_args[0][0]
 
     def test_existing_admins_need_a_decision_even_with_yes(self, monkeypatch, tmp_path):
         result, b = self.invoke(monkeypatch, tmp_path, ["--mode", "data", "--yes"], self.PREVIEW)

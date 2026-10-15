@@ -14,13 +14,24 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend
 
 TMP_DIR = "system/tmp"
 
+# Large themes carry their files/; packing, moving and importing them takes a while.
+SERVER_TIMEOUT = 600
+TRANSFER_TIMEOUT = 300
+
+THEME_EXTENSIONS = (".cto", ".zip")
+EXAMPLE_EXTENSIONS = (".sql", ".cto", ".zip")
+
 
 class ArchiveError(Exception):
     """A transfer or server step that failed; the message says which."""
 
 
-def _answer(result: dict) -> dict:
-    """The last JSON line of a command's stdout — PHP warnings can come first."""
+def _answer(backend: ContaoBackend, result: dict) -> dict:
+    """The last JSON line of a command's stdout — PHP warnings can come first.
+
+    Without one, the failure as text, with the hint when the command is missing (an older
+    core-bundle), as file.py and contao_ops.py give it.
+    """
     for line in reversed((result.get("stdout") or "").splitlines()):
         try:
             answer = json.loads(line)
@@ -29,7 +40,8 @@ def _answer(result: dict) -> dict:
         if isinstance(answer, dict):
             return answer
     text = f"{result.get('stdout', '')}\n{result.get('stderr', '')}".strip()
-    raise ArchiveError(text[:400] or f"exit {result.get('returncode')}")
+    hint = backend.undefined_command_hint(result.get("stdout", ""), result.get("stderr", ""))
+    raise ArchiveError((text[:400] or f"exit {result.get('returncode')}") + hint)
 
 
 def _remove(backend: ContaoBackend, relative: str) -> None:
@@ -40,8 +52,14 @@ def _remove(backend: ContaoBackend, relative: str) -> None:
 
 
 def theme_export(backend: ContaoBackend, theme_id: int, local_path: str | None = None) -> dict:
-    """Export a theme and download its .cto; the server's copy is removed."""
-    answer = _answer(backend.run(f"contao:theme:export {int(theme_id)}", check=False))
+    """Export a theme and download its .cto; the server's copy is removed.
+
+    Without `local_path` the file is named after the theme here, and an existing file of
+    that name is not overwritten (review before v1.10.0: a second export of the same theme
+    replaced the first without a word).
+    """
+    default_name = not local_path
+    answer = _answer(backend, backend.run(f"contao:theme:export {int(theme_id)}", check=False, timeout=SERVER_TIMEOUT))
     if answer.get("status") != "ok":
         return answer
 
@@ -49,11 +67,13 @@ def theme_export(backend: ContaoBackend, theme_id: int, local_path: str | None =
     if not re.fullmatch(r"system/tmp/[0-9a-f]+\.cto", remote):
         raise ArchiveError(f"Unexpected export path from the server: {remote!r}")
 
-    if not local_path:
-        slug = re.sub(r"[^A-Za-z0-9._-]+", "-", str(answer.get("theme") or f"theme-{theme_id}")).strip("-")
-        local_path = f"{slug or 'theme'}.cto"
     try:
-        result = backend.scp_download(f"{backend.contao_root}/{remote}", local_path)
+        if default_name:
+            slug = re.sub(r"[^A-Za-z0-9_-]+", "-", str(answer.get("theme") or f"theme-{theme_id}")).strip("-")
+            local_path = f"{slug or 'theme'}.cto"
+            if os.path.exists(local_path):
+                raise ArchiveError(f"{local_path} exists here already; pass --to to choose the file (an explicit --to overwrites).")
+        result = backend.scp_download(f"{backend.contao_root}/{remote}", local_path, TRANSFER_TIMEOUT)
         if result.get("returncode", 0) != 0:
             raise ArchiveError(f"Download failed: {result.get('stderr', '')}")
     finally:
@@ -66,29 +86,38 @@ def theme_export(backend: ContaoBackend, theme_id: int, local_path: str | None =
 class Upload:
     """A local file in system/tmp on the server for as long as the `with` lasts."""
 
-    def __init__(self, backend: ContaoBackend, local_path: str):
+    def __init__(self, backend: ContaoBackend, local_path: str, extensions: tuple[str, ...]):
         self.backend = backend
         self.local_path = local_path
         ext = os.path.splitext(local_path)[1].lower()
+        # Checked here, before anything moves: the extension also ends up in the remote
+        # file name, and a wrong type is better refused than uploaded.
+        if ext not in extensions:
+            raise ArchiveError(f"Not a {' / '.join(extensions)} file: {local_path}")
         self.relative = f"{TMP_DIR}/contao-ai-{uuid.uuid4().hex}{ext}"
 
     def __enter__(self) -> str:
         if not os.path.isfile(self.local_path):
             raise ArchiveError(f"Local file not found: {self.local_path}")
         self.backend.run_raw(f"mkdir -p {shlex.quote(TMP_DIR)}")
-        result = self.backend.scp_upload(self.local_path, f"{self.backend.contao_root}/{self.relative}")
-        if result.get("returncode", 0) != 0:
-            raise ArchiveError(f"Upload failed: {result.get('stderr', '')}")
+        try:
+            result = self.backend.scp_upload(self.local_path, f"{self.backend.contao_root}/{self.relative}", TRANSFER_TIMEOUT)
+            if result.get("returncode", 0) != 0:
+                raise ArchiveError(f"Upload failed: {result.get('stderr', '')}")
+        except BaseException:
+            # __exit__ does not run when __enter__ fails; a half-written file would stay.
+            self._cleanup()
+            raise
         return self.relative
 
     def __exit__(self, *exc) -> None:
+        self._cleanup()
+
+    def _cleanup(self) -> None:
         _remove(self.backend, self.relative)
-        # An archive's example website, extracted next to it by the server. A fixed glob,
-        # unquoted on purpose so the shell expands it; nothing of the caller's is in it.
-        try:
-            self.backend.run_raw(f"rm -f {TMP_DIR}/contao-ai-example-*.sql")
-        except Exception:
-            pass
+        # The example website the server extracts from an archive, named after it
+        # (core-bundle ExampleWebsite::sqlFile()).
+        _remove(self.backend, f"{os.path.splitext(self.relative)[0]}-example.sql")
 
 
 def theme_import(backend: ContaoBackend, remote: str, confirm: bool, operator: str = "") -> dict:
@@ -97,7 +126,7 @@ def theme_import(backend: ContaoBackend, remote: str, confirm: bool, operator: s
         cmd += " --confirm"
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
-    return _answer(backend.run(cmd, check=False, timeout=600))
+    return _answer(backend, backend.run(cmd, check=False, timeout=SERVER_TIMEOUT))
 
 
 def example_import(backend: ContaoBackend, remote: str, mode: str, admins: str | None,
@@ -111,4 +140,4 @@ def example_import(backend: ContaoBackend, remote: str, mode: str, admins: str |
         cmd += " --confirm"
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
-    return _answer(backend.run(cmd, check=False, timeout=600))
+    return _answer(backend, backend.run(cmd, check=False, timeout=SERVER_TIMEOUT))

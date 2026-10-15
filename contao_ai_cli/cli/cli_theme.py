@@ -5,6 +5,8 @@ import click
 
 from contao_ai_cli.core import theme as theme_mod
 from contao_ai_cli.core import theme_archive as archive_mod
+from contao_ai_cli.core.status import cli_prefix
+from .cli_health import _session_name
 from .helpers import (
     _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
     confirm_escalation, dispatch_update, parse_set_fields,
@@ -117,9 +119,10 @@ def theme_export_cmd(ctx, theme_id, local_path, as_json):
 @click.argument("local_file", type=click.Path(dir_okay=False))
 @click.option("--yes", "-y", "assume_yes", is_flag=True,
               help="Import after the preview without asking; an agent passes it only after asking the operator")
+@click.option("--operator", default="", help="Acting user identifier for the audit log")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def theme_import_cmd(ctx, local_file, assume_yes, as_json):
+def theme_import_cmd(ctx, local_file, assume_yes, operator, as_json):
     """Import a theme from Contao's .cto (core-bundle v1.9.0).
 
     First a preview: the theme, rows per table, the files in files/ and templates/ it
@@ -132,7 +135,7 @@ def theme_import_cmd(ctx, local_file, assume_yes, as_json):
     as_json = as_json or ctx.obj.get("as_json")
     b = _get_backend(ctx.obj.get("session"))
     try:
-        with archive_mod.Upload(b, local_file) as remote:
+        with archive_mod.Upload(b, local_file, archive_mod.THEME_EXTENSIONS) as remote:
             preview = archive_mod.theme_import(b, remote, confirm=False)
             if preview.get("status") != "preview":
                 _output(preview, as_json)
@@ -144,9 +147,15 @@ def theme_import_cmd(ctx, local_file, assume_yes, as_json):
                          "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
                         as_json)
                 return
-            result = archive_mod.theme_import(b, remote, confirm=True)
+            result = archive_mod.theme_import(b, remote, confirm=True, operator=operator)
     except archive_mod.ArchiveError as e:
         raise click.ClickException(str(e))
+    if result.get("status") == "ok":
+        # The import writes templates; in production Contao keeps the template hierarchy
+        # in a cache pool until it is cleared (review before v1.10.0).
+        result["nextSteps"] = [{"command": f"{cli_prefix(_session_name(ctx.obj.get('session')))} cache clear",
+                                "optional": False,
+                                "reason": "The theme's templates and layouts are new; caches still hold the old state."}]
     _output(result, as_json)
     if result.get("status") != "ok":
         ctx.exit(1)

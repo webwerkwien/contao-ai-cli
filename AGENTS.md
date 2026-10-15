@@ -799,8 +799,11 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   slots that will be empty: a `.cto` holds no theme elements, Contao's import leaves those
   slots empty), and `example_websites` inside the archive, which this command does not
   import. A theme name that exists gets a number appended by Contao.
-- **`theme export`** writes `<theme name>.cto` here unless `--to` says otherwise. Theme
-  elements are not part of a `.cto` (Contao's format).
+- **`theme export`** writes `<theme name>.cto` here unless `--to` says otherwise; an existing
+  file of that default name is not overwritten (an explicit `--to` is). Theme elements are
+  not part of a `.cto` (Contao's format).
+- After a theme import `nextSteps` suggests `cache clear`: Contao keeps the template
+  hierarchy cached in production. Both imports take `--operator` for the system log.
 - **`example-website import` can replace or empty the whole database.** `--mode` has no
   default — `full` runs every statement of the file (DROP and CREATE included), `data`
   empties every `tl_` table and runs the INSERTs, `data_no_truncate` runs only the INSERTs.

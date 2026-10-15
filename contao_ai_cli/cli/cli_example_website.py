@@ -25,9 +25,10 @@ def example_website():
 @click.option("--entry", default=None, help="Which .sql inside a .cto holding several")
 @click.option("--yes", "-y", "assume_yes", is_flag=True,
               help="Import after the preview without asking; an agent passes it only after asking the operator")
+@click.option("--operator", default="", help="Acting user identifier for the audit log")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def example_import_cmd(ctx, local_file, mode, admins, entry, assume_yes, as_json):
+def example_import_cmd(ctx, local_file, mode, admins, entry, assume_yes, operator, as_json):
     """Import an example website (.sql, or the one inside a .cto) as Contao does.
 
     First a preview: statements, tables, how many tables `data` empties, the existing
@@ -40,7 +41,7 @@ def example_import_cmd(ctx, local_file, mode, admins, entry, assume_yes, as_json
     as_json = as_json or ctx.obj.get("as_json")
     b = _get_backend(ctx.obj.get("session"))
     try:
-        with archive_mod.Upload(b, local_file) as remote:
+        with archive_mod.Upload(b, local_file, archive_mod.EXAMPLE_EXTENSIONS) as remote:
             preview = archive_mod.example_import(b, remote, mode, admins, entry, confirm=False)
             if preview.get("status") != "preview":
                 _output(preview, as_json)
@@ -58,7 +59,7 @@ def example_import_cmd(ctx, local_file, mode, admins, entry, assume_yes, as_json
                          "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
                         as_json)
                 return
-            result = archive_mod.example_import(b, remote, mode, admins, entry, confirm=True)
+            result = archive_mod.example_import(b, remote, mode, admins, entry, confirm=True, operator=operator)
     except archive_mod.ArchiveError as e:
         raise click.ClickException(str(e))
 

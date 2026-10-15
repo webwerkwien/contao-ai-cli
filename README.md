@@ -148,7 +148,6 @@ so it cannot drift from what the CLI actually offers.
 |---|---|---|
 | `article` | `create` `delete` `list` `move` `publish` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
-| `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
 | `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
@@ -157,6 +156,7 @@ so it cannot drift from what the CLI actually offers.
 | `content` | `create` `delete` `list` `move` `read` `update` | Content elements |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
+| `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |
 | `ext` | `describe` `list` `run` | Console commands this CLI does not wrap — extensions, plugins, your own. `run` warns, records the invocation, and returns the foreign answer inside an envelope (`command_output`, `exit_code`) rather than as its own. A missing command is told whether an older core bundle is the reason |
 | `faq` | `categories` `category-create` `category-delete` `category-read` `category-update` `create` `delete` `list` `read` `update` | FAQ entries and their categories |
 | `file` | `delete` `folder-create` `folder-publish` `list` `meta` `move` `process` `read` `sync` `upload` `write` | Files in the file system |
