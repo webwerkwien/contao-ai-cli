@@ -121,6 +121,8 @@ class TestImportCommand:
                 pass
         relative = b2.scp_upload.call_args[0][1].removeprefix("/var/www/site/")
         assert f"rm -f {relative}" in raw_commands(b2)
+        # The name core-bundle gives an extracted example website (EXTRACTED_SUFFIX).
+        assert f"rm -f {relative.removesuffix('.cto')}-example.sql" in raw_commands(b2)
 
     def test_a_wrong_file_type_is_refused_before_the_upload(self, monkeypatch, tmp_path):
         from contao_ai_cli.cli import cli_theme

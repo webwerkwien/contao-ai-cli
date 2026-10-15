@@ -799,7 +799,7 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   slots that will be empty: a `.cto` holds no theme elements, Contao's import leaves those
   slots empty), and `example_websites` inside the archive, which this command does not
   import. A theme name that exists gets a number appended by Contao.
-- **`theme export`** writes `<theme name>.cto` here unless `--to` says otherwise; an existing
+- **`theme export`** writes `<theme name>.cto` here (characters other than letters, digits, `_` and `-` become `-`) unless `--to` says otherwise; an existing
   file of that default name is not overwritten (an explicit `--to` is). Theme elements are
   not part of a `.cto` (Contao's format).
 - After a theme import `nextSteps` suggests `cache clear`: Contao keeps the template
@@ -814,7 +814,12 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   the imported ones) or `--admins existing` (keep only them); without it the command stops
   after the preview. On the same username the existing account wins; `contao-ai` is put back
   either way. `nextSteps` names what follows: `contao migrate` after `full`, `contao filesync`
-  after `full`/`data` (tl_files was emptied), `cache clear`.
+  after `full`/`data` (tl_files was emptied), `cache clear`. The preview's `warnings`
+  (mode `full`: empty or comment lines, which Contao runs as statements and which stop the
+  import half-way) belong in front of the operator before the yes. `admins.renumbered` names
+  an account that had to take a new id because an imported user holds its old one.
+  If the import fails after the backup, the error names the backup and whether the
+  administrators were put back — restore it before anything else makes a backup.
 
 ### Backup
 

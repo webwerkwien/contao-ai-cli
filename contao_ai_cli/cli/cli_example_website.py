@@ -52,9 +52,11 @@ def example_import_cmd(ctx, local_file, mode, admins, entry, assume_yes, operato
                                  "--admins both keeps them next to the imported ones, --admins existing keeps only them."
                                  .format(", ".join(preview.get("existing_admins") or []))}, as_json)
                 ctx.exit(1)
+            warnings = " ".join(preview.get("warnings") or [])
             if not assume_yes and not confirm_escalation(
                     f"Import {preview.get('file')} in mode {mode}? "
-                    f"{preview.get('truncates', 0)} table(s) would be emptied; a backup is made first."):
+                    f"{preview.get('truncates', 0)} table(s) would be emptied; a backup is made first."
+                    + (f" Warning: {warnings}" if warnings else "")):
                 _output({**preview, "imported": False,
                          "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
                         as_json)
