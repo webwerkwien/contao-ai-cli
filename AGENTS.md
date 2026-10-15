@@ -326,6 +326,23 @@ Three things afterwards:
   describes a table that no longer looks like that: `schema sync <table>`. An extension
   that extends `tl_member` or `tl_page` is the normal case, not the exception.
 
+**Reading an extension's own tables.** `record list` and `record schema` take any table
+with a DCA, also one without `tl_` (core-bundle v1.9.2; up to v1.9.1 such a name was an
+"Invalid table name"). What they cannot give you is a DCA the extension does not build on
+the console. Some build it only in a web request — the Catalog Manager is the known case
+(2026-10-15): `alnv/catalog-manager-bundle` (v4) answers `DCA not found` for a catalog,
+`alnv/catalog-manager` (v2) shows only the catalog's own fields, without `title`, `alias`
+and the visibility fields. That is the extension's behaviour, not a missing table; say so
+to the operator rather than reading the table some other way. Writing to such a table
+needs a command of the extension's own (see `ext` and `#[AiContract]`); this CLI has no
+generic write for foreign tables.
+
+> ⚠️ **`alnv/catalog-manager` v2.0.26 breaks `contao migrate` and the cache warmup on
+> Doctrine DBAL 4** as soon as a catalog has fields: its schema listener passes
+> `scale: null`, and DBAL 4 refuses it with a `TypeError` the listener does not catch. The
+> back-end module of the catalog stops working too. v4 (`catalog-manager-bundle`) does not
+> have this. Seen on c5 (Contao 5.7.15, DBAL 4.4.5).
+
 ### `self-update`
 
 Reinstalls contao-ai-cli itself at the newest tag via pipx:

@@ -218,3 +218,24 @@ def test_health_json_carries_the_next_steps(tmp_path, monkeypatch):
     assert [s["command"] for s in data["nextSteps"]] == [
         "contao-ai-cli --session showcase bridge configure --url https://<site> --token-stdin --test"]
     assert data["nextSteps"][0]["optional"] is True
+
+
+def test_health_takes_json_after_the_command_too(tmp_path, monkeypatch):
+    """v1.11.1: the guide and README wrote `health --json` since v1.1.0; only `--json health` worked."""
+    import json as _json
+    from click.testing import CliRunner
+    from contao_ai_cli.cli import cli_health
+    from contao_ai_cli.core import session as session_mod
+
+    monkeypatch.setattr(session_mod, "DEFAULT_SESSION_FILE", str(tmp_path / "session.json"))
+    state = {"cli": {"installed": "1.11.0", "latest": "1.11.0", "up_to_date": True},
+             "contao": {"installed": "5.7.15"},
+             "core": {"reachable": True, "installed": "v1.9.1", "latest": "1.9.1", "update_available": False,
+                      "up_to_date": True},
+             "backend": {"installed": "v0.19.1"},
+             "bridge": {"state": "ready", "installed": True, "configured": True},
+             "composer": {"via": "contao-manager", "command": "x"}}
+    with patch.object(cli_health, "collect_status", return_value=state):
+        out = CliRunner().invoke(cli_health.health, ["--json"], obj={"session": str(tmp_path / "s.json")})
+    assert out.exit_code == 0, out.output
+    assert _json.loads(out.output)["composer"]["via"] == "contao-manager"

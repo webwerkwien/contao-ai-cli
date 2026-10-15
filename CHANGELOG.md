@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.11.1 - 2026-10-15
+
+Works with every contao-ai-core-bundle v1.11.0 worked with. contao-ai-core-bundle v1.9.2 lets `record list` read tables without `tl_` and stops `undo restore` from deleting an entry it could not restore. Found trying the Catalog Manager on c5.
+
+### Fixed
+
+- **`health --json` works.** The guide and README wrote it that way since v1.1.0, and only
+  `--json health` worked: `health` was the one documented command without the option of its
+  own.
+
+### Documentation
+
+- The guide says what `record list`/`record schema` can read of an extension's own tables,
+  that the Catalog Manager builds its DCA only in a web request, and that
+  `alnv/catalog-manager` v2.0.26 breaks `contao migrate` on Doctrine DBAL 4 once a catalog
+  has fields.
+
 ## v1.11.0 - 2026-10-15
 
 Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundle v1.9.1 adds `page_count` to a page clone and fixes `references` of cloned modules; the guide describes both. Found by an agent that made the Contao demo bilingual from `contao-ai-cli guide` alone — in about 30 minutes, with no first-language reference left — and reported where the guide fell short.
