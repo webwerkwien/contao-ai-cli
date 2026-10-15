@@ -170,7 +170,12 @@ def bridge_clone(ctx, table, source_id, modifications, recursive, with_recipient
     except bridge_mod.BridgeError as e:
         _emit_error(e, ctx.obj.get("as_json"))
         sys.exit(1)
-    if with_recipients and isinstance(result, dict) and result.get("recipients_copied") is not True:
+    # The bridge wraps the core's answer: {"status", "tool", "result": {..., "recipients_copied"}}.
+    # The first version looked at the top level and warned on every successful copy (c5,
+    # 2026-10-15) — its test had invented a flat answer.
+    inner = result.get("result") if isinstance(result, dict) else None
+    if with_recipients and isinstance(result, dict) and (
+            not isinstance(inner, dict) or inner.get("recipients_copied") is not True):
         # A backend before v0.19.0 drops the key: the clone exists, but without the
         # people the caller asked for. Said as loudly as a failure.
         result = {**result, "warning": "The backend ignored --with-recipients (backend-bundle before v0.19.0): "

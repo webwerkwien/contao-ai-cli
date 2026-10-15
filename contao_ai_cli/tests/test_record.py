@@ -200,7 +200,9 @@ class TestRecordClone:
         b.run.assert_not_called()
 
     def test_recipients_for_another_table_are_refused_before_asking(self, monkeypatch):
-        result, b = self.invoke_with_recipients(monkeypatch, extra=("--yes",), table="tl_form")
+        """No --yes, a terminal nobody answers: asked first, it would end in "Nothing was
+        cloned" — the table refusal proves it comes before the question (review K2)."""
+        result, b = self.invoke_with_recipients(monkeypatch, console=True, answer=None, table="tl_form")
         assert result.exit_code != 0
         assert "tl_newsletter_channel only" in result.output
         b.run.assert_not_called()
@@ -214,8 +216,11 @@ class TestBridgeCloneRecipients:
         from contao_ai_cli.cli import cli_bridge, helpers
 
         client = MagicMock()
+        # The shape the bridge really answers with (c5, 2026-10-15): the core's answer
+        # sits under "result".
         client.clone.return_value = answer_payload if answer_payload is not None else {
-            "status": "ok", "id": 9, "recipients_copied": True}
+            "status": "ok", "tool": "record_clone",
+            "result": {"status": "ok", "id": 20, "table": "tl_newsletter_channel", "recipients_copied": True}}
         monkeypatch.setattr(cli_bridge.session_mod, "load_session", lambda path: {})
         monkeypatch.setattr(cli_bridge.bridge_mod, "from_session_config", lambda cfg: client)
         monkeypatch.setattr(helpers, "stdin_is_console", lambda: False)
@@ -227,7 +232,7 @@ class TestBridgeCloneRecipients:
                                                    "--with-recipients", "--yes"])
         assert result.exit_code == 0, result.output
         assert client.clone.call_args.kwargs["with_recipients"] is True
-        assert "warning" not in result.output
+        assert "warning" not in result.output.lower()
 
     def test_without_yes_and_terminal_nothing_is_sent(self, monkeypatch):
         result, client = self.invoke(monkeypatch, ["--table", "tl_newsletter_channel", "--source-id", "4",
@@ -238,7 +243,8 @@ class TestBridgeCloneRecipients:
     def test_an_older_backend_that_drops_the_flag_is_reported(self, monkeypatch):
         result, client = self.invoke(monkeypatch, ["--table", "tl_newsletter_channel", "--source-id", "4",
                                                    "--with-recipients", "--yes"],
-                                     answer_payload={"status": "ok", "id": 9})
+                                     answer_payload={"status": "ok", "tool": "record_clone",
+                                                     "result": {"status": "ok", "id": 20}})
         assert result.exit_code == 0
         assert "the clone has no recipients" in result.output
 
