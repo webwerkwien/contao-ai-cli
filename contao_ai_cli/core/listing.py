@@ -49,18 +49,27 @@ def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None
     if offset is not None:
         cmd += f" --offset={int(offset)}"
     result = backend.run(cmd, check=False)
-    try:
-        answer = json.loads((result.get("stdout") or "").strip().splitlines()[-1])
-    except (ValueError, IndexError):
-        answer = None
+    # The last line that is JSON: PHP start-up warnings can share stdout (as in backup.py).
+    answer = None
+    for line in reversed((result.get("stdout") or "").splitlines()):
+        try:
+            answer = json.loads(line)
+            break
+        except ValueError:
+            continue
     if isinstance(answer, dict) and answer.get("status") == "ok":
         return answer
     if isinstance(answer, dict) and answer.get("status") == "error":
         raise ListingError(str(answer.get("message") or f"Module {module_id} could not be read"))
+    # Only a missing command falls back. Anything else — a crash of the command — is an
+    # error: the SQL path would answer unmasked values the caller did not ask for (review).
     text = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
-    if "is not defined" not in text and "There are no commands defined" not in text:
+    if 'Command "contao:listing:data" is not defined' not in text and "There are no commands defined" not in text:
         raise ListingError(f"contao:listing:data {module_id} failed: {text.strip()[:300]}")
-    return _listing_data_sql(backend, module_id, cfg)
+    data = _listing_data_sql(backend, module_id, cfg)
+    if limit is not None or offset is not None:
+        data["paging"] = "ignored: core-bundle before v1.9.0 has no contao:listing:data"
+    return data
 
 
 def _listing_data_sql(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> dict:

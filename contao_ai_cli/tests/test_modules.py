@@ -700,10 +700,24 @@ class TestListing:
 
     def test_the_servers_refusal_is_an_error(self):
         backend = MagicMock()
-        backend.run.return_value = {"stdout": '{"status":"error","message":"Module 99 is not a listing module (type: navigation)","code":1}', "returncode": 1}
-        with pytest.raises(ListingError, match="not a listing module"):
+        backend.run.return_value = {"stdout": 'PHP Warning: imagick\n{"status":"error","message":"Module 99 is not a listing module (type: navigation)","code":1}', "returncode": 1}
+        with pytest.raises(ListingError) as e:
             listing_data(backend, 99)
+        assert str(e.value) == "Module 99 is not a listing module (type: navigation)"
         assert backend.run.call_count == 1
+
+    def test_a_crash_of_the_command_does_not_fall_back(self):
+        """Review: the SQL path would answer unmasked values; only a missing command falls back."""
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": "", "stderr": "PHP Fatal error: Allowed memory size exhausted", "returncode": 255}
+        with pytest.raises(ListingError, match="failed"):
+            listing_data(backend, 1)
+        assert backend.run.call_count == 1
+
+    def test_paging_against_an_older_core_says_it_was_ignored(self):
+        backend = self.old_core({"stdout": make_table(["id"], [["1"]]), "returncode": 0})
+        result = listing_data(backend, 1, cfg={"list_table": "tl_demo", "list_fields": "id"}, limit=5)
+        assert "ignored" in result["paging"]
 
     def test_listing_data_with_cfg(self):
         backend = self.old_core({"stdout": make_table(["id", "title"], [["1", "Entry"]]), "returncode": 0})
