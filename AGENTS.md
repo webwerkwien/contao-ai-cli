@@ -305,11 +305,14 @@ first**, and ask the user before the real one: it changes what is installed on t
 <composer.command> require terminal42/contao-changelanguage
 ```
 
-Two things afterwards:
+Three things afterwards:
 
 - **`via: "composer"`** (no Contao Manager) means the project's own `allow-plugins` has to
   permit Contao's plugins, or Composer refuses. The same consent question as
   `bundle install --allow-plugins`, and it is the user's to answer.
+- **If the extension adds database columns**, run `contao migrate` (`--dry-run` first).
+  Composer installs the code; the columns exist only after the migration, and a write to
+  one of them fails until then.
 - **If the extension adds DCA fields**, the cached schema is stale and `schema show` now
   describes a table that no longer looks like that: `schema sync <table>`. An extension
   that extends `tl_member` or `tl_page` is the normal case, not the exception.
@@ -1539,6 +1542,146 @@ contao-ai-cli --json language check --root 83
   same target is refused by the package's own check. A refusal says which rule failed.
 - The write goes through the core: version, the package's own checks, cache invalidation.
 - Without the package on the server the group answers that the command does not exist.
+
+### Adding a second language — the whole sequence
+
+The two sections above give the building blocks. This one gives the order, and the places
+where the first language survives the clone without anything failing. Tried end to end on
+the Contao demo (42 pages, about 200 content elements, EN → EN + DE) with core-bundle
+v1.7.3, when modules and layouts still had to be rebuilt by hand: about 35 minutes of
+writes, under an hour with the survey and the checks. The clones below shorten that. It
+needs core-bundle v1.8.0 for the clones of forms, channels, modules and layouts, v1.9.0 for
+a theme copy, and v1.4.0 with changelanguage on the server for the translation links.
+
+> 🎯 **The page tree is the smallest part.** One `record clone` copies it. The work is in
+> everything that points at fixed IDs of the first language — modules, layouts, insert tags,
+> archives, forms — and none of it fails when left alone: the second language simply shows
+> links, news and texts of the first.
+
+**1. Ask the operator before anything is written.** These are decisions, not facts you can
+read from the site:
+
+| Question | Why it is not yours |
+|---|---|
+| Which language is the main one (`fallback`)? | It decides which root answers a visitor whose language matches none, and which tree the translation links point to. Never assume the existing root stays it |
+| Prefix for both languages, or only for the new one? | Changes every existing URL when the main language gets one too |
+| Same theme, or a copy of the theme? | See below. Propose the same theme |
+| Everything, or navigation and start page first? | Newsletters, forms, FAQ are a lot of text |
+| Recipients of a newsletter channel along? | Only with consent, see `--with-recipients` above |
+
+**Same theme or a copy.** The usual way is **one theme**: the layouts and
+modules that need a version per language are cloned inside it (`record clone` of
+`tl_module`/`tl_layout` keeps the clone in the same theme), everything that follows the
+current root stays shared. A theme copy (`--source-table tl_theme`) gives each language
+its own set, and every later design change has to be made twice. Ask; do not pick the
+copy because it is one call.
+
+**2. Survey — find every reference to a fixed ID.** Read, write nothing. Page through with
+`record list --fields … --limit 100 --offset …`:
+
+- **Modules:** `jumpTo`, `rootPage`, `pages` (custom navigation), `news_archives`,
+  `cal_calendar`, `faq_categories`, `nl_channels`, `news_readerModule`, `cal_readerModule`,
+  and text in `html`, `headline`, `nl_subscribe`, `nl_unsubscribe`, `reg_password`
+- **Content elements:** `module`, `form`, `cteAlias`, `articleAlias`, `article` (teaser),
+  `url`
+- **Insert tags in every text field**, HTML modules and table cells included:
+  `{{link_url::N}}`, `{{link_title::N}}`, `{{link_open::N}}`, `{{article_url::N}}`,
+  `{{insert_article::N}}`, `{{insert_content::N}}`
+- **Layouts:** the module list, `newsfeeds`/`calendarfeeds`, text in `script` (ARIA labels)
+- **Pages:** `layout` (also where "assign a layout" is off — the clone copies it), `jumpTo`
+  (redirect and logout pages); feed pages (`news_feed`, `calendar_feed`) also
+  `newsArchives`, `eventCalendars`, `feedDescription`
+- **Archives, calendars, FAQ categories:** `jumpTo`, the reader page of their entries
+
+```bash
+contao-ai-cli --json record list tl_content --fields id,pid,type,module,form,cteAlias,articleAlias,article,url --limit 100
+contao-ai-cli --json record list tl_module --fields id,name,type,jumpTo,rootPage,pages --limit 100
+```
+
+Keep the result as a list; every later step works through it.
+
+**3. Then in this order:**
+
+1. `backup create`
+2. Install changelanguage if the operator wants a language switcher (see "Installing an
+   extension this CLI does not manage"), then `contao migrate` — the package adds columns,
+   and without them `language link` fails — and `schema sync <table>` for each table it
+   extends (`tl_page`, `tl_article`, the news, calendar and FAQ tables, `tl_module`; one
+   table per call)
+3. Clone the page tree (see "Page URLs, second languages, cloning"). Build the mapping
+   old → new from tree position and `sorting`: pages, then articles per page, then elements
+   per article. `page tree --root <id> --depth <n>` shows both trees side by side. Every
+   following step needs the mapping
+4. Clone archives, calendars, FAQ categories, forms, newsletter channels. Forms and
+   channels list what still points back in `references`; **archives, calendars and FAQ
+   categories do not** — their `jumpTo` stays on the first language's reader page without
+   a word, so the new language's news links lead into the old tree
+5. Modules and layouts: in the same theme, clone only those with a per-language reference
+   or text from step 2 — reader modules before the lists that point to them — and leave
+   shared what follows the current root: `navigation` without `defineRoot`, `breadcrumb`,
+   `articlenav`, `search` without `jumpTo`. With a theme copy, its layouts are already
+   there. **Either way, assign the new layouts to the new pages** (`page update --set
+   layout=…`): every cloned page still carries the source's layout, and the new tree renders
+   with the first language's footer, forms and HTML modules
+6. Repoint every reference from step 2 at the new IDs: `module update`, `layout update`,
+   `content update`, `page update`, `form update`, `newsletter channel-update`,
+   `news archive-update`, `event calendar-update`, `faq category-update`
+7. Translate pages (`title`, `alias`, `pageTitle`, `description`), articles (aliases are
+   unique across the site, give them their own), elements, entries — and rewrite the
+   insert tags in the same pass
+8. File metadata, see below
+9. If the main language gets a prefix now: look for purely numeric aliases in its tree
+   first, then `page update <root> --set urlPrefix=…`
+10. Publish the new pages, articles and entries; a clone leaves them unpublished. If the
+    operator chose the **new** language as the main one, move `fallback` now (see "Page
+    URLs, second languages, cloning": old root off, new root on, back to back)
+11. `language link` page by page, then articles, then archives, then entries. The target
+    (`--main`) always lies in the tree of the main language: with the existing root as main
+    language, link the new records to the old ones; with the new one as main language, the
+    other way round. Then `language check --root <root that is not the main language>`
+12. Language switcher, then the checks at the end
+
+**Texts that stay in the first language without being in the tree:**
+
+- **File metadata.** Images, galleries, downloads and video posters take alt text, title and
+  caption from the file manager (`tl_files.meta`, per language) unless the element has
+  `overwriteMeta`. **A missing language falls back to the main language silently**: the
+  German page shows the English alt text, and nobody sees it, because alt text is
+  invisible. Collect the files used by elements with `overwriteMeta` off (theme elements
+  and the logo included) and add the new language to each one that has text:
+
+  ```bash
+  contao-ai-cli --json file meta --path files/theme/logo.svg --lang de --set "alt=…" --set "title=…"
+  ```
+
+- **Default texts.** A created module gets its mail texts in the console's language (see
+  "A created record starts like one created in the back end"); a cloned one keeps the
+  source's. Translate `nl_subscribe`, `nl_unsubscribe`, `reg_password` either way.
+- **Names that the front end shows.** A newsletter channel's title appears in the
+  subscription form; a form's field labels and options are text too.
+
+Two things that look like remnants and are not: the newsletter list of the new language
+stays **empty**, because cloned newsletters are unsent and only Contao's real dispatch sets
+`sent` (see "The newsletter does not send"); and "Do not fill in this field", the hidden
+honeypot field of the captcha, may stay English — the text comes from Contao's core, not
+from the site.
+
+**The language switcher** is the module `changelanguage`; it has no required fields beyond
+the name. Place it the way the theme places its meta navigation, and check the theme's CSS
+for breakpoints that hide that area: the Contao demo hides its top bar on small screens, so
+a switcher placed there alone vanishes on a phone. A second one in the footer was the fix
+there.
+
+**Checks at the end — in the browser, not only in the answers:**
+
+- every link of the new start page answers 200
+- the switcher leads to the translation on subpages and on news and event detail pages,
+  in both directions
+- the visible text of the new language holds no rest of the first (channel names, button
+  labels, ARIA labels)
+- `robots`, the sitemap and `health` as before
+- **look at it, desktop and mobile.** No answer describes the rendering; the vanished
+  switcher above was found only by looking
 
 ## Available command groups
 
