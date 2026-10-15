@@ -1418,8 +1418,20 @@ as the user's consent, so the question you put to the operator is the only one t
 flag; the answer then carries a `warning` that the clone has no recipients. In the back-end
 chat the server itself asks before it copies them.
 
-There is no theme clone: Contao's copies the theme's modules and layouts, but the copied
-layouts still point at the modules of the old theme.
+**A whole theme** (core-bundle v1.9.0): `record clone --source-table tl_theme --source-id
+<id>` copies its modules, layouts, image sizes and theme elements, and points the copies at
+each other — the module list of every layout, reader modules, image sizes. Contao's own copy
+leaves all of them on the old theme, so editing the copy changed the live site. References
+out of the theme stay: no page uses the copied layouts until someone assigns them, so the
+clone changes nothing on the site by itself. `remapped` says what was bent
+(`"tl_layout.modules": 5`), `references` what still points out (the template folder in
+`templates` is shared, not copied). The name is `<name> (Kopie)`, counted on when taken;
+`--modifications '{"name": "…"}'` with a name already taken is refused.
+
+```bash
+contao-ai-cli --json record clone --source-table tl_theme --source-id 1 \
+  --modifications '{"name":"Relaunch 2027"}'
+```
 
 **A create without an alias gets Contao's alias** (core-bundle v0.17.0) — pages, articles,
 news, events, newsletters, and FAQ questions from core-bundle v0.28.0: from the title, with
@@ -1442,14 +1454,15 @@ are different URLs. For a shared layout, use a `navigation` module (it follows t
 root) rather than a `customnav` with fixed page IDs, and switch languages with
 `{{iflng::de}}…{{iflng}}` in an HTML module.
 
-**One exception, on purpose:** `listing data` still writes its own SQL. `list_where` is a
-free SQL fragment stored in the listing module, so the query is configured in the site
-rather than by the caller — it cannot be expressed as checked equality filters, and
-ignoring it would answer with different rows than the module shows in the front end.
-Its answer has the listing shape since v0.30.0 — `{status, module, table, count, results}`,
-values as strings — and a module that is missing or has no table configured is an error
-(exit 1). Until v0.29.0 it was a bare list, and an error came back as `{"error": …}` with
-exit 0.
+**`listing data` goes through the server since v1.10.0** (core-bundle v1.9.0,
+`contao:listing:data`). `list_where` is a free SQL fragment stored in the listing module,
+so the query is configured in the site rather than by the caller; the server now runs it
+as the module does — with its sort (`list_sort`) and insert tags — and answers
+`{status, module, table, count, total, limit, offset, columns, results}`, sensitive fields
+masked. `--limit` (default 100, at most 1000) and `--offset` page through it. Against an
+older core-bundle the CLI falls back to its own SQL, as before: values as strings, sorted
+by `id`, no paging. A module that is missing, is no listing or has no table configured is
+an error (exit 1) either way.
 
 ⚠️ **All listings now need contao-ai-core-bundle on the target.** They used to run through
 `doctrine:query:sql`, which is plain Contao.

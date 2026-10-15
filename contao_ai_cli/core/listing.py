@@ -3,6 +3,8 @@
 The listing bundle has no own table. It adds a 'listing' module type to
 tl_module. Each module stores which DB table and fields to list.
 """
+import json
+
 from contao_ai_cli.utils.contao_backend import ContaoBackend
 from contao_ai_cli.core.contao_ops import record_list, run_json_or_raw, run_sql_table
 
@@ -31,9 +33,40 @@ class ListingError(Exception):
     """A listing module that cannot be read: missing, or without table/fields."""
 
 
-def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> dict:
+def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None,
+                 limit: int | None = None, offset: int | None = None) -> dict:
     """
-    Fetch the actual listing data for a given listing module ID.
+    The rows a listing module shows (v1.10.0: through the server).
+
+    contao:listing:data (core-bundle v1.9.0) runs the module's own query server-side and
+    answers JSON — the caller passes nothing but the id, so the free `list_where` stays
+    the site's, and the ASCII table below is not parsed. Against an older core-bundle the
+    command does not exist; then the SQL path below runs as before.
+    """
+    cmd = f"contao:listing:data {int(module_id)}"
+    if limit is not None:
+        cmd += f" --limit={int(limit)}"
+    if offset is not None:
+        cmd += f" --offset={int(offset)}"
+    result = backend.run(cmd, check=False)
+    try:
+        answer = json.loads((result.get("stdout") or "").strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        answer = None
+    if isinstance(answer, dict) and answer.get("status") == "ok":
+        return answer
+    if isinstance(answer, dict) and answer.get("status") == "error":
+        raise ListingError(str(answer.get("message") or f"Module {module_id} could not be read"))
+    text = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
+    if "is not defined" not in text and "There are no commands defined" not in text:
+        raise ListingError(f"contao:listing:data {module_id} failed: {text.strip()[:300]}")
+    return _listing_data_sql(backend, module_id, cfg)
+
+
+def _listing_data_sql(backend: ContaoBackend, module_id: int, cfg: dict | None = None) -> dict:
+    """
+    Fetch the actual listing data for a given listing module ID — the fallback for a
+    core-bundle before v1.9.0.
 
     The one read path in this CLI that still writes its own SQL, and
     deliberately so (decision 2026-09-01). Everything else moved to

@@ -679,12 +679,34 @@ class TestListing:
         cmd = sent_cmd(backend)
         assert cmd.startswith("contao:record:list tl_module")
         assert "--filter=type=listing" in cmd
-    def test_listing_data_with_cfg(self):
+    UNDEFINED = {"stdout": "", "stderr": 'Command "contao:listing:data" is not defined.', "returncode": 1}
+
+    @classmethod
+    def old_core(cls, *answers):
+        """A core-bundle before v1.9.0: listing:data is missing, the SQL path answers."""
         backend = MagicMock()
-        backend.run.return_value = {
-            "stdout": make_table(["id", "title"], [["1", "Entry"]]),
-            "returncode": 0,
-        }
+        backend.run.side_effect = [cls.UNDEFINED, *answers]
+        return backend
+
+    def test_listing_data_goes_through_the_server(self):
+        """core-bundle v1.9.0 runs the module's query and answers JSON: no SQL, no ASCII table."""
+        answer = {"status": "ok", "module": 1, "table": "tl_demo", "count": 1, "total": 1,
+                  "results": [{"id": 1, "title": "Jährliche Konferenz"}]}
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": json.dumps(answer), "returncode": 0}
+        assert listing_data(backend, 1, limit=5, offset=10) == answer
+        assert backend.run.call_args[0][0] == "contao:listing:data 1 --limit=5 --offset=10"
+        assert backend.run.call_count == 1
+
+    def test_the_servers_refusal_is_an_error(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": '{"status":"error","message":"Module 99 is not a listing module (type: navigation)","code":1}', "returncode": 1}
+        with pytest.raises(ListingError, match="not a listing module"):
+            listing_data(backend, 99)
+        assert backend.run.call_count == 1
+
+    def test_listing_data_with_cfg(self):
+        backend = self.old_core({"stdout": make_table(["id", "title"], [["1", "Entry"]]), "returncode": 0})
         result = listing_data(backend, 1, cfg={"list_table": "tl_demo", "list_fields": "id, title", "list_where": 'type = "news"'})
         # The answer every listing gives (v0.30.0); a bare list until then.
         assert result == {"status": "ok", "module": 1, "table": "tl_demo", "count": 1,
@@ -693,13 +715,12 @@ class TestListing:
 
     def test_listing_data_missing_module_is_an_error(self):
         # Was {"error": …} with exit code 0 until v0.30.0.
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+        backend = self.old_core({"stdout": "", "returncode": 0})
         with pytest.raises(ListingError, match="Module 99 not found or not a listing module"):
             listing_data(backend, 99)
 
     def test_listing_data_missing_config_is_an_error(self):
-        backend = MagicMock()
+        backend = self.old_core()
         with pytest.raises(ListingError, match="Module 5 has no list_table or list_fields configured"):
             listing_data(backend, 5, cfg={"list_table": "", "list_fields": ""})
 
@@ -707,8 +728,7 @@ class TestListing:
         from click.testing import CliRunner
         from contao_ai_cli.cli import cli_listing
 
-        backend = MagicMock()
-        backend.run.return_value = {"stdout": "", "returncode": 0}
+        backend = self.old_core({"stdout": "", "returncode": 0})
         monkeypatch.setattr(cli_listing, "_get_backend", lambda path: backend)
         result = CliRunner().invoke(cli_listing.listing, ["data", "99"], obj={"session": None, "as_json": True})
         assert result.exit_code == 1

@@ -73,7 +73,7 @@ def record_schema_cmd(ctx, table, as_json):
 @record.command("clone")
 @click.option("--source-table", required=True,
               help="tl_page, tl_news_archive, tl_calendar, tl_faq_category; from core-bundle v1.8.0 also "
-                   "tl_form, tl_newsletter_channel, tl_module, tl_layout")
+                   "tl_form, tl_newsletter_channel, tl_module, tl_layout; from v1.9.0 tl_theme")
 @click.option("--source-id", required=True, type=int, help="ID of the source container record")
 @click.option("--modifications", default="",
               help="JSON object of overrides for the root record, e.g. {\"title\":\"Kopie\"}")
@@ -104,6 +104,10 @@ def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, wit
     Forms come with their fields, newsletter channels with their newsletters
     (unsent), modules and layouts stay in their theme (core-bundle v1.8.0).
     References stay as in the source; the answer lists them in `references`.
+
+    A theme (core-bundle v1.9.0) comes with its modules, layouts, image sizes and
+    theme elements, and the copies point at each other; `remapped` says where.
+    References out of the theme stay, so the site does not change.
     """
     _require_core_bundle(ctx, "record clone")
     if with_recipients and source_table != "tl_newsletter_channel":

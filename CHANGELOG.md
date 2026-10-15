@@ -6,7 +6,18 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 ## Unreleased
 
+The theme clone and `listing data` through the server need contao-ai-core-bundle v1.9.0;
+against an older one `listing data` falls back to its own SQL as before.
+
 ### Added
+
+- **`record clone --source-table tl_theme`** clones a theme with its modules, layouts, image
+  sizes and theme elements; the copies point at each other (core-bundle v1.9.0). See the
+  guide.
+- **`listing data` goes through `contao:listing:data`** (core-bundle v1.9.0): the module's
+  own query run server-side, JSON instead of an ASCII table, sensitive fields masked, with
+  the module's sort and `--limit`/`--offset`. With that, no read command parses
+  doctrine:query:sql's table on a current core-bundle any more.
 
 - **`bridge clone` clones forms, newsletter channels, modules and layouts** when the back end
   runs contao-ai-backend-bundle v0.19.0, and takes `--with-recipients` for a channel. A

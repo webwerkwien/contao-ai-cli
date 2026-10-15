@@ -27,13 +27,19 @@ def listing_modules(ctx, limit, offset):
 
 @listing.command("data")
 @click.argument("module_id", type=int)
+@click.option("--limit", type=int, default=None, help="Max rows (core-bundle v1.9.0; default 100, at most 1000)")
+@click.option("--offset", type=int, default=None, help="Rows to skip (core-bundle v1.9.0)")
 @click.pass_context
-def listing_data_cmd(ctx, module_id):
-    """Fetch listing data for a specific module ID."""
+def listing_data_cmd(ctx, module_id, limit, offset):
+    """The rows a listing module shows: its own table, fields, condition and sort.
+
+    Through contao:listing:data on core-bundle v1.9.0 or later, sensitive fields masked;
+    on an older core-bundle through SQL, as before (no paging there).
+    """
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     b = _get_backend(session_path)
     try:
-        data = listing_mod.listing_data(b, module_id)
+        data = listing_mod.listing_data(b, module_id, limit=limit, offset=offset)
     except listing_mod.ListingError as e:
         raise click.ClickException(str(e))
     _output(data, ctx.obj.get("as_json"))
