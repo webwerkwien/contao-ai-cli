@@ -131,6 +131,32 @@ class TestBackup:
         assert "contao:backup:restore nightly__20261009122423.sql.gz --format=json" in restore[0][0]
         assert restore[1]["timeout"] == 600 and restore[1]["check"] is False
 
+    def test_backup_restore_takes_size_and_date_from_the_list(self):
+        """Contao answers "size":0 after a restore (showcase.conpai.eu, 2026-10-14)."""
+        listed = ('[{"createdAt":"2026-10-09T12:24:23+00:00","size":75123,"name":"nightly__20261009122423.sql.gz"}]')
+        backend = self._backend(listed=listed, restored=lambda cmd, **kw: {
+            "returncode": 0, "stderr": "",
+            "stdout": '{"createdAt":"2026-10-09T12:24:23+00:00","size":0,"name":"nightly__20261009122423.sql.gz"}'})
+        result = backup_restore(backend, "nightly__20261009122423.sql.gz")
+        assert result["size"] == 75123
+        assert result["createdAt"] == "2026-10-09T12:24:23+00:00"
+        assert "tl_search" in result["untouched"] and "tl_log" in result["untouched"]
+
+    def test_the_command_suggests_purging_the_search_index(self, monkeypatch):
+        """Suggested in nextSteps, never run: the CLI only reads after the restore."""
+        from click.testing import CliRunner
+        from contao_ai_cli.cli import cli_backup
+
+        backend = self._backend()
+        monkeypatch.setattr(cli_backup, "_get_backend", lambda path: backend)
+        result = CliRunner().invoke(cli_backup.backup, ["restore", "nightly__20261009122423.sql.gz"],
+                                    obj={"session": None, "as_json": True})
+        assert result.exit_code == 0, result.output
+        answer = json.loads(result.output)
+        assert answer["nextSteps"][0]["command"] == "contao-ai-cli contao automator purgeSearchTables"
+        assert all("purgeSearchTables" not in c[0][0] for c in backend.run.call_args_list)
+        assert all("purgeSearchTables" not in c[0][0] for c in backend.run_raw.call_args_list)
+
     def test_backup_restore_never_passes_no_interaction(self):
         """Pre-release review v1.7.0: Contao 5.7/6.0 read the name only in interact(),
         which --no-interaction skips -- up to v1.6.0 every restore took the newest."""

@@ -20,7 +20,6 @@ from datetime import datetime
 
 from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 from contao_ai_cli.utils.vardump_parser import parse_vardump
-from contao_ai_cli.utils.table_parser import parse_table
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +69,39 @@ STATIC_OPTIONS: dict[tuple, dict] = {
 
 # SQL queries to resolve table-based option callbacks
 # Returns rows with 'id' and 'name' columns
-TABLE_OPTION_QUERIES: dict[tuple, str] = {
-    ('tl_user',   'groups'):         'SELECT id, name FROM tl_user_group ORDER BY name',
-    ('tl_member', 'groups'):         'SELECT id, name FROM tl_member_group ORDER BY name',
-    ('tl_page',   'groups'):         'SELECT id, name FROM tl_member_group ORDER BY name',
-    ('tl_page',   'layout'):         'SELECT id, name FROM tl_layout ORDER BY name',
-    ('tl_page',   'subpageLayout'):  'SELECT id, name FROM tl_layout ORDER BY name',
-    ('tl_page',   'newsArchives'):   'SELECT id, title AS name FROM tl_news_archive ORDER BY title',
-    ('tl_page',   'eventCalendars'): 'SELECT id, title AS name FROM tl_calendar ORDER BY title',
-    ('tl_page',   'imgSize'):        'SELECT id, name FROM tl_image_size ORDER BY name',
-    ('tl_member', 'newsletter'):     'SELECT id, title AS name FROM tl_newsletter_channel ORDER BY title',
+# Fallback for a core without `contao:dca:options`: the table holding the options and its
+# label column, read through contao:record:list (JSON). Until v1.10.0 these were SQL
+# strings through doctrine:query:sql and its ASCII table — the parser that shifted columns
+# at umlauts in v0.3.3.
+TABLE_OPTION_SOURCES: dict[tuple, tuple[str, str]] = {
+    ('tl_user',   'groups'):         ('tl_user_group', 'name'),
+    ('tl_member', 'groups'):         ('tl_member_group', 'name'),
+    ('tl_page',   'groups'):         ('tl_member_group', 'name'),
+    ('tl_page',   'layout'):         ('tl_layout', 'name'),
+    ('tl_page',   'subpageLayout'):  ('tl_layout', 'name'),
+    ('tl_page',   'newsArchives'):   ('tl_news_archive', 'title'),
+    ('tl_page',   'eventCalendars'): ('tl_calendar', 'title'),
+    ('tl_page',   'imgSize'):        ('tl_image_size', 'name'),
+    ('tl_member', 'newsletter'):     ('tl_newsletter_channel', 'title'),
 }
+
+
+def _options_from_records(backend: ContaoBackend, table: str, label: str) -> dict:
+    """`{id: label}` for every row of TABLE, page by page — record:list returns 100 at most."""
+    from contao_ai_cli.core.contao_ops import record_list
+
+    options, offset = {}, 0
+    while True:
+        answer = record_list(backend, table, fields=["id", label], order=f"{label} ASC", limit=100, offset=offset)
+        rows = answer.get("results") if isinstance(answer, dict) else None
+        if not isinstance(rows, list):
+            raise ContaoBackendError(f"record:list {table} gave no rows: {answer!r}"[:300])
+        for row in rows:
+            if isinstance(row, dict) and "id" in row:
+                options[str(row["id"])] = row.get(label)
+        offset += len(rows)
+        if not rows or offset >= int(answer.get("total") or 0):
+            return options
 
 
 # ── storage helpers ──────────────────────────────────────────────────────────
@@ -370,14 +391,10 @@ def resolve_callback_options(
             changed = True
             continue
 
-        if key in TABLE_OPTION_QUERIES:
+        if key in TABLE_OPTION_SOURCES:
             try:
-                sql = TABLE_OPTION_QUERIES[key]
-                res = backend.run(f'doctrine:query:sql "{sql}"')
-                rows = parse_table(res['stdout'])
-                if rows and isinstance(rows, list):
-                    options = {str(r['id']): r['name'] for r in rows
-                               if 'id' in r and 'name' in r}
+                options = _options_from_records(backend, *TABLE_OPTION_SOURCES[key])
+                if options:
                     schema['fields'][fname]['options'] = options
                     results[fname] = options
                     changed = True

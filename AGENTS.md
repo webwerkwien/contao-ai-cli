@@ -794,6 +794,14 @@ as restored (`--format=json`) is compared with the name — a mismatch is an err
 `restored`, the backup the database now holds. A restore replaces the whole database —
 confirm the name with the user before running it.
 
+**Not the whole database, strictly** (v1.10.0). Contao leaves `tl_log`, `tl_search`,
+`tl_search_index`, `tl_search_term` and `tl_crawl_queue` out of every backup
+(`contao.backup.ignore_tables`), so a restore leaves them as they were: the search index
+still lists pages of the overwritten state, some of which may no longer exist. The answer
+names them in `untouched` and suggests `contao automator purgeSearchTables` in `nextSteps`
+— offer it to the user, it is not run for them. `size` and `createdAt` come from `backup
+list`; Contao's own answer, still in `output`, says `"size":0` after a restore.
+
 ### Schema inspection (requires contao-ai-core-bundle)
 
 ```bash
@@ -1405,7 +1413,8 @@ Since v1.10.0 the CLI asks too: at a terminal a person answers; **without one �
 you — `--with-recipients` stops with "Nothing was cloned" unless `--yes` comes along.** Ask
 the operator in your conversation first, then pass both. Never add `--yes` on your own to get
 past the refusal. The same holds for `bridge clone --with-recipients` (backend-bundle
-v0.19.0): the CLI asks, the server does not ask again. A backend before v0.19.0 drops the
+v0.19.0): the CLI asks, the server does not ask again — over the bridge the token counts
+as the user's consent, so the question you put to the operator is the only one there is. A backend before v0.19.0 drops the
 flag; the answer then carries a `warning` that the clone has no recipients. In the back-end
 chat the server itself asks before it copies them.
 

@@ -444,20 +444,27 @@ class TestResolveCallbackOptions:
         _write_schema(schema_path, 'tl_user', {
             'groups': {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
         })
+        """The fallback for a core without contao:dca:options reads through record:list
+        (v1.10.0), page by page; until then an ASCII table that shifted at umlauts."""
         backend = MagicMock()
-        backend.run.return_value = {
-            'stdout': (
-                " ---- ----------- \n"
-                "  id   name       \n"
-                " ---- ----------- \n"
-                "  1    Admins     \n"
-                "  2    Editors    \n"
-                " ---- ----------- \n"
-            ),
-            'returncode': 0,
+        pages = {
+            '0': {'status': 'ok', 'total': 101, 'results': [{'id': i, 'name': f'Gruppe {i}'} for i in range(1, 101)]},
+            '100': {'status': 'ok', 'total': 101, 'results': [{'id': 101, 'name': 'Prüfer'}]},
         }
+
+        def run(cmd, **kw):
+            if cmd.startswith('contao:dca:options'):
+                return {'stdout': 'Command "contao:dca:options" is not defined.', 'returncode': 1}
+            assert cmd.startswith('contao:record:list tl_user_group --fields=id,name')
+            offset = cmd.split('--offset=')[1].split()[0] if '--offset=' in cmd else '0'
+            return {'stdout': json.dumps(pages[offset]), 'returncode': 0}
+
+        backend.run.side_effect = run
+        backend.run_json.side_effect = lambda cmd, **kw: json.loads(run(cmd)['stdout'])
         result = dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
-        assert result['groups'] == {'1': 'Admins', '2': 'Editors'}
+        assert len(result['groups']) == 101
+        assert result['groups']['101'] == 'Prüfer'
+        assert not any('doctrine:query:sql' in c[0][0] for c in backend.run.call_args_list)
 
     def test_unknown_callback_stays_unresolved(self, tmp_dir):
         session_path = os.path.join(tmp_dir, 'c5.json')

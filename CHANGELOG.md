@@ -19,7 +19,21 @@ This file was reconstructed from the git history and the GitHub releases on 2026
   consented to the source channel, not to the copy. At a terminal a person answers; without
   one (an agent, CI) the command stops with "Nothing was cloned" unless `--yes` comes along,
   which an agent passes only after asking the operator. Refused up front for any table but
-  `tl_newsletter_channel`.
+  `tl_newsletter_channel`. Over the bridge the token counts as the user's consent: the
+  question the CLI or the agent asks is the only one there is.
+- **`backup restore` says what it leaves untouched.** Contao keeps the search index, the
+  system log and the crawl queue out of every backup, so after a restore they still hold
+  the overwritten state. The answer lists them in `untouched` and suggests
+  `contao automator purgeSearchTables` in `nextSteps` (not run). Found on
+  showcase.conpai.eu, where the search still listed pages that no longer existed.
+- The option lists `schema` resolves for a core-bundle without `contao:dca:options` come
+  through `contao:record:list` (JSON), no longer through `doctrine:query:sql` and its ASCII
+  table.
+
+### Fixed
+
+- **`backup restore` reports the real `size` and `createdAt`** of the backup, from
+  `backup list`; Contao's own answer says `"size":0` after a restore.
 
 ## v1.9.1 - 2026-10-14
 

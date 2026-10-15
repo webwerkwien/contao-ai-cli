@@ -20,6 +20,11 @@ def backup_list(backend: ContaoBackend) -> dict:
 # A restore reads the whole dump back; 60 s is too short for a large site.
 RESTORE_TIMEOUT = 600
 
+# Contao's default `contao.backup.ignore_tables`: neither backed up nor restored, so after
+# a restore they still hold the state that was overwritten. A site can configure others;
+# these are the ones every installation has (v1.10.0, found on showcase.conpai.eu).
+RESTORE_IGNORED_TABLES = ("tl_crawl_queue", "tl_log", "tl_search", "tl_search_index", "tl_search_term")
+
 
 def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
     """Restore exactly this backup, or nothing (v1.7.0).
@@ -72,4 +77,12 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
         return {"status": "error", "code": 1, "backup": backup_name, "restored": restored,
                 "message": f"Contao restored {restored!r}, not {backup_name!r}: the database now holds "
                            f"that backup. Restore {backup_name!r} again or ask the user how to proceed."}
-    return {"status": "restored", "backup": restored, "output": result["stdout"]}
+    # Contao's own answer says "size":0 after a restore (showcase.conpai.eu, 2026-10-14);
+    # the size and date of the file come from the list read above (v1.10.0).
+    entry = next((b for b in listed if isinstance(b, dict) and b.get("name") == restored), {})
+    return {"status": "restored", "backup": restored,
+            "size": entry.get("size"), "createdAt": entry.get("createdAt"),
+            # Not in any backup on purpose (contao.backup.ignore_tables): the search index
+            # still lists the pages of the overwritten state, the log keeps its entries.
+            "untouched": list(RESTORE_IGNORED_TABLES),
+            "output": result["stdout"]}
