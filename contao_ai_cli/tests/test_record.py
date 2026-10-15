@@ -144,7 +144,7 @@ class TestRecordClone:
 
         result = CliRunner().invoke(cli_record.record, [
             "clone", "--source-table", "tl_newsletter_channel", "--source-id", "3",
-            "--with-recipients", "--operator", "k.jones",
+            "--with-recipients", "--yes", "--operator", "k.jones",
         ], obj={"session": None, "as_json": True})
 
         assert result.exit_code == 0, result.output
@@ -162,3 +162,93 @@ class TestRecordClone:
         result = CliRunner().invoke(cli, ["record", "clone", "--help"])
         assert "--with-recipients" in result.output
         assert "tl_form" in result.output
+
+    @staticmethod
+    def invoke_with_recipients(monkeypatch, extra=(), console=False, answer=None, table="tl_newsletter_channel"):
+        """`record clone --with-recipients` through Click; returns (result, backend)."""
+        from contao_ai_cli.cli import cli_record, helpers
+
+        b = TestRecordClone.clone_backend()
+        monkeypatch.setattr(cli_record, "_get_backend", lambda path: b)
+        monkeypatch.setattr(cli_record, "_require_core_bundle", lambda ctx, what: None)
+        monkeypatch.setattr(helpers, "stdin_is_console", lambda: console)
+        monkeypatch.setattr(helpers, "ask_yes_no", lambda question, default=False: answer)
+        result = CliRunner().invoke(cli_record.record, [
+            "clone", "--source-table", table, "--source-id", "3", "--with-recipients", *extra,
+        ], obj={"session": None, "as_json": True})
+        return result, b
+
+    def test_without_a_terminal_recipients_need_yes(self, monkeypatch):
+        """An agent has no terminal: it asks the operator in its chat, then passes --yes (v1.10.0)."""
+        result, b = self.invoke_with_recipients(monkeypatch)
+        assert result.exit_code != 0
+        assert "Nothing was cloned" in result.output
+        b.run.assert_not_called()
+
+    def test_a_person_at_a_terminal_answers(self, monkeypatch):
+        result, b = self.invoke_with_recipients(monkeypatch, console=True, answer=True)
+        assert result.exit_code == 0, result.output
+        assert "--with-recipients" in b.run.call_args[0][0]
+
+        result, b = self.invoke_with_recipients(monkeypatch, console=True, answer=False)
+        assert result.exit_code != 0
+        b.run.assert_not_called()
+
+        # Nobody at the terminal after all (EOF): a no, not a quiet clone without them.
+        result, b = self.invoke_with_recipients(monkeypatch, console=True, answer=None)
+        assert result.exit_code != 0
+        b.run.assert_not_called()
+
+    def test_recipients_for_another_table_are_refused_before_asking(self, monkeypatch):
+        result, b = self.invoke_with_recipients(monkeypatch, extra=("--yes",), table="tl_form")
+        assert result.exit_code != 0
+        assert "tl_newsletter_channel only" in result.output
+        b.run.assert_not_called()
+
+
+class TestBridgeCloneRecipients:
+    """`bridge clone` takes recipients too (v1.10.0); the CLI asks, the server does not again."""
+
+    @staticmethod
+    def invoke(monkeypatch, args, answer_payload=None):
+        from contao_ai_cli.cli import cli_bridge, helpers
+
+        client = MagicMock()
+        client.clone.return_value = answer_payload if answer_payload is not None else {
+            "status": "ok", "id": 9, "recipients_copied": True}
+        monkeypatch.setattr(cli_bridge.session_mod, "load_session", lambda path: {})
+        monkeypatch.setattr(cli_bridge.bridge_mod, "from_session_config", lambda cfg: client)
+        monkeypatch.setattr(helpers, "stdin_is_console", lambda: False)
+        result = CliRunner().invoke(cli_bridge.bridge, ["clone", *args], obj={"session": None, "as_json": True})
+        return result, client
+
+    def test_yes_sends_the_flag(self, monkeypatch):
+        result, client = self.invoke(monkeypatch, ["--table", "tl_newsletter_channel", "--source-id", "4",
+                                                   "--with-recipients", "--yes"])
+        assert result.exit_code == 0, result.output
+        assert client.clone.call_args.kwargs["with_recipients"] is True
+        assert "warning" not in result.output
+
+    def test_without_yes_and_terminal_nothing_is_sent(self, monkeypatch):
+        result, client = self.invoke(monkeypatch, ["--table", "tl_newsletter_channel", "--source-id", "4",
+                                                   "--with-recipients"])
+        assert result.exit_code != 0
+        client.clone.assert_not_called()
+
+    def test_an_older_backend_that_drops_the_flag_is_reported(self, monkeypatch):
+        result, client = self.invoke(monkeypatch, ["--table", "tl_newsletter_channel", "--source-id", "4",
+                                                   "--with-recipients", "--yes"],
+                                     answer_payload={"status": "ok", "id": 9})
+        assert result.exit_code == 0
+        assert "the clone has no recipients" in result.output
+
+    def test_the_payload_carries_the_key_only_when_asked(self):
+        from contao_ai_cli.core import backend_bridge
+
+        client = backend_bridge.BackendBridgeClient.__new__(backend_bridge.BackendBridgeClient)
+        sent = []
+        client._call = lambda payload: sent.append(payload) or {}
+        client.clone("tl_newsletter_channel", 4)
+        client.clone("tl_newsletter_channel", 4, with_recipients=True)
+        assert "withRecipients" not in sent[0]
+        assert sent[1]["withRecipients"] is True

@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+### Added
+
+- **`bridge clone` clones forms, newsletter channels, modules and layouts** when the back end
+  runs contao-ai-backend-bundle v0.19.0, and takes `--with-recipients` for a channel. A
+  backend before v0.19.0 drops that flag; the answer then carries a `warning` that the clone
+  has no recipients.
+
+### Changed
+
+- **`--with-recipients` asks first** (`record clone` and `bridge clone`). The recipients
+  consented to the source channel, not to the copy. At a terminal a person answers; without
+  one (an agent, CI) the command stops with "Nothing was cloned" unless `--yes` comes along,
+  which an agent passes only after asking the operator. Refused up front for any table but
+  `tl_newsletter_channel`.
+
 ## v1.9.1 - 2026-10-14
 
 Works with every contao-ai-core-bundle it worked with before. contao-ai-core-bundle v1.8.1 masks passwords, two-factor secrets and API keys in every read command; nothing to change on this side.

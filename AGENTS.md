@@ -1401,6 +1401,14 @@ another language they would receive newsletters they never subscribed to. Copied
 keep `active` and come out without `addedOn`, so Contao lists them as added manually. The
 answer says which it was in `recipients_copied`.
 
+Since v1.10.0 the CLI asks too: at a terminal a person answers; **without one — which is
+you — `--with-recipients` stops with "Nothing was cloned" unless `--yes` comes along.** Ask
+the operator in your conversation first, then pass both. Never add `--yes` on your own to get
+past the refusal. The same holds for `bridge clone --with-recipients` (backend-bundle
+v0.19.0): the CLI asks, the server does not ask again. A backend before v0.19.0 drops the
+flag; the answer then carries a `warning` that the clone has no recipients. In the back-end
+chat the server itself asks before it copies them.
+
 There is no theme clone: Contao's copies the theme's modules and layouts, but the copied
 layouts still point at the modules of the old theme.
 

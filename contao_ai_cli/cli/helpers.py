@@ -860,6 +860,26 @@ def confirm_escalation(question: str) -> bool:
     return ask_yes_no(question, default=False) is True
 
 
+def confirm_recipients(with_recipients: bool, assume_yes: bool) -> None:
+    """
+    Ask before a newsletter channel is cloned with its recipients (v1.10.0).
+
+    They consented to the source channel, not to the copy. The caller asked for the
+    copy explicitly, so silence must not quietly clone without them either — that would
+    read as done. Hence: a person at a terminal answers; without one (an agent, CI)
+    only --yes goes on, and the agent asks the operator in its chat before passing it.
+    Anything else stops before the server is called.
+    """
+    if not with_recipients or assume_yes:
+        return
+    if confirm_escalation("Copy the recipients too? They consented to the source channel, not to the copy."):
+        return
+    raise click.UsageError(
+        "Nothing was cloned. --with-recipients copies people who consented to the source channel "
+        "only: ask the operator, then repeat with --yes (or answer the question at a terminal)."
+    )
+
+
 def _require_core_bundle(ctx, command_name: str):
     """
     Raise UsageError with an install hint if the core bundle is missing.

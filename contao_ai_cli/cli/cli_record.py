@@ -10,7 +10,7 @@ See core/record.py for why.
 import click
 
 from contao_ai_cli.core import record as record_mod
-from .helpers import _get_backend, _output, _require_core_bundle
+from .helpers import _get_backend, _output, _require_core_bundle, confirm_recipients
 
 
 @click.group()
@@ -79,12 +79,15 @@ def record_schema_cmd(ctx, table, as_json):
               help="JSON object of overrides for the root record, e.g. {\"title\":\"Kopie\"}")
 @click.option("--recursive", is_flag=True, help="Walk container-of-container hierarchies (e.g. the whole subpage tree)")
 @click.option("--with-recipients", is_flag=True,
-              help="tl_newsletter_channel only (core-bundle v1.8.0): copy the recipients too. Ask the operator "
-                   "first — they consented to the source channel, not to the copy")
+              help="tl_newsletter_channel only (core-bundle v1.8.0): copy the recipients too. They consented "
+                   "to the source channel, not to the copy: asks at a terminal; without one it needs --yes, "
+                   "which an agent passes only after asking the operator")
+@click.option("--yes", "-y", "assume_yes", is_flag=True,
+              help="With --with-recipients: the operator has agreed; skip the question")
 @click.option("--operator", default="", help="Acting user identifier for the audit log")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, with_recipients, operator, as_json):
+def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, with_recipients, assume_yes, operator, as_json):
     """Clone a container record and everything under it, in one server call.
 
     The cascade runs in one transaction on the server, so a caller sees a single
@@ -103,6 +106,9 @@ def record_clone_cmd(ctx, source_table, source_id, modifications, recursive, wit
     References stay as in the source; the answer lists them in `references`.
     """
     _require_core_bundle(ctx, "record clone")
+    if with_recipients and source_table != "tl_newsletter_channel":
+        raise click.UsageError("--with-recipients applies to tl_newsletter_channel only.")
+    confirm_recipients(with_recipients, assume_yes)
     b = _get_backend(ctx.obj.get("session"))
     _output(record_mod.record_clone(b, source_table, source_id, modifications, recursive, operator,
                                     with_recipients=with_recipients),

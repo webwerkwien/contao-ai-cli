@@ -94,6 +94,7 @@ class BackendBridgeClient:
         source_id: int,
         modifications: dict | None = None,
         recursive: bool = False,
+        with_recipients: bool = False,
     ) -> dict:
         payload = {
             "tool": "record_clone",
@@ -102,6 +103,10 @@ class BackendBridgeClient:
             "modifications": modifications or {},
             "recursive": bool(recursive),
         }
+        if with_recipients:
+            # Only when asked: a backend older than v0.19.0 ignores the key, which
+            # the caller detects from the missing `recipients_copied`.
+            payload["withRecipients"] = True
         return self._call(payload)
 
     def rewrite(

@@ -24,7 +24,7 @@ from contao_ai_cli.core import (
     backend_bridge as bridge_mod,
     session as session_mod,
 )
-from .helpers import _output, resolve_token
+from .helpers import _output, confirm_recipients, resolve_token
 
 
 @click.group()
@@ -125,15 +125,30 @@ def bridge_status(ctx):
 
 
 @bridge.command("clone")
-@click.option("--table", required=True, help="Container table to clone (tl_news_archive, tl_calendar, tl_faq_category, tl_page)")
+@click.option("--table", required=True,
+              help="Container table to clone (tl_news_archive, tl_calendar, tl_faq_category, tl_page; "
+                   "from backend-bundle v0.19.0 also tl_form, tl_newsletter_channel, tl_module, tl_layout)")
 @click.option("--source-id", "source_id", type=int, required=True, help="ID of the source container record")
 @click.option("--mod", "modifications", multiple=True, metavar="KEY=VALUE",
               help="Field overrides for the cloned root, e.g. --mod title='New archive'. Repeatable.")
 @click.option("--recursive/--no-recursive", default=False,
               help="For container-of-container tables (currently tl_page) clone the entire descendant tree.")
+@click.option("--with-recipients", is_flag=True,
+              help="tl_newsletter_channel only (backend-bundle v0.19.0): copy the recipients too. They consented "
+                   "to the source channel, not to the copy: asks at a terminal; without one it needs --yes, "
+                   "which an agent passes only after asking the operator")
+@click.option("--yes", "-y", "assume_yes", is_flag=True,
+              help="With --with-recipients: the operator has agreed; skip the question")
 @click.pass_context
-def bridge_clone(ctx, table, source_id, modifications, recursive):
-    """Clone a record (and cascading children) via record_clone macro."""
+def bridge_clone(ctx, table, source_id, modifications, recursive, with_recipients, assume_yes):
+    """Clone a record (and cascading children) via record_clone macro.
+
+    Rights as in the back end: the bridge acts as its user, and Contao's own checks
+    decide. A newsletter channel takes its recipients only with --with-recipients,
+    after the question (or --yes); the server does not ask again.
+    """
+    if with_recipients and table != "tl_newsletter_channel":
+        raise click.UsageError("--with-recipients applies to tl_newsletter_channel only.")
     cfg = session_mod.load_session(ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE)
     try:
         client = bridge_mod.from_session_config(cfg)
@@ -147,11 +162,20 @@ def bridge_clone(ctx, table, source_id, modifications, recursive):
         k, v = entry.split("=", 1)
         parsed_mods[k.strip()] = v
 
+    # Last before the call: no question for a command that would fail anyway.
+    confirm_recipients(with_recipients, assume_yes)
     try:
-        result = client.clone(table=table, source_id=source_id, modifications=parsed_mods, recursive=recursive)
+        result = client.clone(table=table, source_id=source_id, modifications=parsed_mods, recursive=recursive,
+                              with_recipients=with_recipients)
     except bridge_mod.BridgeError as e:
         _emit_error(e, ctx.obj.get("as_json"))
         sys.exit(1)
+    if with_recipients and isinstance(result, dict) and result.get("recipients_copied") is not True:
+        # A backend before v0.19.0 drops the key: the clone exists, but without the
+        # people the caller asked for. Said as loudly as a failure.
+        result = {**result, "warning": "The backend ignored --with-recipients (backend-bundle before v0.19.0): "
+                                       "the clone has no recipients."}
+        click.echo("Warning: the clone has no recipients - the backend-bundle is older than v0.19.0.", err=True)
     _output(result, ctx.obj.get("as_json"))
 
 
