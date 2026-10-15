@@ -305,6 +305,12 @@ first**, and ask the user before the real one: it changes what is installed on t
 <composer.command> require terminal42/contao-changelanguage
 ```
 
+The dry run says *"./composer.json has been updated"* — and leaves nothing behind: in a dry
+run Composer does not write the file, whatever the message says. No need to check or
+restore it. If you copy
+`composer.json` aside anyway, remove the copy afterwards; the operator did not ask for files
+left on the server.
+
 Three things afterwards:
 
 - **`via: "composer"`** (no Contao Manager) means the project's own `allow-plugins` has to
@@ -312,7 +318,10 @@ Three things afterwards:
   `bundle install --allow-plugins`, and it is the user's to answer.
 - **If the extension adds database columns**, run `contao migrate` (`--dry-run` first).
   Composer installs the code; the columns exist only after the migration, and a write to
-  one of them fails until then.
+  one of them fails until then. The dry run shows what is pending *now*. The real call runs
+  a second round of migrations after the schema update, so a migration that only becomes
+  due through the new columns runs without having been listed (seen with
+  `Version507\PrepareForOutputEncodingMigration`). Have a backup first, as always.
 - **If the extension adds DCA fields**, the cached schema is stale and `schema show` now
   describes a table that no longer looks like that: `schema sync <table>`. An extension
   that extends `tl_member` or `tl_page` is the normal case, not the exception.
@@ -1423,23 +1432,33 @@ soon as its page and article are published. Up to v0.21.1 every cloned element w
 and a published clone showed an empty page. Subpages store no language; the root keeps its
 own or the one from `--modifications`.
 Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
-" (Kopie)"; translate both afterwards with `page update`. The cloned root goes behind the
-last root.
+" (Kopie)"; translate both afterwards with `page update`. **With folder URLs** (`useFolderUrl`
+on the root) the alias carries the path: `top-menu-folder-kopie/logout-kopie`. Set each
+page's alias explicitly, flat or as the path you want; do not expect the short form. The
+cloned root goes behind the last root.
 
-**Forms, newsletter channels, modules and layouts clone too** (core-bundle v1.8.0), for the
-parts of a second language that are not pages:
+The answer counts the pages in `page_count`, the root included (core-bundle v1.9.1).
+**`count` is the number of articles**, kept from the shape of the other cloners; a tree of
+42 pages with 40 articles answers `"count": 40`. `subpage_count` leaves the root out.
+
+**Archives, forms, newsletter channels, modules and layouts clone too**, for the parts of a
+second language that are not pages:
 
 | `--source-table` | comes along | not taken from the source |
 |---|---|---|
-| `tl_form` | all fields, in their order | `alias` (new from the title), `formID` (empty) |
-| `tl_newsletter_channel` | its newsletters, each unsent and with a new alias | the **recipients**, unless `--with-recipients` |
-| `tl_module`, `tl_layout` | — | nothing; the clone stays in the same theme |
+| `tl_news_archive`, `tl_calendar`, `tl_faq_category` | their entries with their content elements, each entry **unpublished** | nothing — and **no `references`**: the archive's `jumpTo` (the reader page) stays on the source's page without being named |
+| `tl_form` (v1.8.0) | all fields, in their order | `alias` (new from the title), `formID` (empty) |
+| `tl_newsletter_channel` (v1.8.0) | its newsletters, each unsent and with a new alias | the **recipients**, unless `--with-recipients` |
+| `tl_module`, `tl_layout` (v1.8.0) | — | nothing; the clone stays in the same theme |
 
-Only the name is taken from `--modifications` (`title` for forms and channels, `name` for
-modules and layouts). **References stay as in the source**: a cloned form still redirects to
+Only the name is taken from `--modifications` (`title` for archives, calendars, FAQ
+categories, forms and channels, `name` for modules and layouts). **References stay as in the source**: a cloned form still redirects to
 the same `jumpTo` page, a cloned layout shows the same modules. The answer lists those
 fields in `references`; point them at the new language with `form update`, `module update`,
-`layout update` or `newsletter channel-update`. `not_copied` names what was reset on the
+`layout update` or `newsletter channel-update`. **`references` is a hint, not the list to
+work from:** it names fields that point at records, not text with insert tags, and up to
+core-bundle v1.9.0 it left out a news list's `news_readerModule` and listed `reg_homeDir`
+on modules that hold sixteen zero bytes there (every module of the Contao demo). Your own survey (below) is the list. `not_copied` names what was reset on the
 cloned record itself (child rows are not listed). `children` counts the copied child rows
 per table; modules and layouts have none, and the key is absent there.
 
@@ -1581,17 +1600,25 @@ copy because it is one call.
 
 - **Modules:** `jumpTo`, `rootPage`, `pages` (custom navigation), `news_archives`,
   `cal_calendar`, `faq_categories`, `nl_channels`, `news_readerModule`, `cal_readerModule`,
-  and text in `html`, `headline`, `nl_subscribe`, `nl_unsubscribe`, `reg_password`
+  `rss_feed` (feed reader), `rootPageDependentModules`, and text in `html`, `headline`,
+  `nl_subscribe`, `nl_unsubscribe`, `reg_password`
 - **Content elements:** `module`, `form`, `cteAlias`, `articleAlias`, `article` (teaser),
-  `url`
-- **Insert tags in every text field**, HTML modules and table cells included:
+  `url`; and text beyond `text` and `headline`: `linkTitle`, `titleText`, `summary`,
+  `playerCaption`, `data`, `tableitems`, `listitems`
+- **Form fields:** `label`, `options`, `help`, `placeholder`, the submit button's `slabel`
+- **Insert tags in every text field**, HTML modules, table cells and list items included:
   `{{link_url::N}}`, `{{link_title::N}}`, `{{link_open::N}}`, `{{article_url::N}}`,
-  `{{insert_article::N}}`, `{{insert_content::N}}`
+  `{{insert_article::N}}`, `{{insert_content::N}}`. Structured fields come back as arrays
+  (see "Structured fields are read and written as arrays"), so search the JSON answer as
+  text, not only the plain columns
 - **Layouts:** the module list, `newsfeeds`/`calendarfeeds`, text in `script` (ARIA labels)
 - **Pages:** `layout` (also where "assign a layout" is off — the clone copies it), `jumpTo`
-  (redirect and logout pages); feed pages (`news_feed`, `calendar_feed`) also
-  `newsArchives`, `eventCalendars`, `feedDescription`
+  (redirect and logout pages), `pageTitle`, `description`; feed pages (`news_feed`,
+  `calendar_feed`) also `newsArchives`, `eventCalendars`, `feedDescription`
 - **Archives, calendars, FAQ categories:** `jumpTo`, the reader page of their entries
+
+An insert tag pointing at a page that does not exist is a fault of the site, not of the
+clone — report it to the operator rather than inventing a target.
 
 ```bash
 contao-ai-cli --json record list tl_content --fields id,pid,type,module,form,cteAlias,articleAlias,article,url --limit 100
@@ -1622,7 +1649,17 @@ Keep the result as a list; every later step works through it.
    `articlenav`, `search` without `jumpTo`. With a theme copy, its layouts are already
    there. **Either way, assign the new layouts to the new pages** (`page update --set
    layout=…`): every cloned page still carries the source's layout, and the new tree renders
-   with the first language's footer, forms and HTML modules
+   with the first language's footer, forms and HTML modules.
+   *Without layout copies:* Contao's module type `root_page_dependent_modules` shows a
+   different module per website root (`rootPageDependentModules`, `{"<root id>": "<module
+   id>"}`). Put one of those into the layout where a module differs per language, and both
+   trees keep one layout — fewer copies to keep in step later. Propose it when the layouts
+   would differ only in their modules:
+
+   ```bash
+   contao-ai-cli --json module create --theme 1 --name "Footer EN/DE" --type root_page_dependent_modules \
+     --set 'rootPageDependentModules={"1":"12","76":"13"}'
+   ```
 6. Repoint every reference from step 2 at the new IDs: `module update`, `layout update`,
    `content update`, `page update`, `form update`, `newsletter channel-update`,
    `news archive-update`, `event calendar-update`, `faq category-update`
@@ -1638,8 +1675,13 @@ Keep the result as a list; every later step works through it.
 11. `language link` page by page, then articles, then archives, then entries. The target
     (`--main`) always lies in the tree of the main language: with the existing root as main
     language, link the new records to the old ones; with the new one as main language, the
-    other way round. Then `language check --root <root that is not the main language>`
-12. Language switcher, then the checks at the end
+    other way round. Then `language check --root <root that is not the main language>`.
+    An article on an **unpublished** page (a folder like `_Resources` holding included
+    header and footer articles) cannot be linked, as source or as target; `language check`
+    lists it as unlinked. That is harmless — such articles are not reached through the
+    switcher — and needs no workaround
+12. Language switcher, then the checks at the end; remove every copy you made on the
+    server along the way (`composer.json` backups in `/tmp`, exported lists)
 
 **Texts that stay in the first language without being in the tree:**
 
@@ -1667,10 +1709,14 @@ honeypot field of the captcha, may stay English — the text comes from Contao's
 from the site.
 
 **The language switcher** is the module `changelanguage`; it has no required fields beyond
-the name. Place it the way the theme places its meta navigation, and check the theme's CSS
-for breakpoints that hide that area: the Contao demo hides its top bar on small screens, so
-a switcher placed there alone vanishes on a phone. A second one in the footer was the fix
-there.
+the name. **It comes unstyled**: a bare list, the entries one below the other, in the
+colours of whatever surrounds it — on a dark footer, possibly unreadable. Give it the CSS
+classes the theme's own meta navigation carries (read the module or element that renders
+it, `cssID`), so it looks like part of the site without new CSS; on the Contao demo that is
+`nav-meta nav-meta--header` at the top and `nav-meta nav-meta--footer` in the footer. Then
+check the theme's CSS for breakpoints that hide that area: the demo hides its top bar on
+small screens, so a switcher placed there alone vanishes on a phone. A second one in the
+footer was the fix there.
 
 **Checks at the end — in the browser, not only in the answers:**
 

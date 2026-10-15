@@ -96,11 +96,23 @@ class TestBackup:
         backup_create(backend, "daily dump")
         assert backend.run.call_args[0][0] == "contao:backup:create 'daily dump'"
 
-    def test_backup_list(self):
+    def test_backup_list_is_structured(self):
+        """v1.11.0: up to v1.10.1 `--json` carried only Contao's text table in `output`
+        (found by an agent working from the guide alone, showcase, 2026-10-15)."""
         backend = MagicMock()
-        backend.run.return_value = {"stdout": "backup_a\nbackup_b", "returncode": 0}
+        backend.run.return_value = {"stdout": self.LISTED, "returncode": 0}
         result = backup_list(backend)
-        assert result == {"output": "backup_a\nbackup_b"}
+        assert backend.run.call_args[0][0] == "contao:backup:list --format=json"
+        assert result == {"status": "ok", "count": 2, "backups": [
+            {"name": "backup__20261013111148.sql.gz", "createdAt": "2026-10-13T11:11:48+00:00", "size": 5},
+            {"name": "nightly__20261009122423.sql.gz", "createdAt": "2026-10-09T12:24:23+00:00", "size": 5},
+        ]}
+
+    def test_backup_list_that_cannot_be_read_is_an_error(self):
+        backend = MagicMock()
+        backend.run.return_value = {"stdout": "no json here", "returncode": 0}
+        result = backup_list(backend)
+        assert result["status"] == "error" and result["code"] == 1
 
     LISTED = ('[{"createdAt":"2026-10-13T11:11:48+00:00","size":5,"name":"backup__20261013111148.sql.gz"},'
               '{"createdAt":"2026-10-09T12:24:23+00:00","size":5,"name":"nightly__20261009122423.sql.gz"}]')

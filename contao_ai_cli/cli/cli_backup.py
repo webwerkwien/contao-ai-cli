@@ -28,9 +28,18 @@ def backup_create(ctx, name, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def backup_list(ctx, as_json):
-    """List existing backups."""
+    """List existing backups, newest first: name, creation time, size in bytes."""
     b = _get_backend(ctx.obj.get("session"))
-    _output(backup_mod.backup_list(b), as_json or ctx.obj.get("as_json"))
+    result = backup_mod.backup_list(b)
+    if as_json or ctx.obj.get("as_json") or result.get("status") != "ok":
+        _output(result, as_json or ctx.obj.get("as_json"))
+        if result.get("status") != "ok":
+            ctx.exit(1)
+        return
+    if not result["backups"]:
+        click.echo("No backups.")
+    for entry in result["backups"]:
+        click.echo(f"{entry['createdAt']}  {str(entry['size']):>12}  {entry['name']}")
 
 
 @backup.command("restore")

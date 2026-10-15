@@ -36,7 +36,10 @@ def language_link_cmd(ctx, table, record_id, main, as_json):
     """Link a record to its translation in the main language.
 
     The field follows from the table: languageMain for pages, articles, news,
-    events and FAQ, master for their archives, languageRoot for a fallback root.
+    events and FAQ, master for their archives, languageRoot for a fallback root —
+    linking the main-language root of one domain to that of another domain. A
+    root that is not the main language needs no link: it belongs to the fallback
+    root of its own domain.
     The target is checked against what the back end offers — an archive is linked
     before its entries, a page before its articles — and written with a version,
     the package's own checks and cache invalidation.

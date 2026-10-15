@@ -4,6 +4,42 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.11.0 - 2026-10-15
+
+Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundle v1.9.1 adds `page_count` to a page clone and fixes `references` of cloned modules; the guide describes both. Found by an agent that made the Contao demo bilingual from `contao-ai-cli guide` alone — in about 30 minutes, with no first-language reference left — and reported where the guide fell short.
+
+### Changed
+
+- **`backup list --json` answers `{status, count, backups: [{name, createdAt, size}]}`**,
+  newest first, from Contao's own `--format=json`. Up to v1.10.1 it carried Contao's text
+  table in `output`, so a caller parsed columns to find a name for `backup restore`.
+  Without `--json` the list is one line per backup. A list that cannot be read is an error
+  (exit 1).
+
+### Added
+
+- **The second-language sequence in the guide, completed from the run:** the clone table
+  names news archives, calendars and FAQ categories (entries unpublished, no
+  `references`); `references` is a hint, the survey is the list; the survey covers form
+  fields, feed readers, `rootPageDependentModules`, content text beyond `text` and
+  insert tags in structured fields; cloned aliases under folder URLs carry the path;
+  `count` of a page clone is the number of articles, `page_count` the pages (core-bundle
+  v1.9.1); `root_page_dependent_modules` as the way to keep one layout for both
+  languages; articles on unpublished pages cannot be linked, harmlessly; the language
+  switcher comes unstyled and takes the classes of the theme's meta navigation; copies
+  left on the server are removed.
+- **"Installing an extension this CLI does not manage":** the Composer dry run's
+  "composer.json has been updated" leaves nothing behind; `contao migrate --dry-run` shows
+  what is pending now, and a migration that becomes due only through the schema update
+  runs in the real call without having been listed.
+
+### Fixed
+
+- **`language link --help` said `languageRoot` is "for a fallback root" without saying what
+  for**, and was read as wrong in a review. It is right — changelanguage keeps
+  `languageRoot` on fallback roots only, linking the main-language roots of different
+  domains — and now says so, and that a root of another language needs no link.
+
 ## v1.10.1 - 2026-10-15
 
 Guide only; no command changed. Works with every contao-ai-core-bundle v1.10.0 worked with.

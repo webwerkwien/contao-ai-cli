@@ -162,8 +162,8 @@ class TestUsers:
 class TestBackup:
     def test_backup_list(self, backend):
         result = backup_mod.backup_list(backend)
-        assert "output" in result
-        print(f"\n  backup list: {result['output'][:300]}")
+        assert result["status"] == "ok" and result["count"] == len(result["backups"])
+        print(f"\n  backup list: {result['backups'][:3]}")
 
     def test_backup_create(self, backend):
         result = backup_mod.backup_create(backend)

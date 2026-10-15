@@ -13,8 +13,21 @@ def backup_create(backend: ContaoBackend, name: str = "") -> dict:
 
 
 def backup_list(backend: ContaoBackend) -> dict:
-    result = backend.run("contao:backup:list")
-    return {"output": result["stdout"]}
+    """The backups as Contao lists them, newest first (v1.11.0: structured).
+
+    Up to v1.10.1 the answer was Contao's text table in `output`, under `--json` too, so a
+    caller had to parse columns to find a name for `backup restore`. Contao answers JSON
+    itself (`--format=json`, the same call `backup_restore` checks names against).
+    """
+    stdout = backend.run("contao:backup:list --format=json")["stdout"]
+    try:
+        listed = json.loads(stdout or "[]")
+    except ValueError as e:
+        return {"status": "error", "code": 1,
+                "message": f"The backup list could not be read ({e}). Contao answered: {stdout[:300]}"}
+    backups = [{"name": b.get("name"), "createdAt": b.get("createdAt"), "size": b.get("size")}
+               for b in listed if isinstance(b, dict)] if isinstance(listed, list) else []
+    return {"status": "ok", "count": len(backups), "backups": backups}
 
 
 # A restore reads the whole dump back; 60 s is too short for a large site.
