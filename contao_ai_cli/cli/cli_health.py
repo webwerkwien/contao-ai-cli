@@ -36,7 +36,7 @@ def _session_name(session_path: str | None) -> str | None:
 @click.pass_context
 def health(ctx, as_json):
     """Show CLI, core-bundle and bridge status (read-only)."""
-    as_json = as_json or ctx.obj.get("as_json")
+    as_json = as_json or (ctx.obj or {}).get("as_json")
 
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     result = collect_status(session_path)
