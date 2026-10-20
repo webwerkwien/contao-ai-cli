@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.13.0 - 2026-10-20
+
+Needs contao-ai-core-bundle v1.11.0 for `language versions` and the `versions` of
+`content find`; everything else works with the core versions v1.12.0 worked with.
+
+### Added
+
+- **`language versions --table --id`** — the linked language versions of a page, article,
+  news item, event or FAQ, each with root and language; when none is linked, the other
+  website roots, since a version may exist without a link (`contao:language:versions`,
+  core v1.11.0, changelanguage on the server).
+- `content find` passes on what core v1.11.0 adds: the linked versions of each hit's page
+  and article (`versions`), the website roots when there are several, and without
+  changelanguage a `versionsNote`. AGENTS.md: look before saying anything about other
+  languages.
+
+  A chat on showcase.conpai.eu changed the English slider headline and told the user
+  the page existed in English only; the linked German page had the same slider.
+
 ## v1.12.0 - 2026-10-20
 
 Needs contao-ai-core-bundle v1.10.0 for `content find`; everything else works with the

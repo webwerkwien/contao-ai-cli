@@ -49,6 +49,26 @@ def language_link_cmd(ctx, table, record_id, main, as_json):
     _output(language_mod.language_link(b, table, record_id, main), as_json or ctx.obj.get("as_json"))
 
 
+@language.command("versions")
+@click.option("--table", required=True,
+              type=click.Choice(["tl_page", "tl_article", "tl_news", "tl_calendar_events", "tl_faq"]),
+              help="Table of the record")
+@click.option("--id", "record_id", type=int, required=True, help="ID of the record")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def language_versions_cmd(ctx, table, record_id, as_json):
+    """The linked language versions of a record. Reads only. Needs core-bundle v1.11.0.
+
+    Pages, articles, news, events and FAQ: the counterpart in the main language
+    and every version linked to it, each with root and language. When none is
+    linked, the other website roots -- a version may exist without a link, so
+    "no versions" is not "no other language".
+    """
+    _require_core_bundle(ctx, "language versions")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(language_mod.language_versions(b, table, record_id), as_json or ctx.obj.get("as_json"))
+
+
 @language.command("check")
 @click.option("--root", type=int, default=None,
               help="Only this root page (of a language other than the main one)")

@@ -162,7 +162,7 @@ so it cannot drift from what the CLI actually offers.
 | `file` | `delete` `folder-create` `folder-publish` `list` `meta` `move` `process` `read` `sync` `upload` `write` | Files in the file system |
 | `form` | `create` `delete` `field-create` `field-delete` `field-read` `field-types` `field-update` `fields` `list` `read` `update` | Forms and their fields |
 | `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
-| `language` | `check` `link` | Translation links of terminal42/contao-changelanguage (core-bundle v1.4.0, package on the server) |
+| `language` | `check` `link` `versions` | Translation links of terminal42/contao-changelanguage (core-bundle v1.4.0, package on the server); `versions` lists a record's linked versions (core-bundle v1.11.0) |
 | `layout` | `create` `delete` `list` `module-add` `module-remove` `read` `update` | Page layouts (theme level) |
 | `listing` | `config` `data` `modules` | Listing module configuration |
 | `mailer` | `test` | Mailer configuration |

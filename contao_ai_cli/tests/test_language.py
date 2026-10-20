@@ -40,6 +40,24 @@ def test_check_without_and_with_a_root():
     ]
 
 
+def test_versions_sends_table_and_id_as_arguments():
+    backend = _backend({"status": "ok", "linked": True, "versions": [{"id": 102, "language": "de"}]})
+
+    result = language_mod.language_versions(backend, "tl_article", 36)
+
+    backend.run.assert_called_once_with("contao:language:versions tl_article 36")
+    assert result["versions"][0]["language"] == "de"
+
+
+def test_versions_command_is_offered_with_its_tables():
+    from click.testing import CliRunner
+    from contao_ai_cli.cli.cli_language import language
+
+    out = CliRunner().invoke(language, ["versions", "--help"]).output
+
+    assert "tl_calendar_events" in out and "tl_news_archive" not in out
+
+
 def test_an_answer_that_is_no_json_comes_back_raw():
     backend = MagicMock()
     backend.run.return_value = {"stdout": "not json"}

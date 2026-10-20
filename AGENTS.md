@@ -501,6 +501,8 @@ contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 # with noindex (staging, a showcase) is never in it.
 contao-ai-cli --json content find "A powerful CMS"
 contao-ai-cli --json content find "Über uns" --root 1   # one website or language
+# With changelanguage each hit names the linked versions of its page and article in the
+# other languages (`versions`, core v1.11.0); see "Translation links" below.
 
 # Create — --pid of a top-level page is the root of its domain; a root with an
 # empty dns answers every domain (see "Page URLs, second languages, cloning").
@@ -1584,7 +1586,16 @@ contao-ai-cli --json language link --table tl_news --id 4 --main 3
 contao-ai-cli --json language link --table tl_page --id 201 --main 0
 # what is missing or broken, per root of another language (reads only)
 contao-ai-cli --json language check --root 83
+# the linked versions of one record, each with root and language (core v1.11.0)
+contao-ai-cli --json language versions --table tl_article --id 36
 ```
+
+- **Before saying anything about other languages, look:** `language versions` for a page,
+  article, news item, event or FAQ; `content find` names the versions of each hit's page
+  and article itself (`versions`, core v1.11.0). An empty list with `otherRoots` means
+  nothing is linked, not that no other language exists — a version may be there without
+  a link. Without changelanguage `content find` says so in `versionsNote`. Change the
+  version the user means; ask before touching the others.
 
 - **The order matters, as in the back end:** a page before its articles, an archive
   before its entries. The target must be one the back end would offer: for a page, a page

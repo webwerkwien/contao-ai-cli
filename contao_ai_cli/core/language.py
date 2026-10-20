@@ -18,6 +18,12 @@ def language_link(backend: ContaoBackend, table: str, record_id: int, main: int)
     return _decode(backend.run(cmd))
 
 
+def language_versions(backend: ContaoBackend, table: str, record_id: int) -> dict:
+    """The linked language versions of a record, each with root and language (core-bundle v1.11.0)."""
+    cmd = f'contao:language:versions {shlex.quote(table)} {record_id}'
+    return _decode(backend.run(cmd))
+
+
 def language_check(backend: ContaoBackend, root: int | None = None) -> dict:
     """Report missing or broken translation links. Reads only."""
     cmd = 'contao:language:check'
