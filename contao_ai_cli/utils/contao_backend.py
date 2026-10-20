@@ -594,6 +594,16 @@ class ContaoBackend:
                     f'This server runs contao-ai-core-bundle {installed}, so the version is not '
                     f'the reason — the command has no option "{command}".'
                 )
+            if str(command).startswith("contao:language"):
+                # The core registers the language commands only with the package
+                # installed (v1.4.0); "does not exist at all" was wrong for them
+                # (review 2026-10-20).
+                return (
+                    f'This server runs contao-ai-core-bundle {installed}, so the version is not '
+                    f'the reason — the language commands need terminal42/contao-changelanguage '
+                    f'on the server, and without it the bundle does not register them.\n'
+                    f'Check with: contao-ai-cli --session <name> bundle list'
+                )
             return (
                 f'This server runs contao-ai-core-bundle {installed}, so the version is not '
                 f'the reason — "{command}" does not exist in that bundle at all.'

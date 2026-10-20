@@ -58,6 +58,46 @@ def test_versions_command_is_offered_with_its_tables():
     assert "tl_calendar_events" in out and "tl_news_archive" not in out
 
 
+def test_versions_options_reach_the_command_through_click():
+    from unittest.mock import patch
+    from click.testing import CliRunner
+    from contao_ai_cli.cli.cli_language import language
+
+    backend = _backend({"status": "ok", "linked": False, "versions": [], "otherRoots": [{"id": 76}]})
+    with patch("contao_ai_cli.cli.cli_language._require_core_bundle"), \
+         patch("contao_ai_cli.cli.cli_language._get_backend", return_value=backend):
+        result = CliRunner().invoke(language, ["versions", "--table", "tl_article", "--id", "36", "--json"], obj={})
+
+    assert result.exit_code == 0, result.output
+    assert backend.run.call_args.args[0] == "contao:language:versions tl_article 36"
+    assert json.loads(result.output)["otherRoots"] == [{"id": 76}]
+
+
+def test_versions_refuses_an_id_below_one_before_anything_is_sent():
+    from unittest.mock import patch
+    from click.testing import CliRunner
+    from contao_ai_cli.cli.cli_language import language
+
+    backend = _backend({"status": "ok"})
+    with patch("contao_ai_cli.cli.cli_language._require_core_bundle"), \
+         patch("contao_ai_cli.cli.cli_language._get_backend", return_value=backend):
+        result = CliRunner().invoke(language, ["versions", "--table", "tl_page", "--id", "-5"], obj={})
+
+    assert result.exit_code == 2
+    backend.run.assert_not_called()
+
+
+def test_a_missing_language_command_names_the_package_not_the_bundle():
+    from contao_ai_cli.utils.contao_backend import ContaoBackend
+
+    hint = ContaoBackend.version_hint("contao:language", "v1.11.0", "v1.11.0")
+
+    assert "terminal42/contao-changelanguage" in hint
+    assert "does not exist in that bundle" not in hint
+    # any other command keeps the old sentence
+    assert "does not exist in that bundle" in ContaoBackend.version_hint("contao:foo:bar", "v1.11.0", "v1.11.0")
+
+
 def test_an_answer_that_is_no_json_comes_back_raw():
     backend = MagicMock()
     backend.run.return_value = {"stdout": "not json"}

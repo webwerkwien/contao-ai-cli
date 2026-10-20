@@ -1592,10 +1592,12 @@ contao-ai-cli --json language versions --table tl_article --id 36
 
 - **Before saying anything about other languages, look:** `language versions` for a page,
   article, news item, event or FAQ; `content find` names the versions of each hit's page
-  and article itself (`versions`, core v1.11.0). An empty list with `otherRoots` means
-  nothing is linked, not that no other language exists — a version may be there without
-  a link. Without changelanguage `content find` says so in `versionsNote`. Change the
-  version the user means; ask before touching the others.
+  and article itself (`versions.page`, `versions.article`; for an element of a news item
+  or event `versions.entry` — core v1.11.0). `otherRoots` is always in the answer; an
+  empty `versions` list means nothing is linked, not that no other language exists — a
+  version may be there without a link (`note`). Without changelanguage, on a site with
+  several roots, `content find` says so in `versionsNote`. Change the version the user
+  means; ask before touching the others.
 
 - **The order matters, as in the back end:** a page before its articles, an archive
   before its entries. The target must be one the back end would offer: for a page, a page

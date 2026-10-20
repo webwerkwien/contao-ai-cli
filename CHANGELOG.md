@@ -12,13 +12,21 @@ Needs contao-ai-core-bundle v1.11.0 for `language versions` and the `versions` o
 ### Added
 
 - **`language versions --table --id`** — the linked language versions of a page, article,
-  news item, event or FAQ, each with root and language; when none is linked, the other
-  website roots, since a version may exist without a link (`contao:language:versions`,
-  core v1.11.0, changelanguage on the server).
+  news item, event or FAQ, each with root and language, and the other website roots
+  (`otherRoots`); when none is linked, a note that a version may exist there without a
+  link (`contao:language:versions`, core v1.11.0, changelanguage on the server). An id
+  below 1 is refused before anything is sent.
 - `content find` passes on what core v1.11.0 adds: the linked versions of each hit's page
-  and article (`versions`), the website roots when there are several, and without
-  changelanguage a `versionsNote`. AGENTS.md: look before saying anything about other
+  and article (`versions.page`, `versions.article`; of a news item's or event's element
+  `versions.entry`), the website roots when there are several, and without changelanguage
+  on such a site a `versionsNote`. AGENTS.md: look before saying anything about other
   languages.
+
+### Fixed
+
+- A language command missing because terminal42/contao-changelanguage is not installed
+  no longer gets the hint that the command "does not exist in that bundle at all"; the
+  hint names the package (true since v1.4.0 for `link` and `check` as well).
 
   A chat on showcase.conpai.eu changed the English slider headline and told the user
   the page existed in English only; the linked German page had the same slider.
