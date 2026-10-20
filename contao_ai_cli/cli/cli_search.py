@@ -48,7 +48,10 @@ def search_index_drop(ctx, index, as_json):
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def search_query_cmd(ctx, query, limit, as_json):
-    """Search the Contao fulltext index."""
+    """Search the Contao fulltext index: pages, never one with noindex.
+
+    To find the content element that shows a text, use `content find`.
+    """
     _require_core_bundle(ctx, "search query")
     b = _get_backend(ctx.obj.get("session"))
     _output(search_mod.search_query(b, query, limit), as_json or ctx.obj.get("as_json"))

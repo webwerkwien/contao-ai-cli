@@ -495,8 +495,10 @@ contao-ai-cli --json article list --page 1
 contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 
 # Find — the element that shows a text, with article, page, root and language
-# (v1.12.0, core-bundle v1.10.0). Not `search`: the search index answers pages, and
-# a page with noindex (staging, a showcase) is never in it.
+# (v1.12.0, core-bundle v1.10.0); an element of a news entry or event names that
+# entry under `parent` instead. `more: true` means there are more than --limit
+# (default 20, at most 50). Not `search`: the search index answers pages, and a page
+# with noindex (staging, a showcase) is never in it.
 contao-ai-cli --json content find "A powerful CMS"
 contao-ai-cli --json content find "Über uns" --root 1   # one website or language
 

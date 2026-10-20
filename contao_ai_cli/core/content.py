@@ -63,12 +63,14 @@ def content_find(backend: ContaoBackend, text: str, limit: int | None = None,
     article, page, root and the root's language. The search index is no substitute:
     it answers pages, and a page with noindex is never in it.
     """
-    cmd = f"contao:content:find {shlex.quote(text)}"
+    cmd = "contao:content:find"
     if limit is not None:
         cmd += f" --limit={int(limit)}"
     if root is not None:
         cmd += f" --root={int(root)}"
-    return run_json_or_raw(backend, cmd)
+    # `--` ends the options: a text like "-20% Rabatt" would otherwise be read as one
+    # once the remote shell has removed the quotes (Fable review 2026-10-20).
+    return run_json_or_raw(backend, f"{cmd} -- {shlex.quote(text)}")
 
 
 def content_read(backend: ContaoBackend, content_id: int) -> dict:

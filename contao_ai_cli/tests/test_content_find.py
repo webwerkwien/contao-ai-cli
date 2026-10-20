@@ -23,7 +23,7 @@ def test_the_text_is_quoted_for_the_shell():
 
     content_find(backend, "A powerful CMS; rm -rf /")
 
-    assert backend.run.call_args.args[0] == "contao:content:find 'A powerful CMS; rm -rf /'"
+    assert backend.run.call_args.args[0] == "contao:content:find -- 'A powerful CMS; rm -rf /'"
 
 
 def test_limit_and_root_are_passed_as_numbers():
@@ -31,7 +31,7 @@ def test_limit_and_root_are_passed_as_numbers():
 
     content_find(backend, "Über uns", limit=5, root=12)
 
-    assert backend.run.call_args.args[0] == "contao:content:find 'Über uns' --limit=5 --root=12"
+    assert backend.run.call_args.args[0] == "contao:content:find --limit=5 --root=12 -- 'Über uns'"
 
 
 def test_the_answer_comes_through():
@@ -44,3 +44,22 @@ def test_the_answer_comes_through():
 
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["results"] == [hit]
+
+
+def test_a_text_starting_with_a_dash_is_not_an_option():
+    backend = _backend({"status": "ok", "count": 0, "results": []})
+
+    content_find(backend, "-20% Rabatt")
+
+    assert backend.run.call_args.args[0] == "contao:content:find -- '-20% Rabatt'"
+
+
+def test_the_options_reach_the_command_through_click():
+    backend = _backend({"status": "ok", "count": 0, "results": []})
+
+    with patch("contao_ai_cli.cli.cli_content._require_core_bundle"), \
+         patch("contao_ai_cli.cli.cli_content._get_backend", return_value=backend):
+        result = CliRunner().invoke(content_find_cmd, ["Team", "--limit", "5", "--root", "12", "--json"], obj={})
+
+    assert result.exit_code == 0, result.output
+    assert backend.run.call_args.args[0] == "contao:content:find --limit=5 --root=12 -- Team"

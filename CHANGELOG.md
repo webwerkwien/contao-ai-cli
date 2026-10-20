@@ -12,8 +12,11 @@ core versions v1.11.1 worked with.
 ### Added
 
 - **`content find <text> [--limit] [--root]`** — content elements whose headline, text or
-  HTML contains the text, each with article, page, root and the root's language
-  (`contao:content:find`, core v1.10.0). Not the search index: that answers pages, and a
+  HTML contains the text, each with article, page, root and the root's language — or,
+  for an element of a news entry or event, that entry under `parent`; `more` says when
+  there are more than `--limit` (`contao:content:find`, core v1.10.0). A text starting
+  with `-` is passed after `--`, so it is not read as an option. `search query --help`
+  points to it. Not the search index: that answers pages, and a
   page with `noindex` — a staging site, a showcase — is never in it. A chat on showcase
   needed 9–10 calls to find one slider headline that way (2026-10-19).
 - The guide says how to change a text on a site with several languages: the element that
