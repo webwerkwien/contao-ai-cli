@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.13.1 - 2026-10-20
+
+Works with the core versions v1.13.0 worked with; the new answers come from
+contao-ai-core-bundle v1.11.1.
+
+### Changed
+
+- `language link` and `language check` pass on what core v1.11.1 says about articles that
+  cannot be linked: the refusal names the unpublished page or root, and `language check`
+  lists them apart as `unlinkableArticles` with the reason. AGENTS.md and the help text
+  say so — such an article cannot be linked until that page is published, here or in the
+  back end. Found on showcase.conpai.eu (resource pages unpublished on purpose).
+
 ## v1.13.0 - 2026-10-20
 
 Needs contao-ai-core-bundle v1.11.0 for `language versions` and the `versions` of

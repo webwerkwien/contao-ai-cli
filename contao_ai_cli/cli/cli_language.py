@@ -79,6 +79,9 @@ def language_check_cmd(ctx, root, as_json):
 
     Per root of another language: unlinked, invalid and duplicate page links,
     unlinked articles, archives without master and their unlinked entries.
+    Articles that cannot be linked -- their page in the main language or its
+    root is unpublished -- come apart as unlinkableArticles, with the reason
+    (core-bundle v1.11.1).
     """
     _require_core_bundle(ctx, "language check")
     b = _get_backend(ctx.obj.get("session"))

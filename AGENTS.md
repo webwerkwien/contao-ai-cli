@@ -1604,7 +1604,10 @@ contao-ai-cli --json language versions --table tl_article --id 36
   in the tree of the fallback root; for an article, news item, event or FAQ, one of the
   entries the back end lists for the linked page or archive — and those lists contain
   only what changelanguage finds, which skips unpublished pages. A second link to the
-  same target is refused by the package's own check. A refusal says which rule failed.
+  same target is refused by the package's own check. A refusal says which rule failed —
+  since core v1.11.1 also which page or root is unpublished when an article has no target.
+  `language check` lists such articles apart (`unlinkableArticles`, with the reason): they
+  cannot be linked until that page is published, here or in the back end. Do not try.
 - The write goes through the core: version, the package's own checks, cache invalidation.
 - Without the package on the server the group answers that the command does not exist.
 
