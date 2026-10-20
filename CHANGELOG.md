@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.12.0 - 2026-10-20
+
+Needs contao-ai-core-bundle v1.10.0 for `content find`; everything else works with the
+core versions v1.11.1 worked with.
+
+### Added
+
+- **`content find <text> [--limit] [--root]`** — content elements whose headline, text or
+  HTML contains the text, each with article, page, root and the root's language
+  (`contao:content:find`, core v1.10.0). Not the search index: that answers pages, and a
+  page with `noindex` — a staging site, a showcase — is never in it. A chat on showcase
+  needed 9–10 calls to find one slider headline that way (2026-10-19).
+- The guide says how to change a text on a site with several languages: the element that
+  shows the quoted text, in its language, then ask whether the translations follow.
+
 ## v1.11.1 - 2026-10-15
 
 Works with every contao-ai-core-bundle v1.11.0 worked with. contao-ai-core-bundle v1.9.2 lets `record list` read tables without `tl_` and stops `undo restore` from deleting an entry it could not restore. Found trying the Catalog Manager on c5.

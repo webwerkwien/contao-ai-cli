@@ -55,6 +55,22 @@ def content_list(backend: ContaoBackend, article_id: int | None = None,
 
     return result
 
+def content_find(backend: ContaoBackend, text: str, limit: int | None = None,
+                 root: int | None = None) -> dict:
+    """Content elements whose headline, text or HTML contains `text` (core v1.10.0).
+
+    Each result carries the field, a plain-text snippet, the element's visibility, its
+    article, page, root and the root's language. The search index is no substitute:
+    it answers pages, and a page with noindex is never in it.
+    """
+    cmd = f"contao:content:find {shlex.quote(text)}"
+    if limit is not None:
+        cmd += f" --limit={int(limit)}"
+    if root is not None:
+        cmd += f" --root={int(root)}"
+    return run_json_or_raw(backend, cmd)
+
+
 def content_read(backend: ContaoBackend, content_id: int) -> dict:
     """Read all fields of a tl_content record (headline deserialized)."""
     return run_json_or_raw(backend, f"contao:content:read {content_id}")

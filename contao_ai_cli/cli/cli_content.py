@@ -31,6 +31,26 @@ def content_list_cmd(ctx, article_id, limit, offset):
     _output(content_mod.content_list(b, article_id, limit, offset), ctx.obj.get("as_json"))
 
 
+@content.command("find")
+@click.argument("text")
+@click.option("--limit", type=int, default=None, help="Max results (1-50, server default 20)")
+@click.option("--root", "root_id", type=int, default=None,
+              help="Only elements below this root page, e.g. the one of a language")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def content_find_cmd(ctx, text, limit, root_id, as_json):
+    """Find content elements by their text (headline, text, HTML). Needs core-bundle v1.10.0.
+
+    Each result names the element with its article, page, root and the root's
+    language, so the right one -- and the right language -- can be changed next.
+    At least 3 characters, case-insensitive. Use this rather than the search
+    index: that answers pages, and a page with noindex is never in it.
+    """
+    _require_core_bundle(ctx, "content find")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(content_mod.content_find(b, text, limit, root_id), as_json or ctx.obj.get("as_json"))
+
+
 @content.command("read")
 @click.argument("content_id", type=int)
 @click.option("--json", "as_json", is_flag=True)

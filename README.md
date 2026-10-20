@@ -153,7 +153,7 @@ so it cannot drift from what the CLI actually offers.
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
 | `comment` | `delete` `list` `publish` | Comment moderation |
 | `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
-| `content` | `create` `delete` `list` `move` `read` `update` | Content elements |
+| `content` | `create` `delete` `find` `list` `move` `read` `update` | Content elements; `find` by their text (core v1.10.0) |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
 | `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |

@@ -494,6 +494,12 @@ contao-ai-cli --json page read 1
 contao-ai-cli --json article list --page 1
 contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 
+# Find — the element that shows a text, with article, page, root and language
+# (v1.12.0, core-bundle v1.10.0). Not `search`: the search index answers pages, and
+# a page with noindex (staging, a showcase) is never in it.
+contao-ai-cli --json content find "A powerful CMS"
+contao-ai-cli --json content find "Über uns" --root 1   # one website or language
+
 # Create — --pid of a top-level page is the root of its domain; a root with an
 # empty dns answers every domain (see "Page URLs, second languages, cloning").
 # Only a root may stand at the top level: without --pid, use --type root (core v1.2.0)
@@ -1551,6 +1557,14 @@ an error (exit 1) either way.
 
 ⚠️ **All listings now need contao-ai-core-bundle on the target.** They used to run through
 `doctrine:query:sql`, which is plain Contao.
+
+### Changing a text on a site with several languages
+
+`content find` names each element's root and its `language`. When the user quotes a
+text, change the element that shows **that** text, in its language — not the
+counterpart in the language the user writes in. Then ask whether the translations
+should follow; do not translate them silently (on showcase, 2026-10-19, a German request
+about the English "A powerful CMS" changed the German element first, translated).
 
 ### Translation links: `language link` and `language check` (core-bundle v1.4.0)
 
