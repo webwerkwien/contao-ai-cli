@@ -9,8 +9,6 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 Needs contao-ai-core-bundle v1.12.0 for `--after` and `--offset`; everything else works
 with the core versions v1.13.1 worked with.
 
-From the Consho documentation work on consho.eu (2026-10-22).
-
 ### Added
 
 - **`--after <ID>` for `page create`, `article create` and `content create`** — the new
@@ -40,7 +38,7 @@ contao-ai-core-bundle v1.11.1.
   cannot be linked: the refusal names the unpublished page or root, and `language check`
   lists them apart as `unlinkableArticles` with the reason. AGENTS.md and the help text
   say so — such an article cannot be linked until that page is published, here or in the
-  back end. Found on showcase.conpai.eu (resource pages unpublished on purpose).
+  back end.
 
 ## v1.13.0 - 2026-10-20
 
@@ -66,7 +64,7 @@ Needs contao-ai-core-bundle v1.11.0 for `language versions` and the `versions` o
   no longer gets the hint that the command "does not exist in that bundle at all"; the
   hint names the package (true since v1.4.0 for `link` and `check` as well).
 
-  A chat on showcase.conpai.eu changed the English slider headline and told the user
+  A chat changed the English slider headline and told the user
   the page existed in English only; the linked German page had the same slider.
 
 ## v1.12.0 - 2026-10-20
@@ -82,14 +80,14 @@ core versions v1.11.1 worked with.
   there are more than `--limit` (`contao:content:find`, core v1.10.0). A text starting
   with `-` is passed after `--`, so it is not read as an option. `search query --help`
   points to it. Not the search index: that answers pages, and a
-  page with `noindex` — a staging site, a showcase — is never in it. A chat on showcase
-  needed 9–10 calls to find one slider headline that way (2026-10-19).
+  page with `noindex` — a staging site, a showcase — is never in it. A chat
+  needed 9–10 calls to find one slider headline that way.
 - The guide says how to change a text on a site with several languages: the element that
   shows the quoted text, in its language, then ask whether the translations follow.
 
 ## v1.11.1 - 2026-10-15
 
-Works with every contao-ai-core-bundle v1.11.0 worked with. contao-ai-core-bundle v1.9.2 lets `record list` read tables without `tl_` and stops `undo restore` from deleting an entry it could not restore. Found trying the Catalog Manager on c5.
+Works with every contao-ai-core-bundle v1.11.0 worked with. contao-ai-core-bundle v1.9.2 lets `record list` read tables without `tl_` and stops `undo restore` from deleting an entry it could not restore.
 
 ### Fixed
 
@@ -106,7 +104,7 @@ Works with every contao-ai-core-bundle v1.11.0 worked with. contao-ai-core-bundl
 
 ## v1.11.0 - 2026-10-15
 
-Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundle v1.9.1 adds `page_count` to a page clone and fixes `references` of cloned modules; the guide describes both. Found by an agent that made the Contao demo bilingual from `contao-ai-cli guide` alone — in about 30 minutes, with no first-language reference left — and reported where the guide fell short.
+Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundle v1.9.1 adds `page_count` to a page clone and fixes `references` of cloned modules; the guide describes both.
 
 ### Changed
 
@@ -118,7 +116,7 @@ Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundl
 
 ### Added
 
-- **The second-language sequence in the guide, completed from the run:** the clone table
+- **The second-language sequence in the guide, completed:** the clone table
   names news archives, calendars and FAQ categories (entries unpublished, no
   `references`); `references` is a hint, the survey is the list; the survey covers form
   fields, feed readers, `rootPageDependentModules`, content text beyond `text` and
@@ -136,7 +134,7 @@ Works with every contao-ai-core-bundle v1.10.1 worked with. contao-ai-core-bundl
 ### Fixed
 
 - **`language link --help` said `languageRoot` is "for a fallback root" without saying what
-  for**, and was read as wrong in a review. It is right — changelanguage keeps
+  for**. It is right — changelanguage keeps
   `languageRoot` on fallback roots only, linking the main-language roots of different
   domains — and now says so, and that a root of another language needs no link.
 
@@ -154,8 +152,7 @@ Guide only; no command changed. Works with every contao-ai-core-bundle v1.10.0 w
   element references, the `jumpTo` of cloned archives, calendars and FAQ categories (which
   carry no `references`), the layout every cloned page keeps, file metadata that falls back
   to the main language unseen, default mail texts, the direction of `language link` when the
-  new language becomes the main one, and the checks at the end. Written from an end-to-end
-  run on the Contao demo, so that an agent no longer needs that report to do it.
+  new language becomes the main one, and the checks at the end.
 
 ### Fixed
 
@@ -203,8 +200,7 @@ Needs contao-ai-core-bundle v1.9.0 for the theme clone, theme export/import, exa
 - **`backup restore` says what it leaves untouched.** Contao keeps the search index, the
   system log and the crawl queue out of every backup, so after a restore they still hold
   the overwritten state. The answer lists them in `untouched` and suggests
-  `contao automator purgeSearchTables` in `nextSteps` (not run). Found on
-  showcase.conpai.eu, where the search still listed pages that no longer existed.
+  `contao automator purgeSearchTables` in `nextSteps` (not run).
 - The option lists `schema` resolves for a core-bundle without `contao:dca:options` come
   through `contao:record:list` (JSON), no longer through `doctrine:query:sql` and its ASCII
   table.
@@ -223,9 +219,8 @@ Works with every contao-ai-core-bundle it worked with before. contao-ai-core-bun
 - **A server command that reads STDIN waited for the 60-second timeout on Windows.** The
   CLI starts Windows' own `ssh.exe` and gave it `stdin=DEVNULL`; that ssh never passes the
   end of NUL on to the server. Measured on 2026-10-14: `stream_get_contents(STDIN)` hung
-  with DEVNULL and answered `""` in 0.6 s with an empty input. This was the "60 s hang"
-  of `ext run` seen from the Consho session, blamed on the server at first, and it
-  affected every command. An empty input closed at once keeps ssh off the caller's stdin
+  with DEVNULL and answered `""` in 0.6 s with an empty input. It affected every
+  command, not only `ext run`. An empty input closed at once keeps ssh off the caller's stdin
   as before. `ext run --help` and the guide now say that nothing is passed on STDIN and
   that secrets go over SSH by a person, never through contao-ai.
 
@@ -270,7 +265,7 @@ Works with every contao-ai-core-bundle it worked with before.
   tokens were joined with a bare space, and the server reads the line with Symfony's
   `StringInput`, which splits on whitespace outside quotes: `--set "title=Zwei Wörter"`
   or a list value with a line break answered *Too many arguments*, and nothing was
-  written (reported from the Consho session). Each token with whitespace, a quote or a
+  written. Each token with whitespace, a quote or a
   backslash is now quoted the way `StringInput` reads it back; backslashes and quotes are
   escaped, because the server runs quoted content through `stripcslashes()`. A test
   reads the line back through the real `StringInput`. Secrets in such tokens are still
@@ -291,7 +286,7 @@ Documents core-bundle v1.7.4; nothing changes in the commands.
   as their source. `record clone --help` says the same.
 - **Giving an existing root a prefix checks every page below it**, and a numeric alias such
   as the Contao demo's `401`/`404` refuses it. The guide says so, and to look at the aliases
-  of the tree first (found on showcase.conpai.eu).
+  of the tree first.
 
 ## v1.8.0 - 2026-10-13
 
@@ -308,16 +303,15 @@ the same step under the generated token.
 ### Changed
 
 - **The bridge step says that it is optional and what for.** Generating the token in the
-  back end looked like the whole setup, and `bridge: not_configured` then read like a fault
-  (showcase.conpai.eu). The step and the `health` text now say: only `bridge clone` /
+  back end looked like the whole setup, and `bridge: not_configured` then read like a fault.
+  The step and the `health` text now say: only `bridge clone` /
   `bridge rewrite` from the terminal need it, the back-end chat and every other command work
   without it; the token goes on stdin (`--token-stdin --test`), not into the command line.
 
 ## v1.7.0 - 2026-10-13
 
 Works with every contao-ai-core-bundle it worked with before; `ext run --operator` reaches
-the command from core-bundle v1.7.1 on. Findings from a fresh installation
-(showcase.conpai.eu).
+the command from core-bundle v1.7.1 on. Findings from a fresh installation.
 
 ### Changed
 
@@ -360,12 +354,11 @@ core-bundle v1.7.0's, the CLI names in refusals pay off from v1.6.1.
   command. core-bundle names `contao:dca:options tl_content type` and
   `contao:dca:palette …`; the error now reads `contao-ai-cli schema sync tl_content`, then
   `contao-ai-cli schema resolve tl_content type`, and `contao-ai-cli schema palette …`.
-  Part of "agents should not guess input" (Michael, 2026-10-12).
 
 ### Changed
 
 - **`schema palette` without `--set`.** It refused before; a table without a type
-  selector has one palette, and `--set type=default` was the workaround (Consho session).
+  selector has one palette, and `--set type=default` was the workaround.
   Now it asks the server. Where the table picks its palette by a field that has no value
   yet (`tl_content`: `type`), the answer adds a `hint` naming it and how to get its values.
 - **`schema sync` says what its `mandatory_fields` are:** `eval.mandatory` as the DCA
@@ -383,7 +376,7 @@ Works with every contao-ai-core-bundle it worked with before.
   can answer — documented since v0.29.0, because the record stays in `tl_undo`. But called
   from PowerShell or Git Bash with stdin on the null device, `isatty()` took that for a
   terminal: the question stood on screen and the delete went ahead, which read like an
-  ignored "no" (found by the Consho session). Now a console is required for a question
+  ignored "no". Now a console is required for a question
   (the check the bridge token prompt already used); without one there is only a note on
   stderr, `… no terminal to ask, proceeding as documented; pass --yes to say so`. The
   questions that default to no without a terminal (`newsletter subscriber-create`) use the
@@ -415,7 +408,7 @@ Works with every contao-ai-core-bundle it worked with before.
   `#[AiContract]` with `trace: []` printed no `trail` line — exactly like a command that
   said nothing about its trail, although the core bundle asks for `trace: []` so a caller
   can tell the two apart. The warning now reads `trail  none — the command declares it
-  leaves no trail`. Found in the review before core-bundle v1.4.2.
+  leaves no trail`.
 
 ## v1.4.0 - 2026-10-11
 
@@ -520,10 +513,10 @@ Needs no newer contao-ai-core-bundle.
   error class behind it (`ContaoBackendError`) carries the same text as `.stderr`.
 - Installation names were removed from older changelog entries, code comments and test
   docstrings ([#62](https://github.com/webwerkwien/contao-ai-cli/issues/62)). The evidence
-  stays — "found on a live installation" — the hostname goes. The pre-release review found
-  one the search had missed: a test held a real SSH login and server address as its
-  example of an ordinary session; it now uses a made-up login and a documentation address
-  (RFC 5737). Two example paths and an example SSH user in the guide went the same way.
+  stays — "found on a live installation" — the hostname goes. A test held a real SSH login
+  and server address as its example of an ordinary session; it now uses a made-up login
+  and a documentation address (RFC 5737). Two example paths and an example SSH user in
+  the guide went the same way.
 
 ## v1.1.0 - 2026-09-24
 
@@ -542,7 +535,7 @@ everything else works against any version.
   artefact rather than content. The CLI always quoted a value correctly once it had one;
   what could not be relied on was the caller's own shell carrying quotes, `$`, backticks and
   newlines to it intact. Measured end to end: a 319-character block with all of those
-  written to `tl_content.unfilteredHtml` on the test server and read back byte-identical.
+  written to `tl_content.unfilteredHtml` and read back byte-identical.
   Refused with nothing written: a field given by both options, the same field twice, a
   missing file, a file that is not UTF-8.
   `--set` is no longer `required` on the update commands, since `--set-file` alone is a
@@ -576,7 +569,7 @@ everything else works against any version.
   takes 32767 characters for the whole line; above 32000 the CLI answers *"too long for
   Windows … Nothing was sent to the server"* instead of letting the `OSError` reach the
   top-level handler, which would file it as a defect. No such limit applies on Linux or
-  macOS. Found by the pre-release review: the first version of the `--set-file` guard
+  macOS. The first version of the `--set-file` guard
   measured one value at a time with `shlex.quote`, and three ordinary cases walked past it
   and failed to start — 30000 characters of markup with 1600 quotation marks (`subprocess`
   escapes each one), the same with backslash-escaped quotes, and two `--set-file` values of
@@ -587,7 +580,7 @@ everything else works against any version.
 - **`file meta` and `user update` collect `--set-file` instead of dropping it.** Both parsed
   `--set` by hand and never called `parse_set_fields()`, which is the only place the
   `--set-file` values are picked up — so they accepted the option, wrote nothing and
-  answered `status: ok`. Found by the pre-release review. `user update` also stopped
+  answered `status: ok`. `user update` also stopped
   silently discarding a malformed `--set`
   ([#60](https://github.com/webwerkwien/contao-ai-cli/issues/60), a defect in every version
   up to v1.0.2): `--set disable 1` used to report a successful update that changed nothing,
@@ -602,8 +595,7 @@ everything else works against any version.
   "the user wants extension X installed": the passthrough appeared only as the internals of
   `bundle install core|backend`, while *"None of it happens if you go around this CLI"* told
   an agent not to leave — so the absence of a route read as "it must somehow go through
-  here". Found because a parallel session took the right route only by reading a private
-  maintenance note that no user of this CLI has.
+  here".
 
 ## v1.0.2 - 2026-09-23
 
@@ -633,7 +625,7 @@ Guide only. No command, option or answer changes.
 ### Fixed
 
 - **A failed `bundle install/update` hid Composer's reason.** The error showed the first 500
-  characters of stderr. On a server whose PHP prints a start-up warning (c5: `imagick.so`),
+  characters of stderr. On a server whose PHP prints a start-up warning (`imagick.so`),
   that warning took nearly all of them, and Composer's explanation — at the end, as always —
   was cut off. Measured on the Contao 6.0 testbed: core 1.0 next to backend-bundle v0.9.1
   failed with only "./composer.json has been updated" as the reason. Now the end of stderr
@@ -664,9 +656,9 @@ those of v0.30.0; contao-ai-backend-bundle stays 0.x (v0.9.2 allows core 1.x).
 ## v0.30.0 - 2026-09-19
 
 Needs core-bundle v0.28.0 for the new event options and for the fixes below that live on
-the server; everything else works with every core-bundle version. From the practical test
-of the core modules (FAQ, news, events, newsletter, forms, comments, listing) on c5,
-Contao 5.7.13, on 2026-09-19. A minor release because three answers change shape.
+the server; everything else works with every core-bundle version. From a test of the core
+modules (FAQ, news, events, newsletter, forms, comments, listing) on Contao 5.7.13.
+A minor release because three answers change shape.
 
 ### Added
 
@@ -712,8 +704,7 @@ Contao 5.7.13, on 2026-09-19. A minor release because three answers change shape
 ## v0.29.0 - 2026-09-18
 
 Works with every core-bundle version; the new refusals described in core-bundle v0.27.0
-(widget limits, missing parents) arrive with that release. From the third agent test
-before 1.0 (a fresh agent, guide and `--help` only, both parts completed).
+(widget limits, missing parents) arrive with that release.
 
 ### Changed
 
@@ -727,7 +718,7 @@ before 1.0 (a fresh agent, guide and `--help` only, both parts completed).
 
 - **The guide said the first available session is loaded automatically.** It never was:
   without `--session` the CLI uses the session named `session` (what `connect` saves
-  without `--name`). The agent failed on its first command. Deliberately no automatic
+  without `--name`). An agent failed on its first command. Deliberately no automatic
   choice: with several live sites in the list, the one a command writes to has to be
   named.
 - **The guide showed no `member update` or `member delete`.** Both take the username as a
@@ -737,9 +728,7 @@ before 1.0 (a fresh agent, guide and `--help` only, both parts completed).
 
 ## v0.28.0 - 2026-09-18
 
-Works with every core-bundle version. From the second agent test before 1.0: an agent
-(Codex) built a page with list and table, a FAQ and a member from `guide` and `--help`
-alone and found three real faults. A minor release because what a caller sees on
+Works with every core-bundle version. A minor release because what a caller sees on
 failure changes.
 
 ### Changed
@@ -751,18 +740,18 @@ failure changes.
   `--json` counts before or after the command. Without it nothing changes. A failure
   to load the session file now also goes this way instead of an own `[ERROR] ...` line.
   An unknown command containing a character outside cp1252 no longer ends in a
-  traceback on Windows (found in the review: the output encoding was set too late).
+  traceback on Windows (the output encoding was set too late).
 
 ### Fixed
 
 - **`content list --article N` listed elements that are not in article N.** It filtered
   on `pid` alone, and nested elements (`ptable=tl_content`) share the id space with
-  articles: for article 158 the agent got three children of content element 158. It
-  now also filters on `ptable=tl_article`.
+  articles: for an article it listed the children of the content element with the same
+  id. It now also filters on `ptable=tl_article`.
 - **The guide's PowerShell advice failed on values with spaces.** `\"` works only when
   the argument has a space outside double quotes; in JSON every space is inside a
   string, so PowerShell 5.1 passes it unwrapped and it is cut apart. The guide now
-  gives the stop-parsing form `--%`, measured on c5 for table, list and link text.
+  gives the stop-parsing form `--%`, measured for table, list and link text.
 
 ### Added
 
@@ -770,27 +759,23 @@ failure changes.
   `article update <id> --set published=1|0`, which still works.
 - **Value formats for list and table elements in the guide:** `listitems`, `listtype`,
   `tableitems`, `thead`/`tfoot`/`tleft`, with examples. `schema` shows the field names,
-  not their shape; the agent had to guess nested JSON and `thead=1`.
+  not their shape; a caller had to guess nested JSON and `thead=1`.
 
 ## v0.27.0 - 2026-09-18
 
 Works with every core-bundle version; `member create`, `member password` and the JSON
-refusal described below need core-bundle v0.26.0. From the regression run and the agent
-test before 1.0: an agent (Codex) built, changed and deleted a page on a test site with
-nothing but `guide` and `--help`, and reported every guess.
+refusal described below need core-bundle v0.26.0.
 
 ### Fixed
 
 - **`member create` never worked.** It called `contao:member:create`, which the
   core-bundle never had, and passed the password as `--password=` on the command line.
   Now it sends the password on stdin to the command core-bundle v0.26.0 adds, takes
-  `--password-stdin` like `user create`, and further fields with `--set`. Found in the
-  regression run before 1.0.
+  `--password-stdin` like `user create`, and further fields with `--set`.
 - **`member update` took `--field`, every other update command `--set`.** `--set` now
   works too; `--field` stays.
 - **The guide said articles are published with `page publish`.** There is no
   `article publish`; an article is published with `article update <id> --set published=1`.
-  The agent went looking for the command the guide named.
 
 ### Added
 
@@ -802,7 +787,7 @@ nothing but `guide` and `--help`, and reported every guess.
   attributes lose theirs *without any error*, because unquoted attributes are valid HTML.
   Escaping as `\"` or PowerShell 7.3+ passes them through. core-bundle v0.26.0 refuses the
   broken JSON; before, a list field stored `['[Eins', 'Zwei', 'Drei]']` with `ok`.
-- **An empty `dns` on a root means "any domain"** — now in the guide. The agent could not
+- **An empty `dns` on a root means "any domain"** — now in the guide. An agent could not
   find the root of a given domain, because the only root had none.
 - **`connect` names Git Bash when it rewrote `--root`.** MSYS turns `/var/www/…` into
   `C:/Program Files/Git/var/www/…`; the server said "No such file or directory" and
@@ -829,8 +814,8 @@ Works with every core-bundle version; nothing on the server changes.
   only imports it (`@AGENTS.md`), so there is one text, not two drifting copies.
 - **`AGENTS.md`: shared content does not need `cache clear`.** A page that includes an
   element through an `alias` element carries the source element's cache tag, so updating
-  the source invalidates every including page, on every root and domain. Measured on c5
-  on 2026-09-18. On a large site a needless `cache clear` empties the whole HTTP cache.
+  the source invalidates every including page, on every root and domain.
+  On a large site a needless `cache clear` empties the whole HTTP cache.
   `SKILL.md` no longer shows `cache clear` as the first example without saying when it
   is needed.
 - **The test suite is no longer installed.** 48 of 148 files in the wheel were tests
@@ -847,13 +832,13 @@ Requires **contao-ai-core-bundle v0.24.0** for `content-<id>` in `layout module-
 
 - **`layout module-add` / `module-remove --module content-<id>`** — a theme's content
   element in a layout column (Contao 5.7). Anything that is neither a module ID nor
-  `content-<id>` is refused before the server is contacted (Nr. 68).
+  `content-<id>` is refused before the server is contacted.
 
 ### Fixed
 
 - **`file write` and `template write` changed line endings on Windows.** The content went
   through a temp file in text mode, so LF arrived as CRLF; and `@file` was read in text mode,
-  which turned a file's own CRLF into LF. Both now pass the bytes unchanged (Nr. 65).
+  which turned a file's own CRLF into LF. Both now pass the bytes unchanged.
 
 ## v0.24.0 - 2026-09-17
 
@@ -863,7 +848,7 @@ Requires **contao-ai-core-bundle v0.23.0** for `file move`.
 
 - **`file move --path <file|folder> --to <folder>`** — move into another folder as cut and
   paste in the back end, keeping the UUIDs, so image elements and file pickers keep working.
-  The answer lists `pathUsages`, texts that name the old path (Nr. 64).
+  The answer lists `pathUsages`, texts that name the old path.
 
 ## v0.23.1 - 2026-09-17
 
@@ -876,7 +861,7 @@ Requires **contao-ai-core-bundle v0.23.0** for `file move`.
   `pipx list --json` answered nothing for as long as `self-update` ran; the retry added in
   v0.23.0 could never help and is gone. The update is now read back from the launcher
   pipx has just written (`contao-ai-cli --version`, a new process). Verified end to end:
-  0.22.9 → 0.23.0 answered `changed: true` (Nr. 54).
+  0.22.9 → 0.23.0 answered `changed: true`.
 
 ## v0.23.0 - 2026-09-17
 
@@ -887,17 +872,17 @@ root pages store a language, and `folder publish` logs every line with the opera
 
 - **`content update --text`**, the shortcut `content create` already had. `--set text=`
   given as well wins, as on create. Live, translating four elements failed with *"No such
-  option '--text'"* (Nr. 60).
+  option '--text'"*.
 
 ### Fixed
 
 - **`self-update` reported a working update as failed.** Right after the reinstall pipx
-  reported no version, and a moment later the new one (0.22.0 → 0.22.1, Nr. 54). The
+  reported no version, and a moment later the new one (0.22.0 → 0.22.1). The
   read-back now asks up to three times before it calls the update ineffective.
 - `page create --language` says it applies to root pages; `CLAUDE.md` no longer claims
-  every created record is unpublished — content elements are created visible (Nr. 58).
+  every created record is unpublished — content elements are created visible.
 - The bundled skill (`skills/SKILL.md`) showed `page read --id 1` and `content update --id 12`;
-  neither command has `--id`, the ID is an argument (review before this release).
+  neither command has `--id`, the ID is an argument.
 
 ## v0.22.1 - 2026-09-17
 
@@ -908,9 +893,9 @@ Pairs with **contao-ai-core-bundle v0.21.1**, which accepts `--set useSSL=1`.
 - **`schema show` listed the labels of an `eval.isAssociative` list as its values.**
   `tl_page.useSSL` came back as `["http://", "https://"]`, none of which can be set; it now
   answers `{"0": "http://", "1": "https://"}`, the same value-to-label shape as a resolved
-  callback. Found on a live installation in the ConpAI 1.0 acceptance test (Nr. 53).
+  callback. Found on a live installation.
 - **Integer option keys that are not 0..n-1 were read as positions.** `array(6 => 'Hero')`
-  came back as `["Hero"]`; it now answers `{"6": "Hero"}` (review before this release).
+  came back as `["Hero"]`; it now answers `{"6": "Hero"}`.
 
 ## v0.22.0 - 2026-09-17
 
@@ -1033,7 +1018,7 @@ Agent-driven onboarding. Core and backend bundles: no change.
 ## v0.20.0 - 2026-09-16
 
 Works with contao-ai-core-bundle v0.18.0; **v0.19.0** fixes path, symlink and usage-search
-defects of `contao:file:delete` found in review.
+defects of `contao:file:delete`.
 
 ### Changed
 
@@ -1100,7 +1085,7 @@ else keeps working with older versions.
 
 - **`schema resolve` asks the installation first** and uses the built-in lists only as a
   fallback for an older core-bundle. `tl_page.type` missed every page type a bundle
-  registers (`consho_product` on c5).
+  registers (e.g. `consho_product`).
 - **Prompts go to stderr.** `settings update --json` printed its confirmation question
   before the JSON on stdout, so a caller parsing stdout failed.
 - `content list` reads the headline in both the serialized and the array form (core-bundle
@@ -1120,7 +1105,7 @@ upload rules.
   accepts: images, PDFs, fonts. `file write` could not carry a binary: the transport
   was binary-safe all along (SCP, and the server reads bytes), but the local temp file
   was opened in text mode. `file upload` sends the local file itself, without a copy
-  in between. Found in the ConpAI 1.0 acceptance test on 2026-09-16.
+  in between.
 - **`file folder-publish --path files/… [--unpublish]`** — makes a folder public so the
   front end serves it, or protects it again, the way the back end's checkbox does.
   There was no way to do this before: `folder create --public` was removed on
@@ -1168,8 +1153,7 @@ describes changed in `contao-ai-core-bundle` v0.7.0.
 
   This entry is the proof. The change was in the core bundle; the paragraph
   describing the old outcome is here. Nothing in this repository changed, so
-  nothing here could have gone red. It was found by a second session reading the
-  release note against the guide.
+  nothing here could have gone red.
 
 ### Added
 
@@ -1216,7 +1200,7 @@ describes changed in `contao-ai-core-bundle` v0.7.0.
 ## v0.15.0 - 2026-09-02
 
 The rest of the audit. v0.14.0 closed the SSH option injection and the passwords;
-these are the findings that were left open that morning.
+these are the findings it left open.
 
 ### Fixed
 
@@ -1369,8 +1353,6 @@ where anyone can read them.
   sentence around it was wrong, which is how it survived being written, reviewed and
   released. Now: *written before the run* / *written only if the run succeeds*.
 
-  Reported by a parallel session from the first contract anyone else wrote.
-
 ## v0.13.2 - 2026-09-01
 
 > **Needs core bundle v0.2.36.**
@@ -1378,8 +1360,8 @@ where anyone can read them.
 ### Fixed
 
 - **The advice to register under `contao:` was wrong and is withdrawn.** v0.13.1 told
-  plugin authors that a command must live under `contao:` to be reachable. A parallel
-  session measured 22 namespaces on a live site: `cookiebar:` is a published Contao
+  plugin authors that a command must live under `contao:` to be reachable. 22 namespaces
+  were measured on a live site: `cookiebar:` is a published Contao
   extension using its own product name, and Symfony's docs recommend `app:` for
   application commands. **A prefix of one's own is the convention, and `contao:` is
   Contao's property.** The advice told people to break that.
@@ -1408,7 +1390,6 @@ where anyone can read them.
 - **`ext list` said `available: 0` on an installation with 87 commands it cannot reach.**
   Everything outside the `contao:` namespace was filtered out on the server and never
   counted here — through the very command built to report what this CLI cannot reach.
-  Reported by a parallel session whose own `ww:gutschein:import` was invisible.
 
   They are counted as `out_of_reach` now, with the reason, and `--all` lists them. `ext
   run` still refuses to start them: the boundary is on running, not on naming.
@@ -1432,8 +1413,8 @@ where anyone can read them.
 
 ### Added
 
-- **`ext run` says what a command declared about itself, before running it.** Stage 3 of
-  the plugin work. An extension can now carry an `#[AiContract]` attribute — see the core
+- **`ext run` says what a command declared about itself, before running it.**
+  An extension can now carry an `#[AiContract]` attribute — see the core
   bundle — and `ext describe` and the warning before `ext run` both surface it:
 
   ```
@@ -1460,8 +1441,8 @@ where anyone can read them.
 - **The blanket warning is replaced, not appended to, when a contract exists.** It ends
   with *"no promise that it writes a version, an undo entry or a log line of its own"* —
   untrue the moment a command has declared `trace` and `traceWhen`. The first version
-  printed both, so one message made both claims two lines apart. Caught by reading the
-  live output; pinned by a test now.
+  printed both, so one message made both claims two lines apart. Pinned
+  by a test now.
 
   It does not overcorrect either: field conversion and the DCA check are still absent, and
   a declaration is not a wrapper. Both halves are said.
@@ -1474,8 +1455,7 @@ where anyone can read them.
 
 - **The version hint from v0.12.1 never reached `ext describe` and `ext run`** —
   the two commands a caller actually reaches for when asking about a command it
-  does not have. Reported by a parallel session that measured it instead of
-  assuming, against a server on the newest bundle:
+  does not have. Measured against a server on the newest bundle:
 
   ```
   $ contao-ai-cli --session … ext describe contao:gibtsnicht
@@ -1534,8 +1514,8 @@ where anyone can read them.
 
 > **Needs core bundle v0.2.32.**
 
-Stage 1 and 2 of the plugin work were measured against a real third-party plugin
-installed on the test server, rather than against an empty result. Two defects
+The plugin work so far was measured against a real third-party plugin,
+rather than against an empty result. Two defects
 came out of that.
 
 ### Changed
@@ -1558,7 +1538,7 @@ came out of that.
 ### Fixed
 
 - **A mistyped session name no longer reports a missing core bundle.**
-  `--session c5` instead of `--session c5-axeltest` answered
+  `--session my` instead of `--session my-site` answered
   *"contao-ai-core-bundle is not installed on this server"* for a server that had
   never been contacted. A bare `except Exception` collapsed three causes, two of
   which are statements about the local machine. The missing and unreadable
@@ -1579,7 +1559,7 @@ came out of that.
   listing config <id>                one listing module's configuration
   ```
 
-  `record clone` had existed since Phase 9 with only the browser chat as its caller. The macro-clone is the point: an LLM cloning an archive by hand produced one create plus N reads plus N creates; here the cascade runs in one transaction and the caller sees one result. Overrides the cloner refuses come back as `ignored_modifications` rather than vanishing.
+  `record clone` had existed with only the browser chat as its caller. The macro-clone is the point: an LLM cloning an archive by hand produced one create plus N reads plus N creates; here the cascade runs in one transaction and the caller sees one result. Overrides the cloner refuses come back as `ignored_modifications` rather than vanishing.
 
 - **`listing data` no longer reads the module config with its own SQL.** It asks `listing config`. The data half still writes SQL — `list_where` is a free fragment configured in the site — but reading a module's own settings was an ordinary lookup that had no business being raw.
 
@@ -1733,7 +1713,7 @@ came out of that.
 
   Each takes `--title` and nothing else as a dedicated option. **What else is required comes from the DCA**, so the command reports it instead of the help text going stale: `jumpTo` for an archive or calendar, `groups` on top of that once `--set protected=1` opens its subpalette, and `headline` — not `jumpTo` — for an FAQ category.
 
-  **Deleting a parent takes its children with it.** `archive-delete` also removes the entries and their content elements; the prompt names the child tables for that reason, the way `theme delete` does. One `tl_undo` entry for the whole set, so `undo restore` brings the parent, the children and their links back in one step — verified end to end on the test install.
+  **Deleting a parent takes its children with it.** `archive-delete` also removes the entries and their content elements; the prompt names the child tables for that reason, the way `theme delete` does. One `tl_undo` entry for the whole set, so `undo restore` brings the parent, the children and their links back in one step — verified end to end.
 
 ## v0.8.3 - 2026-08-31
 
@@ -1889,7 +1869,7 @@ came out of that.
 
 ### Added
 
-- **`--ids` and `--ids-from-file` on every entity update command.** `page update --ids=39,40,41 --set max_teiln=4`, or `--ids-from-file ids.txt` with one ID per line (`#` starts a comment). Available on `page`, `news`, `event`, `faq`, `article` and `content`.
+- **`--ids` and `--ids-from-file` on every entity update command.** `page update --ids=39,40,41 --set noSearch=1`, or `--ids-from-file ids.txt` with one ID per line (`#` starts a comment). Available on `page`, `news`, `event`, `faq`, `article` and `content`.
 
   Setting one field on 174 pages took about four minutes: 1.4 s per record, of which **0.67 s was establishing the SSH connection and nothing else**. The gap this fills is between `contao:page:update`, which is deterministic and versioned but takes exactly one ID, and `bridge rewrite`, which handles many records but is an LLM loop — a language model is the wrong instrument for writing a constant, and it bills API tokens to do it.
 
@@ -1957,7 +1937,7 @@ Suite: 349 tests, 16 skipped (325 before).
 
 ### Notes
 
-Verified against the test server (both bundles present -> `ready`) and a live installation (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
+Verified against an installation with both bundles present (-> `ready`) and a live installation (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
 
 ## v0.5.0 — 2026-08-24
 
@@ -2065,7 +2045,7 @@ pipx install --force git+https://github.com/webwerkwien/contao-ai-cli.git@v0.4.0
 
 - **Silent data corruption in every list command.** `subprocess.run(text=True)` without `encoding=` uses the Windows locale default (cp1252), so the UTF-8 bytes of an umlaut arrived as two Latin-1 characters (`\xc3\xa4` → `Ã¤`). The row then ran one character longer than Symfony's separator line, every column right of the umlaut shifted left, and the last character of each cell was cut off. No crash, just wrong values — `event`, `news`, `page`, `member` and the rest were all affected. Fixed with `encoding="utf-8", errors="replace"` in `run`, `run_raw` and `scp_upload`; Symfony Console always writes UTF-8 regardless of the host locale.
 
-Found during a bridge test against the live server, where a cloned record came back as *„Jährliche Konferen"*.
+Found during a bridge test against a live server, where a cloned record came back as *„Jährliche Konferen"*.
 
 ### Changed
 
@@ -2075,7 +2055,7 @@ Found during a bridge test against the live server, where a cloned record came b
 
 ### Fixed
 
-- `--session` accepts a bare session name (`--session c5-axeltest`), not just a full path.
+- `--session` accepts a bare session name (`--session my-site`), not just a full path.
 - The closing tip line in `health` is ASCII-only — another cp1252 casualty on the Windows console.
 
 ## v0.3.1 — 2026-05-08
@@ -2094,7 +2074,7 @@ Found during a bridge test against the live server, where a cloned record came b
 
 ### Added
 
-- **`bridge` command group** (Phase 10.3) — calls the `contao-ai-backend-bundle` macro tools (`record_clone`, `record_rewrite`) over HTTPS instead of orchestrating CRUD over SSH and the console. Intended for bulk LLM jobs ("translate every news item in archive 5"), atomic container clones of a news archive, calendar, FAQ category or page tree, and generally anything where the agent would otherwise emit ten or more console calls in a row.
+- **`bridge` command group** — calls the `contao-ai-backend-bundle` macro tools (`record_clone`, `record_rewrite`) over HTTPS instead of orchestrating CRUD over SSH and the console. Intended for bulk LLM jobs ("translate every news item in archive 5"), atomic container clones of a news archive, calendar, FAQ category or page tree, and generally anything where the agent would otherwise emit ten or more console calls in a row.
 - `user update` accepts `--set` as an alias for `--field`.
 
 ## v0.1.1 — 2026-04-26
@@ -2109,7 +2089,7 @@ Found during a bridge test against the live server, where a cloned record came b
 ### Added
 
 - The CLI self-update check and the core-bundle install/update flow in `connect`.
-- `CLAUDE.md` agent guide. Leaked credentials removed from the internal docs.
+- `CLAUDE.md` agent guide.
 
 ### Changed
 
