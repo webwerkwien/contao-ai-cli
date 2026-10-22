@@ -56,7 +56,7 @@ def content_list(backend: ContaoBackend, article_id: int | None = None,
     return result
 
 def content_find(backend: ContaoBackend, text: str, limit: int | None = None,
-                 root: int | None = None) -> dict:
+                 root: int | None = None, offset: int | None = None) -> dict:
     """Content elements whose headline, text or HTML contains `text` (core v1.10.0).
 
     Each result carries the field, a plain-text snippet, the element's visibility, its
@@ -68,6 +68,8 @@ def content_find(backend: ContaoBackend, text: str, limit: int | None = None,
         cmd += f" --limit={int(limit)}"
     if root is not None:
         cmd += f" --root={int(root)}"
+    if offset:
+        cmd += f" --offset={int(offset)}"  # core v1.12.0
     # `--` ends the options: a text like "-20% Rabatt" would otherwise be read as one
     # once the remote shell has removed the quotes (Fable review 2026-10-20).
     return run_json_or_raw(backend, f"{cmd} -- {shlex.quote(text)}")
@@ -78,11 +80,19 @@ def content_read(backend: ContaoBackend, content_id: int) -> dict:
     return run_json_or_raw(backend, f"contao:content:read {content_id}")
 
 
-def content_create(backend: ContaoBackend, type: str, pid: int,
-                   ptable: str = "tl_article", fields: dict | None = None) -> dict:
-    """Create a content element via contao-ai-core-bundle."""
-    cmd = (f"contao:content:create --type={shlex.quote(type)} --pid={pid} "
-           f"--ptable={shlex.quote(ptable)} --no-interaction")
+def content_create(backend: ContaoBackend, type: str, pid: int | None,
+                   ptable: str = "tl_article", fields: dict | None = None,
+                   after: int | None = None) -> dict:
+    """Create a content element via contao-ai-core-bundle.
+
+    `after` (core v1.12.0) puts it directly behind that element, below its parent and
+    parent table — so neither --pid nor --ptable goes along; the core refuses them.
+    """
+    if after is not None:
+        cmd = f"contao:content:create --type={shlex.quote(type)} --after={int(after)} --no-interaction"
+    else:
+        cmd = (f"contao:content:create --type={shlex.quote(type)} --pid={pid} "
+               f"--ptable={shlex.quote(ptable)} --no-interaction")
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)

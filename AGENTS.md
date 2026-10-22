@@ -501,6 +501,7 @@ contao-ai-cli --json content list --article 1   # direct elements only (v0.28.0)
 # with noindex (staging, a showcase) is never in it.
 contao-ai-cli --json content find "A powerful CMS"
 contao-ai-cli --json content find "Über uns" --root 1   # one website or language
+contao-ai-cli --json content find "digital" --limit 50 --offset 50   # the next page while more: true (core v1.12.0)
 # With changelanguage each hit names the linked versions of its page and article in the
 # other languages (`versions`, core v1.11.0); see "Translation links" below.
 
@@ -511,6 +512,12 @@ contao-ai-cli --json page create --title "New Page" --pid 1 --type regular
 # A regular page comes with its first article (`articles` in the answer) — put content
 # there. article create only for a further article, e.g. another layout column:
 contao-ai-cli --json article create --title "Sidebar" --pid 12 --column right
+# Between two existing ones: --after <sibling ID> instead of --pid — the new record goes
+# directly behind it, below the same parent (and for an element its parent table), as
+# `move --after` places it. Do not compute --set sorting yourself (core v1.12.0).
+contao-ai-cli --json content create --type text --after 640 --text '<p>In between</p>'
+contao-ai-cli --json article create --title "Second" --after 12
+contao-ai-cli --json page create --title "Between A and C" --after 21
 
 # Content elements — the value formats, as schema does not show them
 contao-ai-cli --json content create --type headline --pid 7 --set headline="Title" --set headline_unit=h1

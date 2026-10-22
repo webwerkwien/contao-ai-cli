@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.14.0 - 2026-10-22
+
+Needs contao-ai-core-bundle v1.12.0 for `--after` and `--offset`; everything else works
+with the core versions v1.13.1 worked with.
+
+From the Consho documentation work on consho.eu (2026-10-22).
+
+### Added
+
+- **`--after <ID>` for `page create`, `article create` and `content create`** — the new
+  record goes directly behind that sibling, below its parent (an element also takes its
+  parent table), as `move --after` places it. Instead of `--pid`: with `--after` the CLI
+  sends neither `--pid` nor `--ptable`, and refuses them when given. Until now an element
+  between two others meant computing `--set sorting=` by hand.
+- **`content find --offset`** — the next page of results while the answer says
+  `more: true`; up to 50 per call.
+
+### Changed
+
+- `content create` and `article create` no longer require `--pid` when `--after` is
+  given; one of the two is required. `page create` keeps `--pid 0` as its default.
+
 ## v1.13.1 - 2026-10-20
 
 Works with the core versions v1.13.0 worked with; the new answers come from

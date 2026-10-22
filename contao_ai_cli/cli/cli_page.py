@@ -63,8 +63,10 @@ def page_read_cmd(ctx, page_id, as_json):
 
 @page.command("create")
 @click.option("--title", required=True, help="Page title")
-@click.option("--pid", type=int, default=0, show_default=True,
-              help="Parent page ID; 0 (the top level) only for --type root — core-bundle v1.2.0 refuses anything else there, as the back end does")
+@click.option("--pid", type=int, default=None,
+              help="Parent page ID  [default: 0]; 0 (the top level) only for --type root — core-bundle v1.2.0 refuses anything else there, as the back end does")
+@click.option("--after", type=click.IntRange(min=1), default=None,
+              help="Page ID -- the new page goes directly behind it, below the same parent (instead of --pid; core-bundle v1.12.0)")
 @click.option("--type", "page_type", default="regular", show_default=True, help="Page type (regular, root, …)")
 @click.option("--alias", default="", help="Page alias (auto-generated if omitted)")
 @click.option("--language", default="de", show_default=True,
@@ -72,16 +74,19 @@ def page_read_cmd(ctx, page_id, as_json):
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE", help="Extra fields, e.g. --set robots=noindex")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def page_create_cmd(ctx, title, pid, page_type, alias, language, fields, as_json):
+def page_create_cmd(ctx, title, pid, after, page_type, alias, language, fields, as_json):
     """Create a page via contao-ai-core-bundle.
 
+    At the end of the parent with --pid, or directly behind another page with --after.
     A regular page comes with its first article, named under `articles` in the
     answer - put content there rather than creating another article.
     """
+    if after is not None and pid is not None:
+        raise click.UsageError("--after takes the parent of that page; leave out --pid.")
     _require_core_bundle(ctx, "page create")
     parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
-    _output(page_mod.page_create(b, title, pid, page_type, alias, language, parsed),
+    _output(page_mod.page_create(b, title, pid or 0, page_type, alias, language, parsed, after=after),
             as_json or ctx.obj.get("as_json"))
 
 

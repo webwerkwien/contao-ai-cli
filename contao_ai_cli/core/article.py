@@ -23,10 +23,16 @@ def article_read(backend: ContaoBackend, article_id: int) -> dict:
     return run_json_or_raw(backend, f"contao:article:read {article_id}")
 
 
-def article_create(backend: ContaoBackend, title: str, pid: int,
-                   in_column: str = "main", fields: dict | None = None) -> dict:
-    """Create an article via contao-ai-core-bundle."""
-    cmd = (f"contao:article:create --title={shlex.quote(title)} --pid={pid} "
+def article_create(backend: ContaoBackend, title: str, pid: int | None,
+                   in_column: str = "main", fields: dict | None = None,
+                   after: int | None = None) -> dict:
+    """Create an article via contao-ai-core-bundle.
+
+    `after` (core v1.12.0) puts it directly behind that article, on its page; --pid
+    does not go along then.
+    """
+    where = f"--after={int(after)}" if after is not None else f"--pid={pid}"
+    cmd = (f"contao:article:create --title={shlex.quote(title)} {where} "
            f"--inColumn={shlex.quote(in_column)} --no-interaction")
     if fields:
         cmd += " " + build_set_args(fields)

@@ -44,17 +44,24 @@ def article_read_cmd(ctx, article_id, as_json):
 
 @article.command("create")
 @click.option("--title", required=True, help="Article title")
-@click.option("--pid", type=int, required=True, help="Parent page ID")
+@click.option("--pid", type=int, default=None, help="Parent page ID; or --after")
+@click.option("--after", type=click.IntRange(min=1), default=None,
+              help="Article ID -- the new article goes directly behind it, on the same page (instead of --pid; core-bundle v1.12.0)")
 @click.option("--column", "in_column", default="main", show_default=True, help="Layout column")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def article_create_cmd(ctx, title, pid, in_column, fields, as_json):
-    """Create an article via contao-ai-core-bundle."""
+def article_create_cmd(ctx, title, pid, after, in_column, fields, as_json):
+    """Create an article via contao-ai-core-bundle.
+
+    At the end of the page with --pid, or directly behind another article with --after.
+    """
+    if (pid is None) == (after is None):
+        raise click.UsageError("Give either --pid <page ID> (at the end) or --after <article ID> (directly behind it).")
     _require_core_bundle(ctx, "article create")
     parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
-    _output(article_mod.article_create(b, title, pid, in_column, parsed),
+    _output(article_mod.article_create(b, title, pid, in_column, parsed, after=after),
             as_json or ctx.obj.get("as_json"))
 
 

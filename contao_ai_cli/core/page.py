@@ -52,9 +52,14 @@ def page_read(backend: ContaoBackend, page_id: int) -> dict:
 
 def page_create(backend: ContaoBackend, title: str, pid: int = 0,
                 type: str = "regular", alias: str = "", language: str = "de",
-                fields: dict | None = None) -> dict:
-    """Create a page via contao-ai-core-bundle."""
-    cmd = (f"contao:page:create --title={shlex.quote(title)} --pid={pid} "
+                fields: dict | None = None, after: int | None = None) -> dict:
+    """Create a page via contao-ai-core-bundle.
+
+    `after` (core v1.12.0) puts it directly behind that page, below its parent; --pid
+    does not go along then.
+    """
+    where = f"--after={int(after)}" if after is not None else f"--pid={pid}"
+    cmd = (f"contao:page:create --title={shlex.quote(title)} {where} "
            f"--type={shlex.quote(type)} --language={shlex.quote(language)} --no-interaction")
     if alias:
         cmd += f" --alias={shlex.quote(alias)}"

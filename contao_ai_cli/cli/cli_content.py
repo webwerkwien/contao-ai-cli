@@ -36,9 +36,11 @@ def content_list_cmd(ctx, article_id, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max results (1-50, server default 20)")
 @click.option("--root", "root_id", type=int, default=None,
               help="Only elements below this root page, e.g. the one of a language")
+@click.option("--offset", type=click.IntRange(min=0), default=None,
+              help="Results to skip -- the next page when the answer says more: true (core-bundle v1.12.0)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def content_find_cmd(ctx, text, limit, root_id, as_json):
+def content_find_cmd(ctx, text, limit, root_id, offset, as_json):
     """Find content elements by their text (headline, text, HTML). Needs core-bundle v1.10.0.
 
     Each result names the element with its article, page, root and the root's
@@ -48,7 +50,7 @@ def content_find_cmd(ctx, text, limit, root_id, as_json):
     """
     _require_core_bundle(ctx, "content find")
     b = _get_backend(ctx.obj.get("session"))
-    _output(content_mod.content_find(b, text, limit, root_id), as_json or ctx.obj.get("as_json"))
+    _output(content_mod.content_find(b, text, limit, root_id, offset), as_json or ctx.obj.get("as_json"))
 
 
 @content.command("read")
@@ -64,20 +66,30 @@ def content_read_cmd(ctx, content_id, as_json):
 
 @content.command("create")
 @click.option("--type", "el_type", required=True, help="Element type (text, headline, image, …)")
-@click.option("--pid", type=int, required=True, help="Parent ID (article ID)")
-@click.option("--ptable", default="tl_article", show_default=True, help="Parent table")
+@click.option("--pid", type=int, default=None, help="Parent ID (article ID); or --after")
+@click.option("--ptable", default=None, help="Parent table  [default: tl_article]")
+@click.option("--after", type=click.IntRange(min=1), default=None,
+              help="Element ID -- the new element goes directly behind it, below the same parent (instead of --pid; core-bundle v1.12.0)")
 @click.option("--text", default=None, help="Shortcut for --set text=VALUE")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def content_create_cmd(ctx, el_type, pid, ptable, text, fields, as_json):
-    """Create a content element via contao-ai-core-bundle."""
+def content_create_cmd(ctx, el_type, pid, ptable, after, text, fields, as_json):
+    """Create a content element via contao-ai-core-bundle.
+
+    At the end of its parent with --pid, or directly behind another element with
+    --after -- then it takes that element's parent and parent table.
+    """
+    if (pid is None) == (after is None):
+        raise click.UsageError("Give either --pid <article ID> (at the end) or --after <element ID> (directly behind it).")
+    if after is not None and ptable is not None:
+        raise click.UsageError("--after takes the parent table of that element; leave out --ptable.")
     _require_core_bundle(ctx, "content create")
     parsed = parse_set_fields(fields)
     if text is not None:
         parsed.setdefault("text", text)
     b = _get_backend(ctx.obj.get("session"))
-    _output(content_mod.content_create(b, el_type, pid, ptable, parsed),
+    _output(content_mod.content_create(b, el_type, pid, ptable or "tl_article", parsed, after=after),
             as_json or ctx.obj.get("as_json"))
 
 
