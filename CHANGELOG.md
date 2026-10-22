@@ -25,6 +25,9 @@ From the Consho documentation work on consho.eu (2026-10-22).
 
 - `content create` and `article create` no longer require `--pid` when `--after` is
   given; one of the two is required. `page create` keeps `--pid 0` as its default.
+- `article create` sends `--column` only when given: without it the core places the
+  article in `main`, or with `--after` in the column of that article. "main" always went
+  along before and would have overridden the sibling's column.
 
 ## v1.13.1 - 2026-10-20
 

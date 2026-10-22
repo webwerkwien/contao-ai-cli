@@ -57,8 +57,18 @@ def test_article_create_after_sends_no_pid():
 
     assert result.exit_code == 0, result.output
     assert "--after=2881" in sent and "--pid" not in sent
+    # no column given: the core takes the sibling's, so none is sent
+    assert "--inColumn" not in sent
     result, sent = _invoke(article, "cli_article", ["create", "--title", "X"])
     assert result.exit_code == 2 and sent is None
+
+
+def test_article_create_sends_a_column_only_when_given():
+    result, sent = _invoke(article, "cli_article", ["create", "--title", "Haupt", "--after", "12", "--column", "main"])
+    assert "--inColumn=main" in sent
+
+    result, sent = _invoke(article, "cli_article", ["create", "--title", "Neu", "--pid", "4"])
+    assert "--pid=4" in sent and "--inColumn" not in sent  # the core's default is main
 
 
 def test_page_create_after_sends_no_pid_and_without_both_stays_at_the_top():

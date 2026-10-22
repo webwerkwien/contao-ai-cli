@@ -47,7 +47,8 @@ def article_read_cmd(ctx, article_id, as_json):
 @click.option("--pid", type=int, default=None, help="Parent page ID; or --after")
 @click.option("--after", type=click.IntRange(min=1), default=None,
               help="Article ID -- the new article goes directly behind it, on the same page (instead of --pid; core-bundle v1.12.0)")
-@click.option("--column", "in_column", default="main", show_default=True, help="Layout column")
+@click.option("--column", "in_column", default=None,
+              help="Layout column  [default: main; with --after the column of that article]")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context

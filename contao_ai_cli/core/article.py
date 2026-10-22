@@ -24,16 +24,19 @@ def article_read(backend: ContaoBackend, article_id: int) -> dict:
 
 
 def article_create(backend: ContaoBackend, title: str, pid: int | None,
-                   in_column: str = "main", fields: dict | None = None,
+                   in_column: str | None = "main", fields: dict | None = None,
                    after: int | None = None) -> dict:
     """Create an article via contao-ai-core-bundle.
 
     `after` (core v1.12.0) puts it directly behind that article, on its page; --pid
-    does not go along then.
+    does not go along then. Without a column the core decides: main, or with `after`
+    the column of that article -- so none is sent (review v1.14.0: "main" always went
+    along and overrode it).
     """
     where = f"--after={int(after)}" if after is not None else f"--pid={pid}"
-    cmd = (f"contao:article:create --title={shlex.quote(title)} {where} "
-           f"--inColumn={shlex.quote(in_column)} --no-interaction")
+    cmd = f"contao:article:create --title={shlex.quote(title)} {where} --no-interaction"
+    if in_column:
+        cmd += f" --inColumn={shlex.quote(in_column)}"
     if fields:
         cmd += " " + build_set_args(fields)
     return run_json_or_raw(backend, cmd)
