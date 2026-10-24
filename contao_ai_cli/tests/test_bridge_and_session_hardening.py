@@ -21,7 +21,7 @@ from contao_ai_cli.core.backend_bridge import BackendBridgeClient, BridgeError, 
 from contao_ai_cli.cli.cli_connect import _host_key_notice
 
 
-class TestM2QuotedValuesSurvive:
+class TestQuotedValuesSurvive:
     """
     `" ".join(cmd.split())` normalised the whole command after quoting, so a
     value containing a newline or two spaces was silently rewritten and the
@@ -91,7 +91,7 @@ class TestM2QuotedValuesSurvive:
         assert offenders == [], f"a command is normalised after quoting again: {offenders}"
 
 
-class TestM1SessionPermissions:
+class TestSessionPermissions:
     def test_an_existing_file_gets_its_mode_tightened(self, tmp_path):
         # os.open()'s mode applies only on creation, so a file that was once
         # 0644 kept 0644 while a bearer token was written into it.
@@ -119,7 +119,7 @@ class TestM1SessionPermissions:
         assert json.loads(path.read_text(encoding="utf-8"))["host"] == "example.com"
 
 
-class TestC1BridgeUrl:
+class TestBridgeUrl:
     @pytest.mark.parametrize("url", [
         "http://example.com",
         "http://localhost:8000",
@@ -157,7 +157,7 @@ class TestC1BridgeUrl:
         assert any(isinstance(h, _NoRedirect) for h in client._opener.handlers)
 
 
-class TestH10HostKeyNotice:
+class TestHostKeyNotice:
     def test_a_first_contact_is_reported(self):
         stderr = "Warning: Permanently added 'example.com' (ED25519) to the list of known hosts."
 
