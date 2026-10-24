@@ -83,6 +83,9 @@ environment the code sets.
 - **No internals in the CHANGELOG** — nor in the GitHub release notes, which copy it: no names, no review or
   acceptance tags, no servers or hosts, no test data, no keys or key IDs. Only what changes for the people using
   the CLI.
+  Removing internals is not announced either: nothing like "no longer refers to" or "removed internal
+  references" — that says there were some, and the diff between the tags shows them. Done with a regular
+  release, it goes unmentioned; on its own, the entry reads "Overhaul of code comments and the agent guide."
 
 Every scanning test needs a counter and at least one known non-match. A search
 that finds nothing passes exactly like one that finds everything.
