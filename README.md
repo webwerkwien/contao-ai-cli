@@ -90,7 +90,7 @@ access and answer questions in the chat.
    type it themselves at the hidden prompt of `contao-ai-cli --session <site> bridge configure --url https://…`,
    or paste it in the chat and you pipe it: `… bridge configure --url https://… --token-stdin --test`.
 7. **Finish** with `contao-ai-cli --session <site> health`.
-8. **Read the guide** before the first write: `contao-ai-cli guide` prints `AGENTS.md` for
+8. **Read the guide** before the first write: `contao-ai-cli guide` prints `GUIDE.md` for
    the installed version: what the answers mean, what is refused, when to clear the cache.
 
 Without a Contao Manager, `bundle install` refuses until the needed `allow-plugins` are in

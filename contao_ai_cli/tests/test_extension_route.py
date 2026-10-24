@@ -151,15 +151,15 @@ class TestHealthNamesTheComposerRoute:
 class TestTheGuideSaysWhereTheBoundaryRuns:
     """The code half is worthless if the guide still leaves the question unanswered."""
 
-    def test_agents_md_has_the_section(self):
-        text = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+    def test_guide_has_the_section(self):
+        text = (REPO / "GUIDE.md").read_text(encoding="utf-8")
         assert "### Installing an extension this CLI does not manage" in text
 
     def test_readme_has_the_section(self):
         text = (REPO / "README.md").read_text(encoding="utf-8")
         assert "### Installing an extension this CLI does not manage" in text
 
-    @pytest.mark.parametrize("doc", ["AGENTS.md", "README.md"])
+    @pytest.mark.parametrize("doc", ["GUIDE.md", "README.md"])
     def test_the_section_names_the_dry_run_and_the_stale_schema(self, doc):
         text = (REPO / doc).read_text(encoding="utf-8")
         section = text.split("Installing an extension this CLI does not manage", 1)[1]
@@ -168,9 +168,9 @@ class TestTheGuideSaysWhereTheBoundaryRuns:
         assert "schema sync" in section
         assert "allow-plugins" in section
 
-    def test_agents_md_states_that_this_is_outside_the_cli(self):
+    def test_guide_states_that_this_is_outside_the_cli(self):
         """Without this sentence the "do not go around this CLI" rule reads as covering it."""
-        text = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+        text = (REPO / "GUIDE.md").read_text(encoding="utf-8")
         section = text.split("Installing an extension this CLI does not manage", 1)[1]
         section = re.split(r"\n### ", section, maxsplit=1)[0]
         assert "outside this CLI" in section

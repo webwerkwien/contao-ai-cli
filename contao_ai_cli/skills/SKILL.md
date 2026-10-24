@@ -15,7 +15,7 @@ to be installed on the target site.
 contao-ai-cli guide
 ```
 
-It prints `AGENTS.md` for the installed version: what each answer means, which writes
+It prints `GUIDE.md` for the installed version: what each answer means, which writes
 are refused and why, when a cache clear is needed, and what not to do with a site.
 
 ## Prerequisites

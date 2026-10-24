@@ -27,7 +27,7 @@ mislead a calling agent. Everything else is a nit.
 Specifically Important, because each has happened:
 
 - **A changed return value or a new field, without a matching change to
-  `AGENTS.md`.** The doc tests stay green through this — they check the command
+  `GUIDE.md`.** The doc tests stay green through this — they check the command
   tree, not the answer. This has slipped through twice.
 - A secret passed as a command-line argument where stdin is available.
 - A measurement or reproduction taken in a different environment than the code

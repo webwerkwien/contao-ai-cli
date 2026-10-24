@@ -2,9 +2,9 @@
 The documentation must describe commands that exist.
 
 README.md promised `page … update, delete, publish` and the agent guide (CLAUDE.md
-until v0.26.0, AGENTS.md since) gave two literal
+until v0.26.0, then AGENTS.md, now GUIDE.md) gave two literal
 examples — `content update --id 5` and `news delete --id 3` — for commands the CLI
-did not have, with an option spelling it never used. AGENTS.md is the agent guide:
+did not have, with an option spelling it never used. GUIDE.md is the agent guide:
 it is exactly what a caller reads to decide what to invoke. These tests pin the
 docs to the real command tree so the promise cannot drift from the product again.
 
@@ -19,11 +19,11 @@ calling agent reasons from — said nothing about it.
 That is not a weakness of the tests but their boundary. It is written down
 because their green is otherwise read as a statement about something they never
 looked at, and the file name says "docs match cli" without qualifying which
-half. If what a caller sees has changed, no test covers it — that is step 3 of
-the release round in the `contao-ai-status` skill.
+half. If what a caller sees has changed, no test covers it: GUIDE.md changes in
+the same commit.
 
 There is a second half to that boundary, and it is the harder one: these tests
-see one repository. The behaviour a sentence in AGENTS.md describes does not
+see one repository. The behaviour a sentence in GUIDE.md describes does not
 have to live in the same repository as the sentence.
 
 Core-bundle v0.7.0 started refusing non-boolean values for boolean
@@ -46,7 +46,7 @@ import pytest
 from contao_ai_cli.contao_cli import cli
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-DOCS = [REPO / "README.md", REPO / "AGENTS.md"]
+DOCS = [REPO / "README.md", REPO / "GUIDE.md"]
 
 
 def command_tree() -> dict:

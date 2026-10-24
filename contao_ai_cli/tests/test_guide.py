@@ -23,29 +23,29 @@ def run(*args):
 def test_prints_the_guide_of_this_checkout():
     result = run("guide")
     assert result.exit_code == 0, result.output
-    assert result.output == (REPO / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.output == (REPO / "GUIDE.md").read_text(encoding="utf-8")
 
 
 def test_path_prints_only_the_location():
     # In a checkout nothing sits inside the package, so the repo root must be found.
     result = run("guide", "--path")
     assert result.exit_code == 0
-    assert pathlib.Path(result.output.strip()) == REPO / "AGENTS.md"
+    assert pathlib.Path(result.output.strip()) == REPO / "GUIDE.md"
 
 
 def test_json_carries_version_path_and_text():
     data = json.loads(run("--json", "guide").output)
     assert data["version"] == cli_guide.__version__
-    assert pathlib.Path(data["path"]) == REPO / "AGENTS.md"
-    assert data["text"] == (REPO / "AGENTS.md").read_text(encoding="utf-8")
+    assert pathlib.Path(data["path"]) == REPO / "GUIDE.md"
+    assert data["text"] == (REPO / "GUIDE.md").read_text(encoding="utf-8")
     assert "text" not in json.loads(run("--json", "guide", "--path").output)
 
 
 def test_the_copy_inside_the_package_wins(tmp_path, monkeypatch):
     package = tmp_path / "site-packages" / "contao_ai_cli"
     package.mkdir(parents=True)
-    (package / "AGENTS.md").write_text("packaged", encoding="utf-8")
-    (package.parent / "AGENTS.md").write_text("stray", encoding="utf-8")
+    (package / "GUIDE.md").write_text("packaged", encoding="utf-8")
+    (package.parent / "GUIDE.md").write_text("stray", encoding="utf-8")
     monkeypatch.setattr(cli_guide, "_PACKAGE_DIR", package)
     assert run("guide").output == "packaged"
 
@@ -56,7 +56,7 @@ def test_missing_guide_fails_and_says_where_to_find_it(tmp_path, monkeypatch):
     monkeypatch.setattr(cli_guide, "_PACKAGE_DIR", package)
     result = run("guide")
     assert result.exit_code == 1
-    assert "github.com/webwerkwien/contao-ai-cli/blob/main/AGENTS.md" in result.output
+    assert "github.com/webwerkwien/contao-ai-cli/blob/main/GUIDE.md" in result.output
     assert f"pipx install --force git+https://github.com/webwerkwien/contao-ai-cli.git@v{cli_guide.__version__}" in result.output
 
 
@@ -65,14 +65,14 @@ def test_guide_triggers_no_update_check():
     assert "guide" in update_notice.SKIPPED
 
 
-def test_agents_md_names_every_command_the_notice_skips():
-    text = " ".join((REPO / "AGENTS.md").read_text(encoding="utf-8").split())
+def test_guide_names_every_command_the_notice_skips():
+    text = " ".join((REPO / "GUIDE.md").read_text(encoding="utf-8").split())
     start = text.index("Skipped for ")
     sentence = text[start:text.index("--help", start)]
     names = [n for n in update_notice.SKIPPED if n]
     assert len(names) == 8
     for name in names:
-        assert f"`{name}`" in sentence, f"AGENTS.md does not say the notice skips `{name}`"
+        assert f"`{name}`" in sentence, f"GUIDE.md does not say the notice skips `{name}`"
     assert "`page`" not in sentence  # known non-match: an ordinary command is not listed
 
 
@@ -95,13 +95,25 @@ def test_the_build_copies_the_guide_into_the_package(tmp_path, monkeypatch):
     build.ensure_finalized()
     build.run()
 
-    target = tmp_path / "contao_ai_cli" / "AGENTS.md"
-    assert target.read_bytes() == (REPO / "AGENTS.md").read_bytes()
+    target = tmp_path / "contao_ai_cli" / "GUIDE.md"
+    assert target.read_bytes() == (REPO / "GUIDE.md").read_bytes()
     assert str(target) in build.get_outputs()
-    assert build.get_output_mapping()[str(target)] == str(REPO / "AGENTS.md")
+    assert build.get_output_mapping()[str(target)] == str(REPO / "GUIDE.md")
+    # The development guide stays in the repository.
+    assert not (tmp_path / "contao_ai_cli" / "AGENTS.md").exists()
 
 
 def test_claude_md_only_imports_the_shared_guide():
     text = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
     assert "@AGENTS.md" in text
     assert len(text.splitlines()) < 5
+
+
+def test_the_guide_carries_no_development_notes():
+    # GUIDE.md reaches every installation; how to work on the CLI stays in AGENTS.md.
+    guide = (REPO / "GUIDE.md").read_text(encoding="utf-8")
+    agents = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+    for marker in ("## Working on this CLI", "python -m pytest", "CHANGELOG"):
+        assert marker not in guide, f"GUIDE.md carries {marker!r}"
+    assert "## Working on this CLI" in agents  # known match: the section exists, just elsewhere
+    assert "## Step 1" in guide and "## Step 1" not in agents

@@ -8,19 +8,20 @@ HERE = Path(__file__).resolve().parent
 
 
 class BuildWithGuide(build_py):
-    """Copy AGENTS.md from the repository root into the package.
+    """Copy GUIDE.md from the repository root into the package.
 
-    The agent guide has to sit at the root, where coding agents look for it,
-    and package_data cannot reach outside the package directory. Without this
-    copy an installed CLI carries no guide at all (`contao-ai-cli guide`, v0.26.0).
+    The guide sits at the root next to README, and package_data cannot reach
+    outside the package directory. Without this copy an installed CLI carries no
+    guide at all (`contao-ai-cli guide`, v0.26.0). AGENTS.md, the development
+    guide, stays in the repository.
     """
 
     def _guide_target(self) -> str:
-        return str(Path(self.build_lib) / "contao_ai_cli" / "AGENTS.md")
+        return str(Path(self.build_lib) / "contao_ai_cli" / "GUIDE.md")
 
     def run(self):
         super().run()
-        source = HERE / "AGENTS.md"
+        source = HERE / "GUIDE.md"
         if not source.is_file():
             # Fail the build rather than ship a package whose `guide` cannot work.
             raise FileNotFoundError(f"{source} is missing; the guide ships in the package since v0.26.0")
@@ -35,7 +36,7 @@ class BuildWithGuide(build_py):
 
     def get_output_mapping(self):
         mapping = dict(super().get_output_mapping())
-        mapping[self._guide_target()] = str(HERE / "AGENTS.md")
+        mapping[self._guide_target()] = str(HERE / "GUIDE.md")
         return mapping
 
 

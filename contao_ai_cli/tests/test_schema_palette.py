@@ -105,9 +105,9 @@ class TestTheCommandExists:
 
 
 class TestTheGuideSaysWhyItMatters:
-    def test_agents_md_names_the_two_html_elements(self):
+    def test_guide_names_the_two_html_elements(self):
         """The command alone does not help anyone who does not know the trap exists."""
-        text = (REPO / "AGENTS.md").read_text(encoding="utf-8")
+        text = (REPO / "GUIDE.md").read_text(encoding="utf-8")
         assert "schema palette" in text
         assert "unfilteredHtml" in text and "unfiltered_html" in text
 
