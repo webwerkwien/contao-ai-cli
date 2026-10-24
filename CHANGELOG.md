@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.14.1 - 2026-10-24
+
+Works with the same core versions as v1.14.0.
+
+### Changed
+
+- Overhaul of code comments and the agent guide (`contao-ai-cli guide`). No change in behaviour.
+
 ## v1.14.0 - 2026-10-22
 
 Needs contao-ai-core-bundle v1.12.0 for `--after` and `--offset`; everything else works
