@@ -21,7 +21,7 @@ def _run_with_password(backend: ContaoBackend, cmd: str, password: str, command:
     """Run a command that reads the password from stdin, and name a missing command plainly.
 
     The password travels on the ssh channel's stdin, never on a command line — neither the
-    local ssh process's nor the remote php process's (audit 2026-09-02, H3).
+    local ssh process's nor the remote php process's.
     """
     try:
         result = backend.run(cmd, stdin_data=f"{password}\n")
@@ -44,8 +44,8 @@ def member_create(backend: ContaoBackend, username: str, password: str,
 
     Until v0.27.0 this called `contao:member:create --password=…`, a command the
     core-bundle never had: every call failed, with a message that promised it for "v1.x+".
-    Found in the regression run before 1.0 (2026-09-18). The password was also meant to
-    go onto the command line (the H3 TODO that stood here). Now it goes on stdin.
+    Found in the regression run before 1.0. The password was also meant to
+    go onto the command line (the TODO that stood here). Now it goes on stdin.
     """
     cmd = join_args(
         "contao:member:create",

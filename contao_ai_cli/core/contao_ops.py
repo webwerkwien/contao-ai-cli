@@ -157,7 +157,7 @@ def record_list(backend: ContaoBackend, table: str, *, fields=None, filters=None
     **And the parsing itself could go wrong silently.** Symfony renders a
     table for humans; parse_table() cut it back apart by column position. That
     breaks on anything whose display width differs from its character count —
-    it did on 2026-05-09, when UTF-8 umlauts shifted every column right of them
+    it did once, when UTF-8 umlauts shifted every column right of them
     and "Jährliche Konferenz" came back as "Jährliche Konferen", with a success
     status. A value containing a newline breaks it the same way.
     """
@@ -243,8 +243,8 @@ def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict
     Needs core-bundle >= v0.2.15 for `--ids`. The server loops; each record still
     gets its own version and its own system-log entry, so the audit trail is
     identical to running the command once per ID. Only the connection is shared —
-    and that is where the time went: of the 1.4 s a single record cost on
-    2026-08-29, 0.67 s was establishing the SSH connection.
+    and that is where the time went: of the 1.4 s a single record cost,
+    0.67 s was establishing the SSH connection.
 
     Returns the summary payload: total, succeeded, failed, ids, errors.
     """
@@ -266,7 +266,7 @@ def run_bulk_update(backend, command: str, ids: list[int], fields: dict) -> dict
             ) from None
         return {"raw": result["stdout"]}
 
-    # Audit 2026-09-02 (M-3): a partial run used to end here with exit code 0.
+    # A partial run used to end here with exit code 0.
     # The server exits non-zero on purpose so a caller notices, and swallowing
     # that turned "3 of 5 records updated" into a success for every shell script
     # checking $?. An agent reading the JSON saw `failed` and `errors`; a
@@ -309,7 +309,7 @@ def join_args(*parts) -> str:
     """
     Join command parts with single spaces, dropping the empty ones.
 
-    Audit 2026-09-02 (M-2). Five call sites used to build the command with an
+    Five call sites used to build the command with an
     f-string and then tidy it with `" ".join(cmd.split())`, because
     `build_set_args({})` returns "" and left a double space behind.
 

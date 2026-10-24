@@ -3,7 +3,7 @@ The self-update check asks the same source the installer installs from.
 
 `install_cli_update()` runs `pipx install git+…@v<x>`, so a **tag** is what
 "available" means. The check asked `releases/latest` instead — a different
-source — and on 2026-08-31 the two were found three versions apart: releases
+source — and once the two were found three versions apart: releases
 stopped at v0.5.2 while tags carried on to v0.8.0.
 
 Nothing looked wrong. `is_newer_version("0.5.2", "0.8.0")` is False, so the

@@ -1,4 +1,4 @@
-"""connect runs once per site and is the only step that needed a terminal -- no more (2026-09-17)."""
+"""connect runs once per site and is the only step that needed a terminal -- no more."""
 import json
 from unittest.mock import MagicMock, patch
 
@@ -42,7 +42,7 @@ def test_a_failed_connection_saves_nothing(tmp_path):
 
 
 def test_a_root_rewritten_by_git_bash_is_named_on_failure(tmp_path):
-    """Git Bash turned `--root /var/www/...` into `C:/Program Files/Git/var/www/...` (2026-09-18)."""
+    """Git Bash turned `--root /var/www/...` into `C:/Program Files/Git/var/www/...`."""
     backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
     for root in ("C:/Program Files/Git/var/www/web", "C:/Git/home/site", "D:/Tools/PortableGit/srv/contao",
                  "C:\\Program Files\\Git\\var\\www\\web"):
@@ -51,8 +51,8 @@ def test_a_root_rewritten_by_git_bash_is_named_on_failure(tmp_path):
 
 
 def test_any_folder_behind_the_git_directory_gets_the_hint(tmp_path):
-    """showcase.conpai.eu, 2026-10-13: `--root /web` arrived as `C:/Program Files/Git/web`,
-    no slash behind it, and hosts use html/, htdocs/, public_html/ (Michael)."""
+    """`--root /web` arrived as `C:/Program Files/Git/web`, no slash behind it, and
+    hosts use html/, htdocs/, public_html/."""
     backend = MagicMock(**{"run.side_effect": ContaoBackendError("cd: No such file or directory")})
     with patch("contao_ai_cli.cli.cli_connect._local_git_roots", return_value=[]):
         for root in ("C:/Program Files/Git/web", "C:/Program Files/Git/html", "C:/Program Files/Git/htdocs",
@@ -71,7 +71,7 @@ def test_git_installed_elsewhere_is_found_on_this_machine(tmp_path):
 
 
 def test_on_linux_and_macos_a_failed_root_gets_no_git_bash_hint(tmp_path, monkeypatch):
-    """Review v1.7.0: git in /usr/bin made "/" the Git root, and every --root matched."""
+    """git in /usr/bin made "/" the Git root, and every --root matched."""
     from contao_ai_cli.cli import cli_connect
     monkeypatch.delenv("EXEPATH", raising=False)
     monkeypatch.setattr(cli_connect.shutil, "which", lambda name: "/usr/bin/git")
@@ -121,7 +121,7 @@ def test_reconnecting_keeps_the_bridge(tmp_path):
 
 
 def test_a_broken_session_file_is_repaired_not_a_crash(tmp_path):
-    """Review 2026-09-17: load_session raised on an empty file, so reconnecting crashed."""
+    """load_session raised on an empty file, so reconnecting crashed."""
     (tmp_path / "shop.json").write_text("", encoding="utf-8")
     result = invoke(tmp_path)
     assert result.exit_code == 0
@@ -143,7 +143,7 @@ def test_nothing_is_installed_or_backed_up(tmp_path):
 
 def test_a_first_contact_is_reported_as_host_key_accepted(tmp_path):
     """v0.20.0 released this field as `host_key_accepted`; renaming it to
-    camelCase was an undocumented break (review 2026-09-17)."""
+    camelCase was an undocumented break."""
     backend = MagicMock(**{"run.return_value": {
         "stdout": "Contao 5.7.13",
         "stderr": "Warning: Permanently added 'h' (ED25519) to the list of known hosts.",

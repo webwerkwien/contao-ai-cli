@@ -65,8 +65,8 @@ def file_delete_cmd(ctx, path, force, yes, as_json):
     """
     _require_core_bundle(ctx, "file delete")
     # Not confirm_delete: that one proceeds when nobody answers, which is right where
-    # tl_undo holds the record. Files have no undo, and the review of 2026-09-16 showed
-    # how much one wrong path can take — so only --yes or a typed yes deletes.
+    # tl_undo holds the record. Files have no undo, and one wrong path can take a
+    # whole folder with it — so only --yes or a typed yes deletes.
     if not yes and not confirm_escalation(f"Delete {path}? Files cannot be restored."):
         _output({
             "status": "error",
@@ -86,7 +86,7 @@ def file_delete_cmd(ctx, path, force, yes, as_json):
 
 @file.command("move")
 @click.option("--path", required=True, help="File or folder below files/, e.g. files/conpai/bot.svg")
-@click.option("--to", "to", required=True, help="Folder to move it into, e.g. files/conpai-consho/layout — files for the root")
+@click.option("--to", "to", required=True, help="Folder to move it into, e.g. files/theme/layout — files for the root")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def file_move_cmd(ctx, path, to, as_json):
@@ -200,7 +200,7 @@ def file_meta_cmd(ctx, path, lang, fields, as_json):
     _require_core_bundle(ctx, "file meta")
     # parse_set_fields, not a parse of its own: it is the only place that collects
     # the `--set-file` values, and a command that parses `--set` by hand accepts
-    # `--set-file`, drops it and answers ok (found in review 2026-09-24).
+    # `--set-file`, drops it and answers ok (fixed before release).
     parsed = parse_set_fields(fields)
     b = _get_backend(ctx.obj.get("session"))
     _output(file_mod.file_meta_update(b, path, parsed, lang), as_json or ctx.obj.get("as_json"))

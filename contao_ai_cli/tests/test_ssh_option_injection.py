@@ -1,7 +1,7 @@
 """
 A connection value must never be read by ssh as an option of its own.
 
-Audit 2026-09-02, finding C-10, confirmed with a working proof of concept before
+Found in a security audit and confirmed with a working proof of concept before
 it was fixed. `_ssh_args()` appended `user@host` with nothing marking the end of
 the options, so a session whose user began with `-o` made ssh execute an
 arbitrary command on the LOCAL machine:

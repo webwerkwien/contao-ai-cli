@@ -1,6 +1,6 @@
 """Contao image sizes (tl_image_size, tl_image_size_item).
 
-The theme layer's first entity in this CLI. Reading arrived on 2026-08-31 with
+The theme layer's first entity in this CLI. Reading arrived in v0.7.0 with
 the generic `record` group; this is the write half.
 
 `image_size_list` is deliberately a preset over `contao:record:list` rather than
@@ -61,7 +61,7 @@ def image_size_delete(backend: ContaoBackend, size_id: int) -> dict:
     """Delete an image size via contao-ai-core-bundle.
 
     Cascades to its `tl_image_size_item` media-query variants, because Contao's
-    own DCA declares them as its child table. Counted live on 2026-08-31: two
+    own DCA declares them as its child table. Counted live: two
     variants, `rowsTotal: 3`, zero orphans left behind, one `tl_undo` row for
     the whole set. Recoverable from the back end's "Restore" module.
     """

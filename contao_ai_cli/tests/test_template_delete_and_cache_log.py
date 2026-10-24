@@ -1,7 +1,7 @@
-"""`template delete` (Nr. 51) and a logged `cache clear` (Nr. 50) -- ConpAI 1.0 acceptance test.
+"""`template delete` and a logged `cache clear` -- found building a site with ConpAI 1.0.
 
-Cleaning up c5 on 2026-09-17 needed `ssh rm` for two template variants: the CLI could list,
-read and write templates, not delete them. And the audit of phase 5 found every step in
+Cleaning up an installation needed `ssh rm` for two template variants: the CLI could list,
+read and write templates, not delete them. And checking the log of the build found every step in
 `tl_log` except `cache clear`, which ran Symfony's `cache:clear` without a trace.
 """
 import json
@@ -84,7 +84,7 @@ def test_cache_clear_fallback_recognises_what_an_old_bundle_really_says():
 
 
 def test_cache_clear_failure_names_the_core_message_not_a_cut_json():
-    """Fable review before v0.22.0: `stdout[:500]` could cut the answer mid-document."""
+    """`stdout[:500]` could cut the answer mid-document."""
     message = "cache:clear failed: " + "x" * 600
     b = _backend({"status": "error", "message": message, "code": 1}, returncode=1)
     b.undefined_contao_command.return_value = None

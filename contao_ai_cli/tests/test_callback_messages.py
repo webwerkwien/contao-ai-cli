@@ -2,7 +2,7 @@
 
 The core answers Contao's messages (`Message::addError()` …) as `messages`. A
 success prints its whole JSON; an error printed only `message`, and a refusing
-callback's reason was lost — measured on c5 (6.0), 2026-10-11.
+callback's reason was lost — measured on Contao 6.0.
 """
 import json
 

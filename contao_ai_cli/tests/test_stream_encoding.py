@@ -5,7 +5,7 @@ Rounds one to four (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each removed a character
 from our own source, and test_output_encoding.py guards that: no module may
 hold a string literal a cp1252 stdout cannot take.
 
-On 2026-08-29 `page read 98` crashed anyway:
+Once `page read 98` crashed anyway:
 
     UnicodeEncodeError: 'charmap' codec can't encode character '\\ufffd'
       … click/utils.py line 321 in echo → cp1252.py line 19

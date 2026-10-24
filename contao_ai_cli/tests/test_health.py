@@ -213,10 +213,10 @@ def test_health_json_carries_the_next_steps(tmp_path, monkeypatch):
              "bridge": {"state": "not_configured", "installed": True, "configured": False},
              "composer": {"via": "contao-manager", "command": "x"}}
     with patch.object(cli_health, "collect_status", return_value=state):
-        out = CliRunner().invoke(cli_health.health, [], obj={"as_json": True, "session": str(tmp_path / "showcase.json")})
+        out = CliRunner().invoke(cli_health.health, [], obj={"as_json": True, "session": str(tmp_path / "mysite.json")})
     data = _json.loads(out.output)
     assert [s["command"] for s in data["nextSteps"]] == [
-        "contao-ai-cli --session showcase bridge configure --url https://<site> --token-stdin --test"]
+        "contao-ai-cli --session mysite bridge configure --url https://<site> --token-stdin --test"]
     assert data["nextSteps"][0]["optional"] is True
 
 

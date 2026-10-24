@@ -98,7 +98,7 @@ class TestBackup:
 
     def test_backup_list_is_structured(self):
         """v1.11.0: up to v1.10.1 `--json` carried only Contao's text table in `output`
-        (found by an agent working from the guide alone, showcase, 2026-10-15)."""
+        (found by an agent working from the guide alone)."""
         backend = MagicMock()
         backend.run.return_value = {"stdout": self.LISTED, "returncode": 0}
         result = backup_list(backend)
@@ -144,7 +144,7 @@ class TestBackup:
         assert restore[1]["timeout"] == 600 and restore[1]["check"] is False
 
     def test_backup_restore_takes_size_and_date_from_the_list(self):
-        """Contao answers "size":0 after a restore (showcase.conpai.eu, 2026-10-14)."""
+        """Contao answers "size":0 after a restore."""
         listed = ('[{"createdAt":"2026-10-09T12:24:23+00:00","size":75123,"name":"nightly__20261009122423.sql.gz"}]')
         backend = self._backend(listed=listed, restored=lambda cmd, **kw: {
             "returncode": 0, "stderr": "",
@@ -170,7 +170,7 @@ class TestBackup:
         assert all("purgeSearchTables" not in c[0][0] for c in backend.run_raw.call_args_list)
 
     def test_backup_restore_never_passes_no_interaction(self):
-        """Pre-release review v1.7.0: Contao 5.7/6.0 read the name only in interact(),
+        """v1.7.0: Contao 5.7/6.0 read the name only in interact(),
         which --no-interaction skips -- up to v1.6.0 every restore took the newest."""
         backend = self._backend()
         backup_restore(backend, "nightly__20261009122423.sql.gz")
@@ -178,7 +178,7 @@ class TestBackup:
         assert "--no-interaction" not in cmd and " -n" not in cmd
 
     def test_backup_restore_finds_contaos_answer_between_php_noise(self):
-        """On c5 PHP start-up warnings land on stdout (imagick); the JSON is one line of several."""
+        """PHP start-up warnings can land on stdout (imagick); the JSON is one line of several."""
         noisy = ("PHP Warning:  Module 'imagick' already loaded in Unknown on line 0\n"
                  '{"createdAt":"2026-10-09T12:24:23+00:00","size":5,"name":"nightly__20261009122423.sql.gz"}\n'
                  "PHP Notice:  something after")
@@ -199,7 +199,7 @@ class TestBackup:
         assert result["status"] == "error" and "Dump does not exist." in result["message"]
 
     def test_backup_restore_refuses_a_name_contao_does_not_list(self):
-        """showcase.conpai.eu, 2026-10-13: `.sql` for `.sql.gz` played back the newest backup."""
+        """`.sql` for `.sql.gz` played back the newest backup."""
         for name in ("nightly__20261009122423.sql", "backup", "backup__20261013111148.SQL.GZ"):
             backend = self._backend()
             result = backup_restore(backend, name)
@@ -538,7 +538,7 @@ class TestFile:
 
     # --- file upload (v0.17.0) ---
     #
-    # Measured on 2026-09-16: `file write` could not carry a PNG. The transport
+    # Measured: `file write` could not carry a PNG. The transport
     # was binary-safe all along (SCP, server reads bytes); only the local temp
     # file was opened in text mode. `file upload` sends the local file itself.
 
@@ -622,7 +622,7 @@ class TestFile:
 
 class TestForm:
     # Both listings moved onto record:list in v0.30.0; until then they were the
-    # only ones answering with a bare list of strings (practical test 2026-09-19).
+    # only ones answering with a bare list of strings (practical test).
 
     def test_form_list_goes_through_record_list(self):
         backend = json_backend('{"status":"ok","results":[{"id":1,"title":"Contact"}]}')
@@ -663,7 +663,7 @@ class TestLayout:
 
     # --- module-add / module-remove (v0.18.0, core-bundle v0.16.0) ---
     # Putting a module into a layout needed a hand-built PHP-serialized list
-    # (found 2026-09-16); the server now checks module, theme and column.
+    # (fixed in v0.18.0); the server now checks module, theme and column.
 
     def test_module_add(self):
         backend = json_backend('{"status":"ok","layout":25,"changed":true,"modules":[]}')
@@ -685,7 +685,7 @@ class TestListing:
     def test_listing_module_list_goes_through_record_list(self):
         """The module list moved; listing_data did not — it runs SQL configured
         in the site itself, which cannot be expressed as checked equality
-        filters (decision 2026-09-01)."""
+        filters."""
         backend = json_backend()
         listing_module_list(backend)
         cmd = sent_cmd(backend)
@@ -719,7 +719,7 @@ class TestListing:
         assert backend.run.call_count == 1
 
     def test_a_crash_of_the_command_does_not_fall_back(self):
-        """Review: the SQL path would answer unmasked values; only a missing command falls back."""
+        """The SQL path would answer unmasked values; only a missing command falls back."""
         backend = MagicMock()
         backend.run.return_value = {"stdout": "", "stderr": "PHP Fatal error: Allowed memory size exhausted", "returncode": 255}
         with pytest.raises(ListingError, match="failed"):
@@ -884,7 +884,7 @@ class TestSecurity:
         assert "security:hash-password" in backend.run.call_args[0][0]
 
     def test_hash_password_never_puts_the_password_in_the_command(self):
-        # Audit 2026-09-02. This used to build `echo <password> | php bin/console`
+        # This used to build `echo <password> | php bin/console`
         # and hand it to run_raw() — quoted, and therefore safe from the shell,
         # but an argument of the local ssh process all the same.
         backend = MagicMock()
@@ -955,7 +955,7 @@ class TestUser:
         assert "--admin" in create_cmd
 
     def test_user_create_never_puts_the_real_password_in_a_command(self):
-        # Audit 2026-09-02. The account is created with a random throwaway
+        # The account is created with a random throwaway
         # because contao:user:create cannot be driven through its prompts — its
         # group question is mandatory and site-specific. The caller's password
         # goes down stdin in the second step.

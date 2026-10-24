@@ -70,7 +70,7 @@ def test_collect_status_survives_a_missing_session(tmp_path):
     assert result["bridge"]["state"] == "unknown"
 
 
-# --- v1.8.0: the second half of the bridge, optional (showcase.conpai.eu, 2026-10-13) ----
+# --- v1.8.0: the second half of the bridge, optional ----------------------------------
 
 def test_an_unconfigured_bridge_is_an_optional_step_with_the_token_on_stdin():
     step = [s for s in next_steps(state(core="0.19.0", backend="0.3.0", bridge="not_configured"), "shop")
@@ -102,7 +102,7 @@ def test_connect_keeps_its_backup_first():
 
 
 def test_a_session_with_a_space_is_quoted_in_suggested_commands():
-    """Review v1.8.0: a Windows user directory with a space split the suggested command."""
+    """v1.8.0: a Windows user directory with a space split the suggested command."""
     steps = next_steps(state(core=None), r"C:\Users\Max Muster\.contao-ai-cli\shop.json")
     assert steps[0]["command"] == r'contao-ai-cli --session "C:\Users\Max Muster\.contao-ai-cli\shop.json" backup create'
     assert next_steps(state(core=None), "shop")[0]["command"] == "contao-ai-cli --session shop backup create"

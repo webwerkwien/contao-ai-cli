@@ -30,7 +30,7 @@ def content_list(backend: ContaoBackend, article_id: int | None = None,
     other content elements (nested elements, `ptable=tl_content`) and so on,
     and their ids share one number space with articles. Until v0.28.0
     `--article 158` filtered on pid only and returned elements of content
-    element 158 next to those of article 158 (second agent test, 2026-09-18).
+    element 158 next to those of article 158 (second agent test).
     An empty ptable -- Contao 4's shorthand for tl_article -- does not occur
     on Contao 5 installations (counted on all three sessions: 0).
 
@@ -71,7 +71,7 @@ def content_find(backend: ContaoBackend, text: str, limit: int | None = None,
     if offset:
         cmd += f" --offset={int(offset)}"  # core v1.12.0
     # `--` ends the options: a text like "-20% Rabatt" would otherwise be read as one
-    # once the remote shell has removed the quotes (Fable review 2026-10-20).
+    # once the remote shell has removed the quotes.
     return run_json_or_raw(backend, f"{cmd} -- {shlex.quote(text)}")
 
 

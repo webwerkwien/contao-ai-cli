@@ -282,7 +282,7 @@ def sent(backend) -> str:
     return backend.run.call_args[0][0]
 
 class TestPage:
-    """The listing and the tree both moved off hand-written SQL (2026-09-01).
+    """The listing and the tree both moved off hand-written SQL.
 
     What is pinned here is the command string, because that is the contract with
     the bundle. The rules behind it — which columns exist, what a filter may
@@ -363,7 +363,7 @@ def _write_schema(path, table, fields):
 
 class TestPalette:
     """`schema mandatory tl_page` listed 13 fields for all page types together
-    (measured on c5, 2026-09-16). With a record, the server builds Contao's own
+    (measured). With a record, the server builds Contao's own
     palette and answers the mandatory fields of that one (core-bundle v0.16.0)."""
 
     def test_the_record_selects_the_palette(self):
@@ -390,9 +390,9 @@ class TestResolveCallbackOptions:
         """The hard-coded lists are the fallback for a core-bundle before v0.16.0,
         which has no contao:dca:options. Until CLI v0.18.0 they were asked first
         and the server never — so `tl_page.type` missed every page type a bundle
-        registers (measured on c5 on 2026-09-16: `consho_product`)."""
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        registers (measured: `consho_product`)."""
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
         })
@@ -404,8 +404,8 @@ class TestResolveCallbackOptions:
         assert result['language']['en'] == 'English'
 
     def test_the_server_answer_wins_over_the_hard_coded_list(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_page.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_page.json')
         _write_schema(schema_path, 'tl_page', {
             'type': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
         })
@@ -420,8 +420,8 @@ class TestResolveCallbackOptions:
         assert backend.run.call_args[0][0] == 'contao:dca:options tl_page type'
 
     def test_record_values_are_passed_for_options_that_depend_on_them(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_content.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_content.json')
         _write_schema(schema_path, 'tl_content', {
             'customTpl': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
         })
@@ -439,8 +439,8 @@ class TestResolveCallbackOptions:
         assert backend.run.call_args[0][0] == 'contao:dca:options tl_content customTpl --set type=text'
 
     def test_table_based_groups_resolved(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'groups': {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
         })
@@ -467,8 +467,8 @@ class TestResolveCallbackOptions:
         assert not any('doctrine:query:sql' in c[0][0] for c in backend.run.call_args_list)
 
     def test_unknown_callback_stays_unresolved(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'modules': {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},
         })
@@ -477,14 +477,14 @@ class TestResolveCallbackOptions:
         assert result['modules'] == '__unresolved__'
 
     def test_no_schema_raises(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
         backend = MagicMock()
         with pytest.raises(ValueError, match="No schema"):
             dca_schema.resolve_callback_options(backend, 'tl_user', session_path)
 
     def test_schema_updated_on_disk(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
         })
@@ -495,8 +495,8 @@ class TestResolveCallbackOptions:
         assert isinstance(updated['fields']['language']['options'], dict)
 
     def test_page_type_resolved(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_page.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_page.json')
         _write_schema(schema_path, 'tl_page', {
             'type': {'inputType': 'select', 'mandatory': False, 'options': '__callback__'},
         })
@@ -506,8 +506,8 @@ class TestResolveCallbackOptions:
         assert 'root' in result['type']
 
     def test_single_field_resolve(self, tmp_dir):
-        session_path = os.path.join(tmp_dir, 'c5.json')
-        schema_path = os.path.join(tmp_dir, 'schemas', 'c5', 'tl_user.json')
+        session_path = os.path.join(tmp_dir, 'mysite.json')
+        schema_path = os.path.join(tmp_dir, 'schemas', 'mysite','tl_user.json')
         _write_schema(schema_path, 'tl_user', {
             'language': {'inputType': 'select', 'mandatory': True, 'options': '__callback__'},
             'modules':  {'inputType': 'checkbox', 'mandatory': False, 'options': '__callback__'},

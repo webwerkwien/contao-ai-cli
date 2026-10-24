@@ -42,7 +42,7 @@ def test_a_refusal_and_an_older_core_name_none():
 
 
 def test_cache_clear_keeps_the_defect():
-    """Second review: `cache clear` runs with check=False and raised its own error,
+    """`cache clear` runs with check=False and raised its own error,
     without the field -- a crashed `contao:cache:clear` got no report."""
     from contao_ai_cli.core import cache
 

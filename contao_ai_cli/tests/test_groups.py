@@ -2,7 +2,7 @@
 The user-group and member-group groups — the permission tables.
 
 `tl_user_group` was the largest write gap left after the theme layer: readable
-through the generic `record` group since 2026-08-31, writable nowhere. It is
+through the generic `record` group since v0.7.0, writable nowhere. It is
 the record that decides what a back end editor can do, so "create a user" was
 only ever half an answer.
 

@@ -106,8 +106,8 @@ def ext_run_cmd(ctx, command_line, operator, as_json):
     if (refusal := ext_mod.refuse_unreachable(described)) is not None:
         raise click.ClickException(refusal)
 
-    # The warning and the server's log entry are two halves of one decision
-    # (2026-09-01), and they have different readers at different times: this
+    # The warning and the server's log entry are two halves of one decision,
+    # and they have different readers at different times: this
     # reaches the caller before the effect, the log entry reaches whoever asks
     # afterwards what happened. Either alone leaves one of them without an
     # answer.

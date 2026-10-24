@@ -1,11 +1,11 @@
 """Every confirmation question goes to stderr, so stdout stays free for the answer.
 
 v0.18.0 said "Prompts go to stderr", and it held for ``ask_yes_no()`` only. The six
-``click.confirm()`` calls in ``cli_connect.py`` still printed on stdout — found in the
-review of 2026-09-16. They are interactive flows without ``--json``, so nothing broke,
+``click.confirm()`` calls in ``cli_connect.py`` still printed on stdout — found
+later. They are interactive flows without ``--json``, so nothing broke,
 but the release note promised more than the code did.
 
-2026-09-17: the agent-onboarding rework deleted the whole ``connect`` wizard those
+The agent-onboarding rework (v0.20.0) deleted the whole ``connect`` wizard those
 six calls lived in - ``connect`` no longer asks anything. What is left is the hidden
 ``click.prompt()`` for the bridge token in ``helpers.resolve_token()``, so the minimum
 below tracks that, not the historical six. Fewer prompts is the point of the change;

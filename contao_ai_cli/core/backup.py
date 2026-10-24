@@ -35,7 +35,7 @@ RESTORE_TIMEOUT = 600
 
 # Contao's default `contao.backup.ignore_tables`: neither backed up nor restored, so after
 # a restore they still hold the state that was overwritten. A site can configure others;
-# these are the ones every installation has (v1.10.0, found on showcase.conpai.eu).
+# these are the ones every installation has (v1.10.0).
 RESTORE_IGNORED_TABLES = ("tl_crawl_queue", "tl_log", "tl_search", "tl_search_index", "tl_search_term")
 
 
@@ -46,8 +46,8 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
     name it was given, and reported the name asked for. Contao's BackupRestoreCommand
     reads the name only in `interact()`, which Symfony skips under `--no-interaction` --
     and the CLI always passed that. 5.3 reads it in `execute()`. Found as ".sql played
-    back the newest backup" on showcase.conpai.eu (2026-10-13); the mechanism came out in
-    the pre-release review.
+    back the newest backup"; the mechanism came out
+    before release.
 
     So: no `--no-interaction` (with a name given `interact()` returns before any
     question; Symfony 6.4 and 7.x stay interactive without a terminal), the name
@@ -90,7 +90,7 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
         return {"status": "error", "code": 1, "backup": backup_name, "restored": restored,
                 "message": f"Contao restored {restored!r}, not {backup_name!r}: the database now holds "
                            f"that backup. Restore {backup_name!r} again or ask the user how to proceed."}
-    # Contao's own answer says "size":0 after a restore (showcase.conpai.eu, 2026-10-14);
+    # Contao's own answer says "size":0 after a restore;
     # the size and date of the file come from the list read above (v1.10.0).
     entry = next((b for b in listed if isinstance(b, dict) and b.get("name") == restored), {})
     return {"status": "restored", "backup": restored,

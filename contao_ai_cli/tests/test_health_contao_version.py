@@ -3,7 +3,7 @@
 
 Until now it reported our three parts — CLI, core bundle, bridge — and said
 nothing about the Contao underneath, although the SSH session can read it from
-composer.lock at any time. During the advisory round of 2026-08-25 (eleven
+composer.lock at any time. During one advisory round (eleven
 advisories, patched in 5.3.50 / 5.7.12) the question "is any of our sessions on
 a vulnerable Contao?" therefore had to be answered by logging in past `health`
 and reading the file by hand. That is precisely the question the command exists

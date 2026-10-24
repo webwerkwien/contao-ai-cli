@@ -19,7 +19,7 @@ def get_session_path(session_name: str | None = None) -> str:
 def save_session(config: dict, session_path: str | None = None) -> str:
     """Save session config with restricted permissions (owner-read-only, 0o600).
 
-    Audit 2026-09-02 (M-1). The mode argument to `os.open()` applies only when
+    The mode argument to `os.open()` applies only when
     the file is CREATED. An existing session file kept whatever mode it already
     had — so a file that was once 0644 stayed 0644 while `bridge configure`
     wrote a bearer token into it, and the docstring above said otherwise.

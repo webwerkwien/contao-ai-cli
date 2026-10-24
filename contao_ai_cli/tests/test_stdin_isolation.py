@@ -1,7 +1,7 @@
 """
 SSH must never read the caller's stdin.
 
-On 2026-08-29 a bulk run over 174 page IDs processed exactly one record and
+Once a bulk run over 174 page IDs processed exactly one record and
 reported success:
 
     while read id; do contao-ai-cli … page update "$id" --set max_teiln=4; done < ids.txt
@@ -56,7 +56,7 @@ def test_remote_commands_do_not_inherit_stdin(invoke):
     kwargs = run.call_args.kwargs
     assert kwargs.get("input") == "" and "stdin" not in kwargs, (
         "Without its own stdin, ssh eats the caller's input — see the silent "
-        "single-record bulk run of 2026-08-29. An empty input, not DEVNULL: "
+        "single-record bulk run. An empty input, not DEVNULL: "
         "Windows' ssh.exe never passes the end of NUL on (v1.9.1)."
     )
 
@@ -73,7 +73,7 @@ def test_scp_upload_does_not_inherit_stdin():
 def test_every_subprocess_call_in_the_module_pins_stdin():
     """A new call site added without stdin= reopens the same hole silently.
 
-    Since 2026-09-02 two call sites route the decision through
+    Since v0.14.0 two call sites route the decision through
     `_stdin_kwargs()`, because passwords now go to the remote command on stdin
     and `subprocess.run()` refuses `input=` and `stdin=` together. That helper
     counts as pinning: it returns an empty `input=` whenever no data was given

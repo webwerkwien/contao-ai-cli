@@ -1,7 +1,7 @@
 """
 A one-line update notice when a new working block starts.
 
-Decided 2026-09-17: checked on the first command after a pause of more than 12 hours
+Checked on the first command after a pause of more than 12 hours
 (a new block - the moment to hear about updates), and at least every 24 hours so
 continuous use (cron, monitoring) is still checked. The CLI remembers, not the agent:
 a new conversation knows nothing about yesterday, the file system does.
@@ -24,12 +24,12 @@ PAUSE = 12 * 3600
 MAX_AGE = 24 * 3600
 SKIPPED = {"health", "self-update", "bundle", "connect", "repl",
           # Purely local: neither reads nor writes anything remote, so there is
-          # nothing here that an update notice adds (review 2026-09-17).
+          # nothing here that an update notice adds.
           "session-list", "session-delete", "guide", None}
 OPT_OUT = "CONTAO_AI_CLI_NO_UPDATE_CHECK"
 # The check reads GitHub, Packagist and the server over SSH. Each call has its own
 # timeout, but they add up: with the server unreachable one ordinary command stalled
-# for up to a minute (review 2026-09-17). Whatever is not answered in time is skipped;
+# for up to a minute. Whatever is not answered in time is skipped;
 # the next trigger tries again.
 DEADLINE = 10
 
@@ -69,7 +69,7 @@ def _save(data: dict, path: str) -> None:
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         # Per process: two commands running at once must not write into one temp file
-        # (review 2026-09-17 - one of them lost its timestamps).
+        # (one of them lost its timestamps).
         tmp = f"{path}.{os.getpid()}.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f)
@@ -89,7 +89,7 @@ def command_failed(exc) -> bool:
     (`ctx.exit()` and a deliberate `raise SystemExit(0)` are successful exits),
     so those two are read by their code rather than by being an exception at
     all. Anything else that reached here -- a UsageError, a real exception --
-    is a failure (review 2026-09-17: the notice used to run regardless, and a
+    is a failure (the notice used to run regardless, and a
     failing command has nothing to say about whether the CLI or the bundles
     are current).
     """

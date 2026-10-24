@@ -130,8 +130,8 @@ def ext_list(backend: ContaoBackend, include_infrastructure: bool = False) -> di
     # `contao:` namespace. Named rather than filtered, and that is a correction:
     # leaving them out made this command answer "available: 0" on an
     # installation with 87 commands it could not reach, through the very command
-    # built to report what it cannot reach. Reported by the ww-buchung session,
-    # whose own `ww:gutschein:import` was invisible here.
+    # built to report what it cannot reach. Reported from an installation
+    # whose own custom command was invisible here.
     #
     # `ext run` still refuses them — the boundary is on running, not on naming.
     out_of_reach = [c for c in answer["commands"] if c.get("reachable") is False]
@@ -188,7 +188,7 @@ def string_input_line(tokens) -> str:
     The server parses the line with Symfony's `StringInput`, which splits on
     whitespace outside quotes. Until v1.8.1 the tokens were joined with a bare
     space, so `--set "title=Zwei Wörter"` arrived as two tokens and the command
-    answered *Too many arguments* (Consho session, 2026-10-14: a list value with
+    answered *Too many arguments* (seen with a list value containing
     a line break). A token is quoted the way `StringInput` reads it back: inside
     double quotes, with `\` and `"` escaped, because the server runs the quoted
     content through `stripcslashes()` — an unescaped backslash would turn `\n`
@@ -215,8 +215,8 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
 
     ## Why the answer is wrapped instead of passed through
 
-    Until 2026-09-01 this returned the target's stdout as its own result. A
-    throwaway plugin on c5 answered:
+    Until v0.12.0 this returned the target's stdout as its own result. A
+    throwaway plugin answered:
 
         { "status": "ok", "echo": "HALLO" }
 
@@ -269,7 +269,7 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
     # that stderr was clean.
     #
     # Every other command in this CLI ignores stderr completely, so carrying it
-    # is new here — and c5 shows why it cannot be carried unconditionally: PHP
+    # is new here — and one installation shows why it cannot be carried unconditionally: PHP
     # emits ionCube and imagick startup warnings on every single call, which
     # would put several lines of unrelated noise in front of an agent on every
     # successful run and teach it to skip the field. When the run fails, stderr
@@ -280,9 +280,9 @@ def ext_run(backend: ContaoBackend, command_line: str, operator: str = "") -> di
 
     # `check=False` above means backend.run() never raises here, and the hint
     # about an outdated bundle rides on that raise — so ext run was silent
-    # about the one thing it is best placed to explain. Measured by the
-    # ww-buchung session (2026-09-01), which reached for `ext run` and
-    # `ext describe` to ask about a command it did not have, and got no version
+    # about the one thing it is best placed to explain. Measured while
+    # developing an extension: `ext run` and `ext describe` were used to ask
+    # about a command the server did not have, and gave no version
     # context at all.
     if 0 != result["returncode"]:
         # No option hint: the line is the caller's, the option often an extension's.

@@ -14,13 +14,13 @@ def user_create(backend: ContaoBackend, username: str, password: str,
                 admin: bool = False) -> dict:
     """Create a backend user. username, name, email, language, password are mandatory.
 
-    Audit 2026-09-02 (H-2/M-10), replacing the TODO that stood here since April.
+    Replaces the TODO that stood here since v0.1.
     The caller's password no longer reaches any command line.
 
     ## Why this one is two steps and `user_password` is not
 
     Feeding `contao:user:create` through its prompts does not work. Measured on
-    c5 on 2026-09-02, the sequence is password, confirmation, *admin yes/no*, and
+    Contao 5, the sequence is password, confirmation, *admin yes/no*, and
     then a **mandatory group selection whose options are the groups of that
     particular site** — an empty answer is refused. There is no line we could
     send that is correct on an installation we have not seen. And with
@@ -79,15 +79,14 @@ def user_password(backend: ContaoBackend, username: str, password: str) -> dict:
     """
     Set a back end user's password.
 
-    Audit 2026-09-02 (H-3/M-10), and the TODO that stood here since April.
+    Replaces the TODO that stood here since v0.1.
     `--password=` put the plaintext into the argument list of the local ssh
     process and of the remote php process. Contao says as much in its own help
     text — *"using this option is not recommended for security reasons"* — and
     offers the prompt instead. That is what this uses now.
 
     Two lines: the password and its confirmation. `--no-interaction` had to go,
-    since it is what suppressed the prompts. Measured against Contao 5 on c5 on
-    2026-09-02.
+    since it is what suppressed the prompts. Measured against Contao 5.
     """
     # username is a positional argument, not a flag
     cmd = f"contao:user:password {shlex.quote(username)}"

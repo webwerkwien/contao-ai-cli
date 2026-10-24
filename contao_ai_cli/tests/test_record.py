@@ -201,7 +201,7 @@ class TestRecordClone:
 
     def test_recipients_for_another_table_are_refused_before_asking(self, monkeypatch):
         """No --yes, a terminal nobody answers: asked first, it would end in "Nothing was
-        cloned" — the table refusal proves it comes before the question (review K2)."""
+        cloned" — the table refusal proves it comes before the question."""
         result, b = self.invoke_with_recipients(monkeypatch, console=True, answer=None, table="tl_form")
         assert result.exit_code != 0
         assert "tl_newsletter_channel only" in result.output
@@ -216,7 +216,7 @@ class TestBridgeCloneRecipients:
         from contao_ai_cli.cli import cli_bridge, helpers
 
         client = MagicMock()
-        # The shape the bridge really answers with (c5, 2026-10-15): the core's answer
+        # The shape the bridge really answers with: the core's answer
         # sits under "result".
         client.clone.return_value = answer_payload if answer_payload is not None else {
             "status": "ok", "tool": "record_clone",

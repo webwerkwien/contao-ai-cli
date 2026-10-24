@@ -1,7 +1,7 @@
 """
 The image-size group.
 
-Reading arrived on 2026-08-31 through the generic `record` group; this is the
+Reading arrived in v0.7.0 through the generic `record` group; this is the
 write half. The command strings are the contract, so they are what is pinned.
 
 One design point worth a test of its own: `image-size list` is a *preset* over

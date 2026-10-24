@@ -31,8 +31,8 @@ python -m pytest -q        # the gate — must be green
 There is no linter and no type checker configured; the suite is the whole gate.
 
 **Checking what the package contains:** delete `build/` first. `setup.py` builds in the
-source tree, and whatever a previous build left in `build/lib` is packaged as it is. On
-2026-09-18 the test suite still showed up in the wheel after it had been excluded; a fresh
+source tree, and whatever a previous build left in `build/lib` is packaged as it is. Once
+the test suite still showed up in the wheel after it had been excluded; a fresh
 clone (what `pipx install git+…` and `self-update` use) was never affected.
 
 Healthy output has this shape:
@@ -58,7 +58,7 @@ that existed before the fix, and could not be rewritten, is the proof.
 `test_docs_match_cli.py` pins README and this guide to the real command tree —
 name, existence, option spelling — because both once promised commands that did
 not exist. **Its own docstring names its boundary:** it does not check what a
-command *answers*. On 2026-09-01 `ext run` changed its return value and then
+command *answers*. In v0.12.0 `ext run` changed its return value and then
 gained a `hint` field; the file stayed green both times while this guide said
 nothing about either.
 
@@ -167,7 +167,7 @@ agent"); this is the shape of what each command answers.
 - `host_key_accepted` is present only on a first contact with the host — information, not
   a failure, and it appears only that once. **Relay it to the user**; if they did not
   expect a first contact with this host, they should verify the fingerprint with the
-  server themselves before trusting it further (trust-on-first-use, audit H-10).
+  server themselves before trusting it further (trust-on-first-use).
 - `replaced: true` means an existing session file at that name was overwritten.
   **Reconnecting keeps `bridge_url`/`bridge_token` from the existing session** — only the
   SSH fields are replaced. Fixed in v0.21.0: up to v0.20.0 a re-`connect` silently
@@ -178,7 +178,7 @@ agent"); this is the shape of what each command answers.
 
 ### `bundle install|update core|backend [--allow-plugins]`
 
-Moved out of the old wizard (2026-09-17), so these two operations — installing or
+Moved out of the old wizard, so these two operations — installing or
 updating either contao-ai bundle — are reachable at any time, not only during setup:
 
 ```bash
@@ -204,7 +204,7 @@ bundle's README recommends: core `^1.0`, backend `>=0.1 <2.0` (v1.0.0; see below
 `--update-with-dependencies --minimal-changes`. Without it Composer may change only the
 bundle itself, so a release that raises one of its dependencies resolved to the installed
 version — backend v0.11.0 needs `symfony/ai ^0.14`, and on a lock holding 0.13 `bundle update
-backend` stayed on v0.10.0 (2026-10-09). `-w`, not `-W`: root requirements — Contao itself —
+backend` stayed on v0.10.0. `-w`, not `-W`: root requirements — Contao itself —
 stay where they are, so a bundle update never lifts Contao on the side. `--minimal-changes`
 moves only what has to move; measured on a copy of that lock, it upgraded exactly the backend
 and the nine `symfony/ai` packages, where `-w` alone took seven more (Contao components,
@@ -215,7 +215,7 @@ after a real resolution failure. What moved besides the bundle is in `dependenci
 **Then the database: `contao:migrate` runs after Composer** (v1.7.0), and `migrate` in the
 answer says what it did — `{"migrations": 1, "schemaChanges": 5, "backup": "backup__….sql.gz"}`.
 Up to v1.6.0 `bundle install backend` answered ok while the bundle's `tl_user` columns were
-still missing (2026-10-13). Contao dumps the database before it migrates (`backup`, `null`
+still missing. Contao dumps the database before it migrates (`backup`, `null`
 when there was nothing to do), and without interaction it leaves out `DROP` statements:
 columns and tables are added, nothing is deleted. A failed migration — Contao's `error`
 with exit 1, a schema change that still fails after Contao's retries (its `schema-result`
@@ -227,8 +227,8 @@ carries the reason), or a migration reported unsuccessful with exit 0 — is
 migrates nothing either.
 
 If an update needs a newer **Contao** (the bundle requires it, or Composer blocks the locked
-Contao version for a security advisory, as `enshrined/svg-sanitize` 0.22 was blocked on
-2026-10-09), Composer refuses and `stderr` says why. Update Contao first — through the Contao
+Contao version for a security advisory, as `enshrined/svg-sanitize` 0.22 was blocked
+once), Composer refuses and `stderr` says why. Update Contao first — through the Contao
 Manager, or its passthrough with `"contao/*" --with-dependencies` — then the bundle.
 
 The answer is `status: error` unless the version read back afterwards equals `latest` exactly;
@@ -332,8 +332,8 @@ Three things afterwards:
 **Reading an extension's own tables.** `record list` and `record schema` take any table
 with a DCA, also one without `tl_` (core-bundle v1.9.2; up to v1.9.1 such a name was an
 "Invalid table name"). What they cannot give you is a DCA the extension does not build on
-the console. Some build it only in a web request — the Catalog Manager is the known case
-(2026-10-15): `alnv/catalog-manager-bundle` (v4) answers `DCA not found` for a catalog,
+the console. Some build it only in a web request — the Catalog Manager is the known case:
+`alnv/catalog-manager-bundle` (v4) answers `DCA not found` for a catalog,
 `alnv/catalog-manager` (v2) shows only the catalog's own fields, without `title`, `alias`
 and the visibility fields. That is the extension's behaviour, not a missing table; say so
 to the operator rather than reading the table some other way. Writing to such a table
@@ -344,7 +344,7 @@ generic write for foreign tables.
 > Doctrine DBAL 4** as soon as a catalog has fields: its schema listener passes
 > `scale: null`, and DBAL 4 refuses it with a `TypeError` the listener does not catch. The
 > back-end module of the catalog stops working too. v4 (`catalog-manager-bundle`) does not
-> have this. Seen on c5 (Contao 5.7.15, DBAL 4.4.5).
+> have this. Seen on Contao 5.7.15 with DBAL 4.4.5.
 
 ### `self-update`
 
@@ -370,7 +370,7 @@ least every 24 hours regardless, so continuous use (cron, monitoring) still gets
 checked eventually. Skipped for `health`, `self-update`, `bundle`, `connect`, `repl`,
 `session-list`, `session-delete`, `guide` (purely local — nothing remote to check) and any
 `--help` — they report or do not need version information themselves. Also skipped
-when the command itself failed (fixed 2026-09-17): a failing command has nothing to say
+when the command itself failed: a failing command has nothing to say
 about whether the CLI or the bundles are current. Off entirely with
 `CONTAO_AI_CLI_NO_UPDATE_CHECK=1` (CI, cron).
 
@@ -559,8 +559,8 @@ teaser with paragraphs.
 
 This is not only convenience. The CLI quotes a value correctly once it has one, but
 everything *before* the CLI is the caller's own shell, and carrying quotes, `$`, backticks
-and newlines through it intact is the least reliable part of the chain (issue #55, reported
-from live work 2026-09-24). `--set-file` removes that part.
+and newlines through it intact is the least reliable part of the chain (issue #55).
+`--set-file` removes that part.
 
 Refused, with nothing written: a field given by both `--set` and `--set-file`; the same
 field twice; a file that is missing or not UTF-8.
@@ -748,7 +748,7 @@ cannot run without it.
 
 As in the back end, and like pages and articles: a created entry is **offline** until you
 publish it with `--set published=1` (on create or with `update`). A list module on the
-site shows nothing of it before that. *Found in the practical test on 2026-09-19: an agent
+site shows nothing of it before that. *Found in a practical test: an agent
 created three FAQ questions, placed the list on a page, and the page was empty.*
 
 The answer of `news`, `event`, `faq`, `article` and `newsletter create` carries the
@@ -810,7 +810,7 @@ shows an element through an include (`alias` element, field `cteAlias`) carries 
 *source* element's tag (`contao.db.tl_content.<id>`). Updating the source therefore
 invalidates every page that includes it, on any root and any domain of the
 installation — tags are purged across the whole HTTP cache, not per host. Measured
-on 2026-09-18: source and alias page both cached (`Contao-Cache: fresh`), one
+on one installation: source and alias page both cached (`Contao-Cache: fresh`), one
 `content update` on the source, both answered `miss/store` with the new text right
 away. Typical case: legal texts kept once and included on several domains.
 Only the `alias` element was measured; for an `article` include, check the
@@ -914,7 +914,7 @@ which of them are `mandatory`. Since v1.6.0 `--set` is optional: a table without
 selector alone, with a `hint` that names it (`tl_content chooses its palette by type: …`,
 from core-bundle v1.7.0's `selectors`).
 
-**Look up, do not guess** (Michael, 2026-10-12). A refusal of a value names the values
+**Look up, do not guess.** A refusal of a value names the values
 allowed and the command that lists them (since v1.6.0 as CLI commands — `schema resolve`,
 `schema palette`). Pick from that list; do not try spellings. A value from a fixed list —
 an element type, a page type, a module, a template — comes from `schema resolve <table>
@@ -925,7 +925,7 @@ an element type, a page type, a module, a template — comes from `schema resolv
 > `unfilteredHtml`, and both columns sit side by side in `tl_content`. So
 > `record list tl_content --fields=html` answers an empty value for an `unfiltered_html`
 > element — correctly, and there is nothing in that answer to tell "empty" from "wrong
-> field". The palette is what tells you (issue #56, found on a live site 2026-09-24).
+> field". The palette is what tells you (issue #56).
 
 **Ask for one kind of record, not the whole table** (core-bundle v0.16.0). `schema
 mandatory tl_page` alone lists every field that is mandatory in *some* palette — 13 for
@@ -937,7 +937,7 @@ page needs `title` and `language`; with `enableCsp=1` also `csp`; a redirect `ti
 **`options` in `schema show` is a list of values or a `{value: label}` map** — never a
 list of labels. A select declared `isAssociative` stores its index, so `tl_page.useSSL`
 answers `{"0": "http://", "1": "https://"}` and https is `--set useSSL=1` (v0.22.1 with
-core-bundle v0.21.1; before, the labels came back and `useSSL=1` was refused, Nr. 53).
+core-bundle v0.21.1; before, the labels came back and `useSSL=1` was refused).
 
 **`schema resolve` asks the installation first**, which calls the field's own options
 callback — page types a bundle registers (`consho_product`) and template variants are
@@ -1029,7 +1029,7 @@ v0.26.0), exit 1, nothing written. Before, a list or table field stored it split
 commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with `ok`.
 
 > ⚠️ **Windows PowerShell 5.1 drops the double quotes inside an argument** when it calls a
-> native program such as `contao-ai-cli`. Measured 2026-09-18:
+> native program such as `contao-ai-cli`. Measured:
 >
 > | typed in PowerShell 5.1 | arrives as |
 > |---|---|
@@ -1053,7 +1053,7 @@ commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with
 > contao-ai-cli --% --json content create --type text --pid 7 --text "<p>Mehr bei <a href=\"https://contao.org\" title=\"Contao CMS\">Contao</a>.</p>"
 > ```
 >
-> Measured on c5 on 2026-09-18 and read back unchanged. After `--%` PowerShell expands no
+> Measured against a Contao 5 installation and read back unchanged. After `--%` PowerShell expands no
 > `$variables` (only `%NAME%`), so put the literal values in the line. For a plain list the
 > comma form needs no inner quotes at all: `--set 'listitems=Erster Punkt,Zweiter Punkt'`.
 >
@@ -1178,7 +1178,7 @@ and in the `groups` field of protected content. Members lose access; nothing is 
 
 ### Versions of a record that had its ID before (core-bundle v0.16.0)
 
-A database can hand out the ID of a deleted record again — on c5 this happens routinely —
+A database can hand out the ID of a deleted record again — on some installations this happens routinely —
 and `tl_version` keeps the old record's versions under that ID. `version restore` of such
 a version would write the deleted record's data onto the new one.
 
@@ -1201,8 +1201,8 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
   which still works and is what `article publish` runs). A content
   element is created visible (`invisible: false`) — the unpublished article keeps it
   offline, as in the back end. *Until v0.27.0 this line said both were published with
-  `page publish`; an agent working from this guide alone went looking for it (agent test,
-  2026-09-18).*
+  `page publish`; an agent working from this guide alone went looking for it (agent
+  test).*
 - **Only a root stores a language** (core-bundle v0.22.0). `page create --language` applies
   to `--type root`; any other page stores none and takes its root's language at runtime,
   as a page created in the back end does. Up to v0.21.1 every page stored `de`. An
@@ -1293,8 +1293,8 @@ The rows are in `results`. Three things follow, and all three matter more than t
 - **Values keep their type.** `"id": 3`, not `"id": "3"`; NULL is distinguishable from an
   empty string. The old path parsed Symfony's ASCII table by column position, so
   everything arrived as a string — and anything whose display width differed from its
-  character count shifted the columns silently. That happened: on 2026-05-09 a UTF-8
-  umlaut truncated a value and the command still reported success.
+  character count shifted the columns silently. That happened: a UTF-8
+  umlaut once truncated a value and the command still reported success.
 - **A truncated listing says so.** `count` against `total`. The server caps at 100 rows,
   defaults to 20; pass `--limit`/`--offset`. A listing that is cut off is never silent
   about it.
@@ -1342,7 +1342,7 @@ v0.23.0, CLI v0.24.0) — as cut and paste in the back end: `--to` is the folder
 stays, an existing target is not overwritten, a folder cannot go into itself.
 
 ```bash
-contao-ai-cli --json file move --path files/conpai/bot.svg --to files/conpai-consho/layout
+contao-ai-cli --json file move --path files/conpai/bot.svg --to files/theme/layout
 contao-ai-cli --json file move --path files/conpai/icons --to files   # into the root
 ```
 
@@ -1426,7 +1426,7 @@ whose language matches none. A clone never becomes the main language by itself:
 ```bash
 # root 132 is German and stays the main language, the clone becomes English
 contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
-  --modifications '{"title":"conpai.eu EN","language":"en","urlPrefix":"en"}'
+  --modifications '{"title":"example.com EN","language":"en","urlPrefix":"en"}'
 ```
 
 If instead the **clone** is to be the main language — say root 132 is English and the
@@ -1435,7 +1435,7 @@ root to the clone:
 
 ```bash
 contao-ai-cli --json record clone --source-table tl_page --source-id 132 --recursive \
-  --modifications '{"title":"conpai.eu DE","language":"de","urlPrefix":"de","published":"1"}'
+  --modifications '{"title":"example.com DE","language":"de","urlPrefix":"de","published":"1"}'
 contao-ai-cli --json page update 132 --set fallback=
 contao-ai-cli --json page update <new root id> --set fallback=1
 ```
@@ -1554,7 +1554,7 @@ second `index` under the same root. Tell the user; usually one alias should chan
 taken URL like a second `packages` is still refused. With `--ids` the bulk answer reports
 them per record: `routeConflicts: {"176": [...]}`.
 
-Aliases may repeat **across** roots — `index` under `conpai.eu` and under `conpai.eu/en`
+Aliases may repeat **across** roots — `index` under `example.com` and under `example.com/en`
 are different URLs. For a shared layout, use a `navigation` module (it follows the current
 root) rather than a `customnav` with fixed page IDs, and switch languages with
 `{{iflng::de}}…{{iflng}}` in an HTML module.
@@ -1577,7 +1577,7 @@ an error (exit 1) either way.
 `content find` names each element's root and its `language`. When the user quotes a
 text, change the element that shows **that** text, in its language — not the
 counterpart in the language the user writes in. Then ask whether the translations
-should follow; do not translate them silently (on showcase, 2026-10-19, a German request
+should follow; do not translate them silently (in one case a German request
 about the English "A powerful CMS" changed the German element first, translated).
 
 ### Translation links: `language link` and `language check` (core-bundle v1.4.0)
@@ -1978,7 +1978,7 @@ contao-ai-cli --session site-a --json page list
 ```
 
 Until v0.28.0 this block said the first available session was loaded automatically. It
-never was: an agent following it failed on its first command (agent test, 2026-09-18).
+never was: an agent following it failed on its first command (agent test).
 Choosing a site by default would be the wrong fix — with several live sites in the list,
 the one a command writes to has to be named.
 
@@ -2058,7 +2058,7 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
   ```
 
   `code` equals the exit code. Until v0.27.0 this line promised `{"error": "..."}` while
-  every command answered `Error: ...` as plain text on stderr (agent test, 2026-09-18).
+  every command answered `Error: ...` as plain text on stderr (agent test).
   Without `--json` it is still that `Error: ...` line on stderr. Commands that already
   answered their own failures as an object (`connect`, `bundle`, `file`, `template`,
   `ext run`, `bridge`, `self-update`) keep that answer.

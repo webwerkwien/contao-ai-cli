@@ -30,8 +30,8 @@ def article_create(backend: ContaoBackend, title: str, pid: int | None,
 
     `after` (core v1.12.0) puts it directly behind that article, on its page; --pid
     does not go along then. Without a column the core decides: main, or with `after`
-    the column of that article -- so none is sent (review v1.14.0: "main" always went
-    along and overrode it).
+    the column of that article -- so none is sent (sending "main" always
+    would override it).
     """
     where = f"--after={int(after)}" if after is not None else f"--pid={pid}"
     cmd = f"contao:article:create --title={shlex.quote(title)} {where} --no-interaction"
@@ -52,7 +52,7 @@ def article_publish(backend: ContaoBackend, article_id: int, published: bool = T
 
     The core bundle has no contao:article:publish, and needs none: `published`
     is an ordinary field, so this is `article update --set published=1|0` under
-    the name an agent looks for next to `page publish` (agent test, 2026-09-18).
+    the name an agent looks for next to `page publish` (agent test).
     It answers like `article update` and writes a version the same way.
     """
     return run_update(backend, "contao:article:update", article_id,

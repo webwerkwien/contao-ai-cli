@@ -88,7 +88,7 @@ class TestMemberCreate:
         backend.run_raw.assert_not_called()
 
     def test_member_create_keeps_the_password_off_the_command_line(self):
-        """The password goes on stdin, never into the command (v0.27.0, audit H3).
+        """The password goes on stdin, never into the command (v0.27.0).
 
         Until v0.27.0 this test asserted the opposite — that the password was shell-quoted
         into `--password=…` — for a server command that never existed.

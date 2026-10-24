@@ -31,7 +31,7 @@ def _session_name(session_path: str | None) -> str | None:
 
 @click.command()
 # Also after the command (v1.11.1): the guide and README wrote `health --json` since v1.1.0,
-# and only the global form before the command worked — found following the guide, 2026-10-15.
+# and only the global form before the command worked — found following the guide.
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
 def health(ctx, as_json):
@@ -45,7 +45,7 @@ def health(ctx, as_json):
 
     if as_json:
         # The same list `connect` answers with (v1.8.0): `not_configured` alone did not say
-        # what to do, nor that it is optional (showcase.conpai.eu, 2026-10-13).
+        # what to do, nor that it is optional.
         _output({**result, "nextSteps": next_steps(result, _session_name(ctx.obj.get("session")),
                                                     always_backup=False)}, True)
         return

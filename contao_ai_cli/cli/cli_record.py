@@ -41,9 +41,9 @@ def record_list_cmd(ctx, table, limit, offset, order, filters, fields, as_json):
 
     \b
     Examples:
-      contao-ai-cli --session c5 record list tl_image_size
-      contao-ai-cli --session c5 record list tl_page --filter published=1 --limit 50
-      contao-ai-cli --session c5 record list tl_content --fields id,type,headline
+      contao-ai-cli --session mysite record list tl_image_size
+      contao-ai-cli --session mysite record list tl_page --filter published=1 --limit 50
+      contao-ai-cli --session mysite record list tl_content --fields id,type,headline
     """
     _require_core_bundle(ctx, "record list")
     b = _get_backend(ctx.obj.get("session"))

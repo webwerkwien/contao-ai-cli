@@ -1,7 +1,7 @@
 """`content find` (v1.12.0): content elements by their text, via core's contao:content:find.
 
-The search index answers pages, and a page with noindex is never in it; a chat on
-showcase needed 9-10 calls to find one slider headline that way (2026-10-19).
+The search index answers pages, and a page with noindex is never in it; a chat
+needed 9-10 calls to find one slider headline that way.
 """
 import json
 from unittest.mock import MagicMock, patch

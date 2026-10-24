@@ -28,7 +28,7 @@ Specifically Important, because each has happened:
 
 - **A changed return value or a new field, without a matching change to
   `AGENTS.md`.** The doc tests stay green through this — they check the command
-  tree, not the answer. This slipped through twice on 2026-09-01.
+  tree, not the answer. This has slipped through twice.
 - A secret passed as a command-line argument where stdin is available.
 - A measurement or reproduction taken in a different environment than the code
   runs in — Git Bash's ssh is not the ssh this CLI invokes.

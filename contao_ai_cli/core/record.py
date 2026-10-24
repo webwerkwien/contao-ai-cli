@@ -74,7 +74,7 @@ def record_clone(backend: ContaoBackend, source_table: str, source_id: int,
     without one gets a structured "no cloner" error rather than a fatal.
 
     Its only caller used to be RecordCloneTool in the backend bundle — the
-    command existed since Phase 9 and this CLI never reached for it. `ext list`
+    command existed long before and this CLI never reached for it. `ext list`
     is what surfaced that.
 
     The point of the macro-clone is fan-out: an LLM cloning an archive by hand

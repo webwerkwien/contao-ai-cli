@@ -7,7 +7,7 @@ it as `schema mandatory --set type=…`. Nobody looking for the fields of a type
 searches under "mandatory", and in the guide it was the closing sentence of a
 paragraph about mandatory fields.
 
-Found on a live site on 2026-09-24: `record list tl_content --fields=html` came
+Found on a live site: `record list tl_content --fields=html` came
 back empty for an `unfiltered_html` element, because Contao has two HTML content
 elements and that one stores its markup in `unfilteredHtml`. The answer was
 correct and told the reader nothing.
@@ -50,7 +50,7 @@ class TestTheCommandExists:
         assert calls[0] == calls[1]
 
     def test_without_set_a_typed_table_says_which_value_is_missing(self):
-        """Changed in v1.6.0 — Michael, 2026-10-12: "schema palette ohne --set erlauben".
+        """Changed in v1.6.0: `schema palette` without --set is allowed.
 
         Until then this refused without asking the server. A typed table answers its
         selector alone (`tl_content`: ["type"]); the answer then says what to pass.
@@ -67,7 +67,7 @@ class TestTheCommandExists:
         assert "schema resolve tl_content type" in result.output
 
     def test_without_set_a_table_without_types_gets_its_palette(self):
-        """`schema palette tl_member` used to need `--set type=default` (Consho session)."""
+        """`schema palette tl_member` used to need `--set type=default`."""
         with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
              patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
             mod.palette.return_value = {"status": "ok", "table": "tl_member", "fields": ["firstname", "lastname", "email"], "mandatory": ["email"]}
@@ -86,7 +86,7 @@ class TestTheCommandExists:
         assert "chooses its palette by effect" in json.loads(result.output)["hint"]
 
     def test_an_empty_selector_list_is_believed_over_a_one_field_palette(self):
-        """Fable review: a real one-field palette got "chooses its palette by title"."""
+        """A real one-field palette got "chooses its palette by title"."""
         with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
              patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
             mod.palette.return_value = {"status": "ok", "fields": ["title"], "mandatory": ["title"], "selectors": []}

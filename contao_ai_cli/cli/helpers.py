@@ -23,7 +23,7 @@ BACKEND_BUNDLE = "webwerkwien/contao-ai-backend-bundle"
 # The Contao under our three parts. `health` reports it because a site an AI
 # agent writes to is the last place an outdated Contao should sit unnoticed —
 # and because answering "is this session on a patched version?" otherwise meant
-# logging in past the command and reading composer.lock by hand (2026-08-25).
+# logging in past the command and reading composer.lock by hand.
 CONTAO_CORE_BUNDLE = "contao/core-bundle"
 # The /packages/<name>.json API is cached and lags visibly behind a release —
 # it still reported v0.2.7 after v0.2.9 was out. /p2/ is the metadata Composer
@@ -180,15 +180,14 @@ def install_cli_update(latest_version: str) -> dict:
             ["pipx", "install", "--force", f"git+{CLI_INSTALL_URL}@v{wanted}"],
             check=False, encoding="utf-8", errors="replace", timeout=CLI_UPDATE_TIMEOUT,
             # pipx's own progress output landed on this process's stdout and broke
-            # `self-update --json`, whose only output is meant to be the answer
-            # (review 2026-09-17).
+            # `self-update --json`, whose only output is meant to be the answer.
             capture_output=True,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return {"installed": get_pipx_installed_version() or get_launcher_version(), "updated": False}
     # On Windows pipx cannot answer while this process runs: the reinstall moves the
     # running contao-ai-cli.exe into pipx's trash, the file stays locked, and every
-    # later pipx call fails emptying the trash (measured 2026-09-17, Nr. 54). The
+    # later pipx call fails emptying the trash (measured). The
     # launcher pipx just wrote is not locked, and it is what the caller gets next.
     installed = get_pipx_installed_version() or get_launcher_version()
     result = {"installed": installed, "updated": installed == wanted}
@@ -244,7 +243,7 @@ def get_core_bundle_latest_version() -> str | None:
     Return the latest stable version of contao-ai-core-bundle from Packagist.
 
     Delegates to `core.bundles.get_bundle_latest_version` so there is one
-    implementation (2026-09-17, agent-driven onboarding). Local import: that
+    implementation. Local import: that
     module imports this one for `CORE_BUNDLE`/`BACKEND_BUNDLE`, and a top-level
     import here would make the two modules import each other.
     """
@@ -336,7 +335,7 @@ def resolve_bulk_ids(record_id, ids: str | None, ids_from_file: str | None) -> l
     ``--ids-from-file``. A file holds one ID per line; blank lines and anything
     after a ``#`` are ignored, so a list can carry a note about what it is.
 
-    Strict about malformed entries on purpose. The bulk run of 2026-08-29 went
+    Strict about malformed entries on purpose. An early bulk run went
     wrong because a silent skip is indistinguishable from success: 174 IDs went
     in, one record came out changed, and the summary read "1 succeeded, 0
     failed". Anything unparseable is named and refused instead.
@@ -424,10 +423,9 @@ def resolve_password(password: str | None, password_stdin: bool, what: str = "--
 
     `what` is how the value is named in messages, `stdin_flag` the option that reads it
     from stdin. Separate on purpose: `hash-password` names its value "the PASSWORD
-    argument", and deriving the flag from that produced "the PASSWORD argument-stdin"
-    (review 2026-09-17).
+    argument", and deriving the flag from that produced "the PASSWORD argument-stdin".
 
-    Audit 2026-09-02 (H-1/M-10). `--password Geheim` is an argument of *this*
+    `--password Geheim` is an argument of *this*
     process, and on both Linux and Windows any other user of the machine can read
     another process's command line. Sending it over ssh on stdin (see
     `ContaoBackend.run`) closes the remote half; this closes the local one.
@@ -459,7 +457,7 @@ def stdin_is_console() -> bool:
     """
     Whether a person can type into stdin — stricter than `isatty()`.
 
-    Measured 2026-09-17 in Git Bash: `< /dev/null` reports `isatty() == True` (the NUL
+    Measured in Git Bash: `< /dev/null` reports `isatty() == True` (the NUL
     device is a character device), and the hidden token prompt then waited forever,
     because getpass reads the Windows console directly, not stdin. On Windows only a
     handle that `GetConsoleMode` accepts is a console; elsewhere `isatty()` is reliable.
@@ -479,7 +477,7 @@ def stdin_is_console() -> bool:
         mode = ctypes.c_uint32()
         # HANDLE is 64-bit; without this, ctypes assumes the default (32-bit
         # int) signature for the first argument and can truncate the handle on
-        # 64-bit Python (review 2026-09-17).
+        # 64-bit Python.
         ctypes.windll.kernel32.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
         return bool(ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
     except Exception:  # noqa: BLE001
@@ -490,7 +488,7 @@ def resolve_token(token: str | None, token_stdin: bool) -> str:
     """
     The bridge token from --token, --token-stdin, or a hidden prompt on a terminal.
 
-    2026-09-17: the user chooses. Typed at a hidden prompt it never reaches a chat;
+    The user chooses. Typed at a hidden prompt it never reaches a chat;
     handed to an agent it is piped in with --token-stdin and stays out of the process list.
     """
     if token is None and not token_stdin:
@@ -514,7 +512,7 @@ def configure_output_encoding(*streams) -> None:
 
     Four earlier rounds (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each fixed this by
     removing a character from our own source, and test_output_encoding.py keeps
-    that clean. It cannot help here: on 2026-08-29 ``page read 98`` crashed on a
+    that clean. It cannot help here: once ``page read 98`` crashed on a
     U+FFFD that came out of the *record*. `_output()` serialises with
     ``ensure_ascii=False``, so anything a customer types is one umlaut away from
     the same crash. Fixing the stream covers the whole class at once.
@@ -555,7 +553,7 @@ def _detect_core_bundle(backend) -> bool:
 # parse_set_fields() takes them with .pop() rather than reading them: the slot is
 # per invocation, and a value that outlived its command would be written into the
 # next record. (The REPL builds a fresh context per line, so no path does that
-# today -- verified in review 2026-09-24. The .pop() keeps it that way.)
+# today -- verified. The .pop() keeps it that way.)
 SET_FILE_META = "contao_ai_cli.set_file"
 
 
@@ -625,7 +623,7 @@ def set_file_option() -> click.Option:
     without the flag that happens only because of how Click sorts: eager first,
     then by position on the command line, then the rest — a `--set` that was not
     passed sorts last anyway. It would work today (checked against the installed
-    Click in review 2026-09-24), by way of a rule about argument order that
+    Click), by way of a rule about argument order that
     nobody would think to preserve.
     """
     return click.Option(
@@ -714,7 +712,7 @@ def ask_yes_no(question: str, default: bool = False) -> bool | None:
 
     # On stderr: a prompt is talk to a person, stdout is the answer. Until v0.18.0
     # `settings update --json` printed the question before its JSON on stdout, and a
-    # caller parsing stdout failed (measured 2026-09-16).
+    # caller parsing stdout failed.
     while True:
         try:
             click.echo(question + suffix, nl=False, err=True)
@@ -781,8 +779,8 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
     skips it.
 
     Careful: `isatty()` is not proof that anyone is there. Under Git Bash it
-    reported True for `< /dev/null`, and two calls in one session disagreed
-    (found 2026-08-31). Where it wrongly says True, the prompt used to raise
+    reported True for `< /dev/null`, and two calls in one session disagreed.
+    Where it wrongly says True, the prompt used to raise
     `Abort` and kill the command — safe, since nothing was deleted, but every
     `delete` without --yes died in an agent harness. So "nobody answered" is
     now decided by the read itself, and it lands on the same outcome as having
@@ -793,7 +791,7 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
     # A console, not just `isatty()`: the NUL device — stdin of a PowerShell or Git
     # Bash call with nothing attached — passes for a terminal, and the "[y/N]" then
     # stood on screen before the action went ahead, reading like a "no" that was
-    # ignored (Consho session, 2026-10-12). Without a console: no question, a note.
+    # ignored. Without a console: no question, a note.
     if not stdin_is_console():
         click.echo(
             f"    ({question} - no terminal to ask, proceeding as documented; pass --yes to say so)",
@@ -804,7 +802,7 @@ def confirm_action(question: str, assume_yes: bool = False) -> bool:
     answered = ask_yes_no(question, default=False)
 
     if answered is None:
-        # Audit 2026-09-02 (L). The prompt has already been printed at this
+        # The prompt has already been printed at this
         # point — `isatty()` said someone was there, and the read then hit EOF.
         # Proceeding is deliberate and stays (see above), but leaving a bare
         # "… [y/N]:" on screen followed by the action makes a transcript read as
@@ -840,7 +838,7 @@ def confirm_escalation(question: str) -> bool:
     Callers that want the escalation without a terminal pass the explicit flag;
     that is the point of the flag.
 
-    Careful: `isatty()` is not trustworthy on its own, and the live run of 2026-08-31
+    Careful: `isatty()` is not trustworthy on its own, and a live run
     is why this catches as well as asks. Two invocations in the same Git Bash
     session reported different answers, and `python -c … < /dev/null` reported
     **True** — the emulated device passes for a terminal. Where it wrongly says
@@ -892,8 +890,8 @@ def _require_core_bundle(ctx, command_name: str):
     session_path = pathlib.Path(ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE)
 
     # Three different failures used to arrive as one sentence, because a bare
-    # `except Exception: available = False` cannot tell them apart. On
-    # 2026-09-01 a mistyped session name (`c5` for `c5-axeltest`) answered
+    # `except Exception: available = False` cannot tell them apart. Once
+    # a mistyped session name (`mysite` for `mysite-live`) answered
     # "contao-ai-core-bundle is not installed on this server" — for a server
     # that had never been contacted and does have the bundle. The advice sent
     # the reader to `composer require` on an installation that does not exist.

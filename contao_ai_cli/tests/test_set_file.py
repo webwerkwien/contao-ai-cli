@@ -8,7 +8,7 @@ quotes it and `join_args` carries the comment about not touching it afterwards �
 everything before the CLI did.
 
 Two of these tests exist because of what went wrong with the `--set id=` guard in
-core-bundle v1.1.0 on 2026-09-23: nine tests called the guard directly, none checked
+core-bundle v1.1.0: nine tests called the guard directly, none checked
 that anything called the guard. `test_every_command_with_set_has_set_file` and
 `test_the_excluded_commands_are_real_and_still_take_set` are the equivalent here —
 they pin the wiring, not the function.
@@ -86,10 +86,10 @@ class TestTheOptionIsWhereItShouldBe:
         place that takes the values out of `ctx.meta`, so a command that parses
         `--set` by hand accepts `--set-file`, silently drops it and answers ok.
 
-        That is exactly what `file meta` and `user update` did until a review found
-        it on 2026-09-24 — while the test above was green, because it only asked
-        whether the option was there. Same shape as the core-bundle guard of
-        2026-09-23: the guard existed, nothing called it.
+        That is exactly what `file meta` and `user update` did until it was found
+        before release — while the test above was green, because it only asked
+        whether the option was there. Same shape as the core-bundle guard in
+        v1.1.0: the guard existed, nothing called it.
 
         Source inspection rather than an import-time check: reading forty-seven
         source files on every CLI start would be a startup cost for a mistake only

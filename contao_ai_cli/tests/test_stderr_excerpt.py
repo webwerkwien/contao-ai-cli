@@ -3,7 +3,7 @@
 For most output that is the end. For a Composer problem report it is the whole problem
 block minus the lines that explain nothing (v1.1.1, #63) -- see COMPOSER_53 below.
 
-c5, 2026-09-19: `bundle update core` against backend-bundle v0.9.1 failed, and the
+`bundle update core` against backend-bundle v0.9.1 failed, and the
 message showed an imagick.so start-up warning plus "./composer.json has been
 updated" — the first 500 characters. Composer's reason (backend v0.9.1 requires
 core <1.0) came later and was cut off.
@@ -76,7 +76,7 @@ def test_console_failure_without_json_uses_the_same_excerpt():
         == "Stderr: SQLSTATE[HY000] [2002] Connection refused"
 
 
-# Measured 2026-10-03: `bundle install backend` on a Contao 5.3 installation. 2879
+# Measured: `bundle install backend` on a Contao 5.3 installation. 2879
 # characters without the imagick lines. The two reasons that matter -- symfony/clock
 # held at 6.4 (line 9) and contao/core-bundle held at 5.3 (line 12) -- began 2460 and
 # 1693 characters before the end, so the 1500-character tail kept neither. What it did
@@ -151,7 +151,7 @@ def test_an_oversized_problem_block_keeps_its_head_and_its_end():
 
 
 def test_a_single_reason_longer_than_the_room_is_cut_not_dropped():
-    """Review 2026-10-03: one 6000-character reason vanished entirely, the marker stood in for it."""
+    """One 6000-character reason vanished entirely, the marker stood in for it."""
     block = ("Your requirements could not be resolved to an installable set of packages.\n\n"
              "  Problem 1\n"
              "    - vendor/giant 1.0 requires x/y ^9 -> found x/y[" + "9.0, " * 1200 + "] but it conflicts.\n\n"
@@ -163,7 +163,7 @@ def test_a_single_reason_longer_than_the_room_is_cut_not_dropped():
 
 
 def test_the_real_path_carries_stderr_into_the_bundle_answer():
-    """Review 2026-10-03 (rule 25): the other test builds the error itself. This one lets
+    """The other test builds the error itself. This one lets
     run_raw raise it, through composer_bundle, into install_bundle's answer."""
     from contao_ai_cli.core import bundles
     backend = ContaoBackend.__new__(ContaoBackend)

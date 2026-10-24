@@ -1,7 +1,7 @@
 """
 The undo and settings groups — the last two basic-configuration gaps.
 
-Both close a hole the 2026-08-31 backend-menu survey named:
+Both close a hole a survey of the back-end menu named:
 
   - **undo** — `version restore` existed; its counterpart for *deleted* records
     did not. Every delete has been writing a `tl_undo` row since core-bundle

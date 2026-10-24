@@ -12,7 +12,7 @@ What these tests do NOT check: what a command answers.
 
 The command tree is the whole question here — name, existence, option spelling.
 A changed return value is invisible to them, and exactly that slipped through
-twice on 2026-09-01: v0.12.0 changed what `ext run` returns, v0.12.2 added a
+twice: v0.12.0 changed what `ext run` returns, v0.12.2 added a
 `hint` field. Both times this file stayed green and the guide — the one a
 calling agent reasons from — said nothing about it.
 
@@ -26,7 +26,7 @@ There is a second half to that boundary, and it is the harder one: these tests
 see one repository. The behaviour a sentence in AGENTS.md describes does not
 have to live in the same repository as the sentence.
 
-On 2026-09-05 core-bundle v0.7.0 started refusing non-boolean values for boolean
+Core-bundle v0.7.0 started refusing non-boolean values for boolean
 columns. The paragraph describing the old outcome — "would be stored as 1" —
 sits in *this* repository, because that is where the guide for calling agents
 lives. Nothing here changed, so nothing here could have gone red. It was found

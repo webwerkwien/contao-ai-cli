@@ -95,7 +95,7 @@ def user_update(ctx, username, fields, set_fields, as_json):
     _require_core_bundle(ctx, "user update")
     # parse_set_fields, not a parse of its own, for two reasons. It is the only
     # place that collects the `--set-file` values, so parsing by hand here accepted
-    # `--set-file`, dropped it and answered ok (found in review 2026-09-24). And the
+    # `--set-file`, dropped it and answered ok (fixed before release). And the
     # old `if "=" in f` silently discarded a malformed entry -- `--set disable 1`
     # reported a successful update that changed nothing, which is the exact case
     # parse_set_fields was written to refuse.

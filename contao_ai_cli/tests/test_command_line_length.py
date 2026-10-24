@@ -2,8 +2,8 @@
 The Windows command-line cap, measured where Windows measures it.
 
 The first version of the `--set-file` guard (issue #55) checked
-`len(shlex.quote(value)) > 32000` on each value on its way in. A review on
-2026-09-24 showed that this measures the wrong thing, and the three cases below
+`len(shlex.quote(value)) > 32000` on each value on its way in. A second
+look showed that this measures the wrong thing, and the three cases below
 are the ones it waved through — each verified by an actual process start on
 Windows 11:
 

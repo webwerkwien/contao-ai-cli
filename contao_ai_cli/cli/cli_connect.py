@@ -18,9 +18,9 @@ def _host_key_notice(stderr: str) -> str | None:
     """
     The 'Permanently added ...' line, if ssh reported a first contact.
 
-    Measured against OpenSSH on 2026-09-02, the line reads:
+    Measured against OpenSSH, the line reads:
 
-        Warning: Permanently added 'c5.axeltest.at' (ED25519) to the list of known hosts.
+        Warning: Permanently added 'example.com' (ED25519) to the list of known hosts.
 
     Matched on the stable middle of it rather than the whole sentence, so a
     reworded warning still registers as "a key was accepted". Returns None when
@@ -54,7 +54,7 @@ def _local_git_roots() -> list[str]:
             if (parent / "usr" / "bin").is_dir():
                 root = str(parent).replace("\\", "/").rstrip("/")
                 # Only a Windows directory: on Linux and macOS git sits in /usr/bin, and
-                # the root "/" would have matched every --root (review v1.7.0).
+                # the root "/" would have matched every --root.
                 if re.match(r"^[A-Za-z]:/.", root):
                     roots.append(root)
                 break
@@ -64,15 +64,15 @@ def _local_git_roots() -> list[str]:
 def _msys_path_hint(root: str) -> str:
     """A hint when --root looks like Git Bash rewrote it, else ''.
 
-    Measured on 2026-09-18: `connect --root /var/www/…` typed into Git Bash arrived as
+    Measured: `connect --root /var/www/…` typed into Git Bash arrived as
     `C:/Program Files/Git/var/www/…` — MSYS turns an argument that starts with / into a
     Windows path. The server answered "cd: … No such file or directory" and nothing
     said why. Only on failure.
 
     Recognised by the Git directory in front, not by the folder behind it (v1.7.0): up to
     then only var/, home/, web/ and a few more counted, and `/web` without a slash after
-    it, `/html`, `/htdocs` or a host's `public_html` got no hint (showcase.conpai.eu,
-    2026-10-13). A real Windows root that merely sits in some folder called Git stays
+    it, `/html`, `/htdocs` or a host's `public_html` got no hint. A real
+    Windows root that merely sits in some folder called Git stays
     untouched; the wording says it is a guess.
     """
     normalized = root.replace("\\", "/")
@@ -120,8 +120,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     # Reconnecting must not drop what the session already holds (bridge URL and token):
     # save_session truncates, and up to v0.20.0 a re-connect silently lost the bridge.
     # An unreadable file (empty, truncated) is replaced rather than a crash: reconnecting
-    # is how a broken session gets fixed, and the old blind overwrite did exactly that
-    # (review 2026-09-17).
+    # is how a broken session gets fixed, and the old blind overwrite did exactly that.
     try:
         existing = session_mod.load_session(session_path)
         replaced = bool(existing)
@@ -142,7 +141,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
             "version": probe["stdout"].strip(), "warning": WARNING, "state": state,
             "nextSteps": next_steps(state, name)}
 
-    # Audit 2026-09-02 (H-10). We connect with StrictHostKeyChecking=accept-new,
+    # We connect with StrictHostKeyChecking=accept-new,
     # which is the right setting: measured against a live host, it still
     # refuses when a KNOWN key changes, and `yes` would - next to
     # BatchMode=yes, where ssh cannot ask - simply make every first
@@ -158,7 +157,7 @@ def connect(ctx, host, user, root, key, port, php, name, as_json):
     new_host_key = _host_key_notice(probe.get("stderr", ""))
     if new_host_key:
         # Released in v0.20.0 as snake_case; a later rename to camelCase was an
-        # undocumented break (review 2026-09-17). Restored to what callers were
+        # undocumented break. Restored to what callers were
         # actually shipped.
         data["host_key_accepted"] = new_host_key
 

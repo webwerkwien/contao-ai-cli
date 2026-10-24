@@ -7,8 +7,8 @@ from contao_ai_cli.utils.contao_backend import ContaoBackend, ContaoBackendError
 def cache_clear(backend: ContaoBackend) -> dict:
     """Clear the cache -- logged in tl_log as the back end does (core-bundle v0.21.0).
 
-    Symfony's `cache:clear` leaves no trace; the audit of the ConpAI acceptance test found
-    it the only unlogged step of a whole build (Nr. 50, 2026-09-17). `contao:cache:clear`
+    Symfony's `cache:clear` leaves no trace; checking the log of a whole site build
+    found it the only unlogged step. `contao:cache:clear`
     runs it and writes "Purged the internal cache". On an older core bundle the plain
     `cache:clear` still runs, and `logged: false` says what is missing.
     """

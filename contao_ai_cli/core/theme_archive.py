@@ -55,7 +55,7 @@ def theme_export(backend: ContaoBackend, theme_id: int, local_path: str | None =
     """Export a theme and download its .cto; the server's copy is removed.
 
     Without `local_path` the file is named after the theme here, and an existing file of
-    that name is not overwritten (review before v1.10.0: a second export of the same theme
+    that name is not overwritten (in a draft a second export of the same theme
     replaced the first without a word).
     """
     default_name = not local_path

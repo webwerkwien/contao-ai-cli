@@ -1,7 +1,7 @@
 """
 "Command is not defined" usually means the bundle on that server is older.
 
-Measured against a live installation on 2026-09-01, which sat on core v0.2.14:
+Measured against a live installation which sat on core v0.2.14:
 
     $ contao-ai-cli --session <live-site> page tree
     Command "contao:page:tree" is not defined. Did you mean one of these?
@@ -95,7 +95,7 @@ class TestTheCoreBundlesOwnPhrasing:
     """
     `contao:ai:commands` and `contao:ai:run` look the target up themselves.
 
-    Reported by the ww-buchung session on 2026-09-01, measured rather than
+    Reported while developing an extension, measured rather than
     assumed, and correct: against a current server
 
         $ contao-ai-cli --session … ext describe contao:gibtsnicht

@@ -134,7 +134,7 @@ class TestConfirmDelete:
         assert ask.call_args.kwargs["default"] is False
 
     def test_a_terminal_nobody_is_at_proceeds_like_no_terminal(self):
-        """Found live on 2026-08-31.
+        """Found live.
 
         `isatty()` can say True where nothing can answer — under Git Bash it
         does so for `< /dev/null`. The prompt then raised Abort and killed the
@@ -161,7 +161,7 @@ class TestConfirmDelete:
                 confirm_delete("page 1")
 
     def test_the_null_device_gets_no_question_only_a_note(self, capsys):
-        """Consho session, 2026-10-12: PowerShell with stdin on the NUL device.
+        """PowerShell with stdin on the NUL device.
 
         `isatty()` says True for it, the "[y/N]" stood on screen, and the delete went
         ahead - documented, but it read like a "no" that was ignored. Without a
@@ -206,7 +206,7 @@ class TestAskYesNo:
                 ask_yes_no("q?")
 
     def test_the_question_goes_to_stderr_so_stdout_stays_json(self, capsys):
-        """Measured on 2026-09-16: `settings update --json` printed the prompt and
+        """Measured: `settings update --json` printed the prompt and
         then the JSON on stdout, so a caller reading stdout as JSON failed. A prompt
         is talk to a person; stdout is the answer."""
         for side_effect in ("y", EOFError):

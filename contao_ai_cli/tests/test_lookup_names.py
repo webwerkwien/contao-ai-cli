@@ -1,6 +1,6 @@
 """A refusal names the CLI command to look a value up, not the console one (v1.6.0).
 
-Michael, 2026-10-12: "in the packages it should be prevented that agents guess input".
+The rule: agents should not have to guess input.
 core-bundle names its own console commands (`contao:dca:options tl_content type`) in a
 refusal; a caller of this CLI types `contao-ai-cli schema ...`.
 """
@@ -36,7 +36,7 @@ def test_the_error_of_a_command_carries_them():
 
 
 def test_schema_sync_says_what_its_mandatory_list_is():
-    """Consho session: `currency` listed as mandatory though no palette shows it."""
+    """Consho's shop table: `currency` listed as mandatory though no palette shows it."""
     with patch("contao_ai_cli.cli.cli_schema._get_backend"), \
          patch("contao_ai_cli.cli.cli_schema.dca_schema") as mod:
         mod.sync_table.return_value = {"fetched": True, "fields": {"title": {"mandatory": True}, "currency": {"mandatory": True}}}

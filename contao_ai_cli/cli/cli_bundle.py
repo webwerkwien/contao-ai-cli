@@ -2,7 +2,7 @@
 bundle group -- install or update contao-ai-core-bundle / contao-ai-backend-bundle.
 
 Until v0.20.0 this lived inside the `connect` wizard as yes/no questions, so an agent
-could not reach it at all (2026-09-17).
+could not reach it at all.
 """
 import click
 
@@ -27,8 +27,8 @@ def _resolve(name: str, action: str = "install") -> str:
         if name == package:
             return short
     # `update` says update, and recommends `composer update`, not `require`.
-    # The message named the wrong subcommand and the wrong Composer verb until a
-    # review pointed it out (2026-09-24).
+    # The message named the wrong subcommand and the wrong Composer verb until
+    # v1.1.0.
     verb = "update" if action == "update" else "require"
     raise click.UsageError(
         f"`bundle {action} {name}` -- this command manages the two contao-ai bundles only "
@@ -50,13 +50,13 @@ def _run(ctx, name, action, allow_plugins, as_json):
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     result = bundles_mod.install_bundle(_get_backend(session_path), name, action, allow_plugins)
     # Installed is what counts, not ok: after a failed contao:migrate the core is there, and
-    # a flag left false refused every core command as "not installed" (review v1.7.0).
+    # a flag left false refused every core command as "not installed".
     if name == "core" and result.get("installed"):
         cfg = session_mod.load_session(session_path)
         cfg["core_bundle_available"] = True
         session_mod.save_session(cfg, session_path)
     # The backend bundle has a second, optional half (v1.8.0): the token for `bridge clone`
-    # and `bridge rewrite`. Nothing said so after installing (showcase.conpai.eu).
+    # and `bridge rewrite`. Nothing said so after installing.
     if name == "backend" and result.get("installed"):
         cfg = session_mod.load_session(session_path)
         if not (cfg.get("bridge_url") and cfg.get("bridge_token")):

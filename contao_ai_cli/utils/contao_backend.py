@@ -13,7 +13,7 @@ from typing import Any
 
 import click
 
-# CreateProcessW's own cap. Measured by bisection on Windows 11, 2026-09-24: the
+# CreateProcessW's own cap. Measured by bisection on Windows 11: the
 # largest single argument that still starts a process is 32734, the rest of the
 # 32767 going to the executable path and the other arguments. The margin below is
 # deliberate -- `_guard_command_line_length` measures the line we build, and the
@@ -25,7 +25,7 @@ def _reject_option_lookalike(label: str, value: str) -> str:
     """
     Refuse a connection value that ssh would read as an option of its own.
 
-    Audit 2026-09-02 (C-10), confirmed with a working proof of concept. `_ssh_args`
+    Confirmed with a working proof of concept. `_ssh_args`
     put `user@host` on the command line with nothing marking the end of the
     options, so a session whose user began with `-o` made ssh run an arbitrary
     LOCAL command:
@@ -74,13 +74,13 @@ def _stdin_kwargs(stdin_data: str | None) -> dict:
     silent divergence rather than an error.
 
     Without data: an empty pipe that is closed at once, not `stdin=DEVNULL`
-    (v1.9.1). Both keep ssh off the caller's stdin (the bulk loop of 2026-08-29),
+    (v1.9.1). Both keep ssh off the caller's stdin (the bulk-loop bug),
     but Windows' own `C:\\Windows\\System32\\OpenSSH\\ssh.exe` — the one
     `_find_ssh()` prefers — never passes the end of NUL on to the server. A
-    remote command reading STDIN then waited until our timeout: measured on
-    2026-10-14, `stream_get_contents(STDIN)` hung with DEVNULL and answered ""
-    in 0.6 s with `input=""`. That was the "60 s hang" of `ext run` the Consho
-    session saw, blamed on the server at first.
+    remote command reading STDIN then waited until our timeout. Measured:
+    `stream_get_contents(STDIN)` hung with DEVNULL and answered ""
+    in 0.6 s with `input=""`. That was a "60 s hang" of `ext run`,
+    blamed on the server at first.
     """
     if stdin_data is None:
         return {"input": ""}
@@ -147,15 +147,15 @@ def _composer_excerpt(text: str) -> str:
 def stderr_excerpt(stderr: str) -> str:
     """The part of a failed shell command's stderr worth showing.
 
-    Until v1.0.0 this was the first 500 characters. On c5 a PHP start-up
+    Until v1.0.0 this was the first 500 characters. On one installation a PHP start-up
     warning about imagick.so filled almost all of them, and the reason Composer
     gave for refusing core-bundle 1.0 next to backend-bundle v0.9.1 — at the
-    end of its output, as always — was cut off (2026-09-19). Tools put the
+    end of its output, as always — was cut off. Tools put the
     verdict last, so the tail is kept and PHP's start-up noise dropped.
 
     v1.1.1: for Composer that rule pointed the wrong way. Its reasons sit
     *inside* the problem block, one line per constraint, and the block grows
-    with every release of the package. On a Contao 5.3 installation (2026-10-03)
+    with every release of the package. On a Contao 5.3 installation
     the output was 2879 characters; the two reasons that mattered began 2460
     and 1693 characters before the end, and the 1500-character tail kept only
     lines about long-gone releases — which named the core constraint as the
@@ -179,7 +179,7 @@ class ContaoBackendError(click.ClickException):
     prints as one `Error: ...` line and exits 1, instead of unwinding a Python
     traceback into the caller's terminal.
 
-    Until 2026-08-31 only `connect` and `health` caught this; every other
+    Until v0.7.0 only `connect` and `health` caught this; every other
     command let it through raw. An agent reading that output has to work out
     that the last line is the message and the twelve above it are noise, and
     `page read 99999` — an ordinary miss, not a defect — looked like a crash.
@@ -263,7 +263,7 @@ class ContaoBackend:
         CreateProcessW takes at most 32767 characters for the *whole* line, and
         `subprocess` builds that line with `list2cmdline`, which escapes every `"`
         as `\\"`. So neither the length of one value nor its POSIX-quoted length is
-        the number that matters -- measured 2026-09-24, all three cases below pass
+        the number that matters -- measured, all three cases below pass
         a per-value check of 32000 and then fail to start:
 
             30000 x `x` + 1600 x `"`      quoted 31602   list2cmdline 33350
@@ -372,7 +372,7 @@ class ContaoBackend:
         closed at once (DEVNULL until v1.9.0, see `_stdin_kwargs`), because ssh
         otherwise drains the caller's own stdin: a
         `while read id; do contao-ai-cli … ; done < ids.txt` loop then runs exactly
-        once and still reports success (found 2026-08-29).
+        once and still reports success.
         """
         full_cmd = f"cd {shlex.quote(self.contao_root)} && {shlex.quote(self.php_path)} bin/console {command}"
         ssh_cmd = self._ssh_args() + [full_cmd]
@@ -393,8 +393,8 @@ class ContaoBackend:
                 timeout=timeout,
                 # Never the caller's stdin, which ssh would drain: a
                 # `while read id; do contao-ai-cli … ; done < ids.txt` loop then
-                # silently runs exactly once and still reports success —
-                # 2026-08-29. An empty input by default, see _stdin_kwargs.
+                # silently runs exactly once and still reports success.
+                # An empty input by default, see _stdin_kwargs.
                 **_stdin_kwargs(stdin_data),
             )
         except subprocess.TimeoutExpired:
@@ -432,12 +432,12 @@ class ContaoBackend:
         `{"status": "error", "message": "..."}` on stdout and then exits 1 —
         outputError() returns Command::FAILURE. Reporting only stderr therefore
         threw away the one part that says what happened and replaced it with
-        whatever PHP had printed at startup. On c5 that is a warning about
+        whatever PHP had printed at startup. On one installation that is a warning about
         ionCube and a missing imagick.so, so `page read 99999` explained a
         missing record with an unrelated shared-library path.
 
-        This is the same shape as the swallowed bulk-update summary of
-        2026-08-29: the server exits non-zero *and* explains itself, and the
+        This is the same shape as the swallowed bulk-update summary:
+        the server exits non-zero *and* explains itself, and the
         exit code was allowed to discard the explanation. There it was fixed at
         one call site with check=False; here it belongs in the raise itself,
         because every command that can fail is affected.
@@ -454,7 +454,7 @@ class ContaoBackend:
         return f"Stderr: {cleaned}" if cleaned else "No output from the server."
 
     #: The core names its own console commands as the lookup in a refusal; a caller of
-    #: this CLI types the CLI's (v1.6.0, "agents should not guess", Michael 2026-10-12).
+    #: this CLI types the CLI's (v1.6.0, "agents should not guess").
     _CLI_NAMES = (
         (re.compile(r"`contao:dca:options ([A-Za-z0-9_]+) ([A-Za-z0-9_]+)`"),
          r"`contao-ai-cli schema sync \1`, then `contao-ai-cli schema resolve \1 \2`"),
@@ -508,8 +508,8 @@ class ContaoBackend:
     #: exists at all, which is what an older bundle looks like from outside —
     #: `contao:ai:*` arrived in v0.2.31.
     #:
-    #: The third is the core bundle's own, and it was missing until the
-    #: ww-buchung session measured it (2026-09-01): `contao:ai:commands` and
+    #: The third is the core bundle's own, and it was missing until it
+    #: was measured: `contao:ai:commands` and
     #: `contao:ai:run` resolve the target themselves and answer through
     #: `outputError`, which says *Command not found: X* — a different sentence,
     #: on stdout rather than stderr. So `ext describe` and `ext run` fell
@@ -596,8 +596,7 @@ class ContaoBackend:
                 )
             if str(command).startswith("contao:language"):
                 # The core registers the language commands only with the package
-                # installed (v1.4.0); "does not exist at all" was wrong for them
-                # (review 2026-10-20).
+                # installed (v1.4.0); "does not exist at all" was wrong for them.
                 return (
                     f'This server runs contao-ai-core-bundle {installed}, so the version is not '
                     f'the reason — the language commands need terminal42/contao-changelanguage '

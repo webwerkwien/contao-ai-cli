@@ -7,7 +7,7 @@ def hash_password(backend: ContaoBackend, password: str, algorithm: str = "auto"
     """
     Hash a password with Symfony's own hasher.
 
-    Audit 2026-09-02 (H-3/M-10). This used to build
+    This used to build
     `echo <password> | php bin/console …` and hand that string to `run_raw()`.
     `shlex.quote` made it safe against the shell *interpreting* the value — it did
     nothing about the value being *visible*: the whole string is an argument of
@@ -20,7 +20,7 @@ def hash_password(backend: ContaoBackend, password: str, algorithm: str = "auto"
     The leading blank line answers a prompt that comes *before* the password:
     Symfony asks which user class to hash for and offers the installation's own
     default (`[Contao\\User]` here). An empty line takes that default, which is
-    the right answer on someone else's site — measured on c5 on 2026-09-02,
+    the right answer on someone else's site — measured on Contao 5,
     where sending the password first made it the answer to the class question.
     """
     cmd = "security:hash-password"

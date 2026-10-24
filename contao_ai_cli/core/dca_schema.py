@@ -146,7 +146,7 @@ def _extract_options(fdef: dict) -> object | None:
         if all(isinstance(k, int) for k in opts):
             # A PHP list only when the keys are exactly 0..n-1 and isAssociative is
             # not set. Otherwise the key is the stored value, the text the label:
-            # tl_page.useSSL (isAssociative, stores 0/1, Nr. 53) and image sizes
+            # tl_page.useSSL (isAssociative, stores 0/1) and image sizes
             # like array(6 => 'ConpAI Hero'). Same {value: label} shape as
             # _server_options().
             associative = isinstance(ev, dict) and ev.get('isAssociative')
@@ -377,7 +377,7 @@ def resolve_callback_options(
         # options callback, so page types and templates a bundle adds are there.
         # The lists below are the fallback for an older core-bundle. Until CLI
         # v0.18.0 they were the only source, and `tl_page.type` missed
-        # `consho_product` on c5 (measured 2026-09-16).
+        # `consho_product` on an installation with Consho (measured).
         server_options = _server_options(backend, table, fname, record)
         if server_options is not None:
             schema['fields'][fname]['options'] = server_options

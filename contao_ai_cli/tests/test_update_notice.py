@@ -92,7 +92,7 @@ def test_an_unwritable_state_file_never_fails_the_command(tmp_path):
 
 
 def test_a_slow_check_is_abandoned_at_the_deadline(tmp_path):
-    """Review 2026-09-17: with the server unreachable, one command stalled for a minute."""
+    """With the server unreachable, one command stalled for a minute."""
     import threading
     import time
 
@@ -128,7 +128,7 @@ def test_no_temp_file_is_left_behind(tmp_path):
 
 
 class TestCommandFailed:
-    """review 2026-09-17: the update notice used to run even for a command that
+    """The update notice used to run even for a command that
     had just failed -- a failing command has nothing to say about versions."""
 
     def test_no_exception_in_flight_is_not_a_failure(self):

@@ -3,7 +3,7 @@ Theme export/import and example websites (v1.10.0, core-bundle v1.9.0).
 
 The server runs Contao's theme manager; this side moves files and asks. What is pinned
 here: the files go to system/tmp and are removed again, nothing is imported without a
-yes, and the next steps fit the mode. The server side ran on c5 against 5.3, 5.7 and 6.0.
+yes, and the next steps fit the mode. The server side ran against Contao 5.3, 5.7 and 6.0.
 """
 import json
 from unittest.mock import MagicMock
@@ -47,7 +47,7 @@ class TestExport:
         assert "rm -f system/tmp/ab12.cto" in raw_commands(b)
 
     def test_an_existing_file_of_the_default_name_is_not_overwritten(self, tmp_path, monkeypatch):
-        """Review before v1.10.0: a second export replaced the first without a word."""
+        """In a draft a second export replaced the first without a word."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "Demo-Theme.cto").write_bytes(b"earlier")
         b = backend({"status": "ok", "file": "system/tmp/ab12.cto", "size": 2, "theme": "Demo Theme", "note": "n"})
@@ -106,7 +106,7 @@ class TestImportCommand:
         remote = b.scp_upload.call_args[0][1]
         assert remote.startswith("/var/www/site/system/tmp/contao-ai-") and remote.endswith(".cto")
         assert b.run.call_args[0][0].endswith(" --confirm")
-        # The exact file, not a prefix a neighbouring rm would satisfy too (review).
+        # The exact file, not a prefix a neighbouring rm would satisfy too.
         relative = remote.removeprefix("/var/www/site/")
         assert f"rm -f {relative}" in raw_commands(b)
         assert "cache clear" in json.loads(result.output)["nextSteps"][0]["command"]
@@ -145,7 +145,7 @@ class TestImportCommand:
 class TestExampleWebsiteCommand:
     PREVIEW = {"status": "preview", "file": "system/tmp/x.sql", "mode": "data", "statements": 2,
                "tables": ["tl_page", "tl_user"], "truncates": 30, "user_rows": 1,
-               "existing_admins": ["michael"], "needs_admin_decision": True}
+               "existing_admins": ["admin"], "needs_admin_decision": True}
 
     def invoke(self, monkeypatch, tmp_path, args, *answers):
         from contao_ai_cli.cli import cli_example_website, helpers
@@ -166,7 +166,7 @@ class TestExampleWebsiteCommand:
         b.scp_upload.assert_not_called()
 
     def test_without_a_yes_nothing_is_imported(self, monkeypatch, tmp_path):
-        """Review before v1.10.0: the command that can empty the database had no test for it."""
+        """In a draft the command that can empty the database had no test for it."""
         result, b = self.invoke(monkeypatch, tmp_path, ["--mode", "data", "--admins", "existing"], self.PREVIEW)
         out = json.loads(result.output)
         assert out["status"] == "preview" and out["imported"] is False
@@ -186,7 +186,7 @@ class TestExampleWebsiteCommand:
     ])
     def test_the_next_steps_fit_the_mode(self, monkeypatch, tmp_path, mode, steps):
         done = {"status": "ok", "mode": mode, "backup": "backup__20261015090000.sql.gz", "backup_note": "n",
-                "statements": 2, "admins": {"kept": ["michael"], "removed": ["demo"], "imported": []}, "messages": []}
+                "statements": 2, "admins": {"kept": ["admin"], "removed": ["demo"], "imported": []}, "messages": []}
         result, b = self.invoke(monkeypatch, tmp_path, ["--mode", mode, "--admins", "existing", "--yes"],
                                 {**self.PREVIEW, "mode": mode}, done)
         assert result.exit_code == 0, result.output

@@ -130,7 +130,7 @@ def test_a_composer_failure_is_an_answer_not_a_traceback():
 
 
 def test_update_crosses_into_1x_via_require_with_the_readme_constraint():
-    """On a live installation, 2026-09-17 (Nr. 52): v0.21.1 required `^0.20.0` and so
+    """On a live installation: v0.21.1 required `^0.20.0` and so
     overwrote the house constraint `>=0.2 <1.0` -- the next minor would again be out of
     reach for the Contao Manager and `composer update`. Since v1.0.0 the core bundle is 1.x:
     a site on `>=0.2 <1.0` gets `^1.0` on its next update, which reaches every 1.x minor."""
@@ -159,7 +159,7 @@ def test_install_writes_the_readme_constraint_too():
 
 
 def test_an_update_held_back_says_what_did_change():
-    """Pre-release review 2026-09-17: Composer exits 0 with an older version when e.g. the
+    """Composer exits 0 with an older version when e.g. the
     newest release needs a newer PHP -- composer.json and the lock were rewritten anyway,
     so "nothing else was changed" was false."""
     b = backend()
@@ -210,7 +210,7 @@ def test_update_with_packagist_unreachable_is_an_error_not_up_to_date():
 
 
 def test_server_unreachable_is_reported_before_anything_else():
-    """review 2026-09-17: every helper below this swallows ContaoBackendError, so
+    """Every helper below this swallows ContaoBackendError, so
     an unreachable server used to fall through to the allow-plugins refusal."""
     from contao_ai_cli.utils.contao_backend import ContaoBackendError
     b = backend()
@@ -225,7 +225,7 @@ def test_server_unreachable_is_reported_before_anything_else():
     b.run_raw.assert_not_called()
 
 
-# --- the bundle brings its own dependencies along (2026-10-10) ------------------------
+# --- the bundle brings its own dependencies along -------------------------------------
 
 BACKEND_PKG = "webwerkwien/contao-ai-backend-bundle"
 
@@ -235,7 +235,7 @@ def snapshot_stdout(packages: dict) -> dict:
 
 
 def test_update_lets_the_bundle_move_its_own_dependencies_but_not_contao():
-    """c5, 2026-10-09: backend v0.11.0 needs symfony/ai ^0.14, the lock held 0.13, and a
+    """Backend v0.11.0 needs symfony/ai ^0.14, the lock held 0.13, and a
     `require` without -w resolved to the installed v0.10.0. -w moves the bundle's own
     dependencies; -W would move root requirements -- Contao itself -- as well."""
     b = backend()
@@ -321,7 +321,7 @@ def test_unreadable_snapshots_say_unknown_not_nothing():
 
 
 def test_start_up_warnings_on_stdout_are_not_packages():
-    """Pre-release review 2026-10-10: two identical warning sets read as {} -- "nothing else
+    """Two identical warning sets read as {} -- "nothing else
     moved" -- where the truth is "unknown"."""
     b = backend()
     b.run_raw.return_value = {"returncode": 0, "stderr": "", "stdout":
@@ -334,7 +334,7 @@ def test_start_up_warnings_on_stdout_are_not_packages():
 
 
 def test_a_package_name_with_capitals_is_still_a_package():
-    """Second review: installed.json keeps the pretty name; Composer 1 allowed capitals.
+    """installed.json keeps the pretty name; Composer 1 allowed capitals.
     Dropped from both snapshots, such a package would vanish from the diff silently."""
     b = backend()
     b.run_raw.return_value = snapshot_stdout({"Legacy/Old-Bundle": "1.0.0", "contao/core-bundle": "5.7.14"})
@@ -380,7 +380,7 @@ def test_a_held_back_update_names_what_moved_as_well():
     assert result["status"] == "error" and "dependenciesChanged" in result
 
 
-# --- contao:migrate after Composer (v1.7.0; showcase.conpai.eu, 2026-10-13) ---------------
+# --- contao:migrate after Composer (v1.7.0) -----------------------------------------------
 
 MIGRATE_OUTPUT = "\n".join([
     '{"type":"backup-result","createdAt":"2026-10-13T16:00:00+00:00","size":1234,"name":"backup__20261013160000.sql.gz"}',
@@ -494,7 +494,7 @@ def test_a_restart_on_an_unexpected_pending_migration_is_no_error():
 
 
 def test_a_schema_change_that_fails_for_good_names_its_reason():
-    """Second review: Contao exits 1 without an error event; the reason is in schema-result.
+    """Contao exits 1 without an error event; the reason is in schema-result.
     A statement that failed once and then went through is no error."""
     out = "\n".join([
         '{"type":"schema-result","command":"ALTER TABLE tl_a ADD x INT","isSuccessful":false,"message":"retry"}',
@@ -519,7 +519,7 @@ def test_a_failed_exit_without_any_event_names_stderr():
 
 
 def test_installing_the_backend_names_the_optional_bridge_until_it_is_configured(tmp_path):
-    """v1.8.0 (showcase.conpai.eu): the token half of the bridge was nowhere to be read."""
+    """v1.8.0: the token half of the bridge was nowhere to be read."""
     import json as _json
     from click.testing import CliRunner
     from contao_ai_cli.cli import cli_bundle
@@ -535,7 +535,7 @@ def test_installing_the_backend_names_the_optional_bridge_until_it_is_configured
         assert len(steps) == expected, cfg
         if steps:
             assert steps[0]["optional"] is True and "--token-stdin" in steps[0]["command"]
-            # Review v1.8.0: without --session the token would land in the default session.
+            # v1.8.0: without --session the token would land in the default session.
             assert steps[0]["command"].startswith(f"contao-ai-cli --session {session} bridge configure")
 
     # A failed install suggests nothing for a bundle that is not there.
@@ -548,7 +548,7 @@ def test_installing_the_backend_names_the_optional_bridge_until_it_is_configured
 
 
 def test_the_core_flag_is_set_when_installed_even_if_the_migration_failed(tmp_path):
-    """Review v1.7.0: the flag stayed false and every core command answered "not installed"."""
+    """The flag stayed false and every core command answered "not installed"."""
     import json as _json
     from click.testing import CliRunner
     from contao_ai_cli.cli import cli_bundle

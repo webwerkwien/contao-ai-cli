@@ -2,7 +2,7 @@
 The state of a session: CLI, Contao, both bundles, bridge.
 
 Built once and shared: `health` prints it, `connect` answers with it and derives
-`next_steps` from it, and the update notice compares it (2026-09-17, agent-driven
+`next_steps` from it, and the update notice compares it (agent-driven
 onboarding). Before, the wizard in `connect` asked its own questions and `health`
 collected its own state, and the two could not agree on what "update available"
 meant.
@@ -45,7 +45,7 @@ def collect_status(session_path: str) -> dict:
     """
     Gather the full picture for one session in a single call.
 
-    Moved here unchanged in behaviour from `cli_health.py` (2026-09-17): `health`,
+    Moved here unchanged in behaviour from `cli_health.py`: `health`,
     `connect` and the update notice all need exactly this, and a second copy is
     how "update available" used to mean two different things in two places.
     """
@@ -176,7 +176,7 @@ def next_steps(state: dict, session_name: str | None, always_backup: bool = True
         steps.append(bridge_step(prefix))
 
     # Of the steps above only `bundle …` writes on the server; self-update and the bridge do not.
-    # Before an optional install only, the backup is optional too (review v1.8.0).
+    # Before an optional install only, the backup is optional too.
     if not always_backup:
         bundles = [s for s in steps if s["command"].startswith(f"{prefix} bundle ")]
         if not bundles:
@@ -188,7 +188,7 @@ def next_steps(state: dict, session_name: str | None, always_backup: bool = True
 
 def cli_prefix(session_name: str | None) -> str:
     """`contao-ai-cli --session <name>` for a suggested command, quoted when the name or
-    path has a space -- a Windows user directory often does (review v1.8.0). Double quotes
+    path has a space -- a Windows user directory often does. Double quotes
     work in bash, PowerShell and cmd alike."""
     if not session_name:
         return "contao-ai-cli"
@@ -200,7 +200,7 @@ def bridge_step(prefix: str = "contao-ai-cli") -> dict:
     """The optional second half of the bridge (v1.8.0).
 
     Generating the token in the back end looked like the whole setup: `health` then said
-    `not_configured` and nothing said what was missing (showcase.conpai.eu, 2026-10-13).
+    `not_configured` and nothing said what was missing.
     Optional, and said why: only `bridge clone`/`bridge rewrite` from the terminal use it
     -- the back-end chat and every SSH command work without it. The token goes on stdin,
     not into the command line, where the process list would show it.

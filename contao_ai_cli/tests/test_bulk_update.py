@@ -1,7 +1,7 @@
 """
 `--ids` / `--ids-from-file` — the deterministic bulk path.
 
-Setting one field on 174 pages cost about four minutes on 2026-08-29: 1.4 s per
+Setting one field on 174 pages cost about four minutes: 1.4 s per
 record, 0.67 s of which was establishing the SSH connection and nothing else.
 The only alternative on offer was `bridge rewrite`, an LLM loop that bills API
 tokens to write a constant. This closes the gap.
@@ -61,7 +61,7 @@ class TestResolveBulkIds:
             resolve_bulk_ids(*args)
 
     def test_names_a_malformed_entry_instead_of_skipping_it(self):
-        """A silent skip is exactly how the 2026-08-29 run looked successful."""
+        """A silent skip is exactly how an early bulk run looked successful."""
         with pytest.raises(ValueError, match="foo"):
             resolve_bulk_ids(None, "39,foo,41", None)
 
@@ -102,11 +102,11 @@ class TestRunBulkUpdate:
         Both halves matter, and this test used to hold only one of them.
 
         The original concern was right: `ContaoBackend.run()` raises on a
-        non-zero exit, and that threw away the very payload naming the failures
-        (found on c5, 2026-08-29). The answer then was `check=False` and
+        non-zero exit, and that threw away the very payload naming the failures.
+        The answer then was `check=False` and
         returning the summary.
 
-        🔴 Audit 2026-09-02 (M-3) found what that traded away. Returning
+        🔴 A security audit found what that traded away. Returning
         normally meant `contao-ai-cli … --ids=…` exited **0** after "1 of 2
         records failed". An agent reading the JSON saw `failed`; a shell script
         checking `$?` saw success. Same answer, two meanings.

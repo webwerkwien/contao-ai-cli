@@ -1,9 +1,11 @@
 """
-The remaining findings of the 2026-09-02 audit, pinned.
+The remaining findings of a security audit, pinned.
 
 v0.14.0 closed the SSH option injection and the passwords. This covers what was
-left open then and fixed in v0.15.0: M-2, M-1, C-1, H-1, M-4 and the reported
-host key. M-3 lives in test_bulk_update.py, next to the test it had to invert.
+left open then and fixed in v0.15.0: quoted values in joined commands, session file
+permissions, the bridge URL and its redirects, the bridge token, a 500 from the bridge
+and the reported host key. The bulk-update exit code lives in test_bulk_update.py, next
+to the test it had to invert.
 """
 import json
 import os
@@ -52,7 +54,7 @@ class TestM2QuotedValuesSurvive:
         The shape, not the four instances — a fifth would be the same bug.
 
         ⚠️ Comments and strings are stripped first, and that is not tidiness.
-        The fix for M-2 documents the old form in a docstring (*'used to tidy it
+        The fix for the command joining documents the old form in a docstring (*'used to tidy it
         with " ".join(cmd.split())'*), because a fix without its reason is a line
         nobody dares touch later. A scan reading that text fails on the very file
         that was repaired — which is exactly what happened on the first run.
@@ -128,9 +130,9 @@ class TestC1BridgeUrl:
             BackendBridgeClient(url, "5.geheim")
 
     def test_https_is_accepted(self):
-        client = BackendBridgeClient("https://c5.example.com/", "5.geheim")
+        client = BackendBridgeClient("https://www.example.com/", "5.geheim")
 
-        assert client.base_url == "https://c5.example.com"
+        assert client.base_url == "https://www.example.com"
 
     def test_a_local_http_bridge_needs_an_explicit_opt_in(self):
         client = BackendBridgeClient("http://localhost:8000", "5.geheim", allow_insecure=True)
@@ -150,19 +152,19 @@ class TestC1BridgeUrl:
             )
 
     def test_the_client_installs_the_no_redirect_opener(self):
-        client = BackendBridgeClient("https://c5.example.com", "5.geheim")
+        client = BackendBridgeClient("https://www.example.com", "5.geheim")
 
         assert any(isinstance(h, _NoRedirect) for h in client._opener.handlers)
 
 
 class TestH10HostKeyNotice:
     def test_a_first_contact_is_reported(self):
-        stderr = "Warning: Permanently added 'c5.axeltest.at' (ED25519) to the list of known hosts."
+        stderr = "Warning: Permanently added 'example.com' (ED25519) to the list of known hosts."
 
         notice = _host_key_notice(stderr)
 
         assert notice is not None
-        assert "c5.axeltest.at" in notice
+        assert "example.com" in notice
         assert not notice.startswith("Warning: ")
 
     def test_a_known_host_produces_no_notice(self):

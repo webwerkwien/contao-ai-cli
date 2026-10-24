@@ -5,7 +5,7 @@ from contao_ai_cli.core.contao_ops import record_list
 
 # Both listings parsed Symfony's ASCII table out of `doctrine:query:sql` until
 # v0.30.0 and answered with a bare list of strings, the only listings in this CLI
-# that did (practical test 2026-09-19). Now they go through record:list like every
+# that did (practical test). Now they go through record:list like every
 # other: `{status, table, count, total, results}`, typed values, --limit/--offset.
 
 def form_list(backend: ContaoBackend, limit=None, offset=None) -> dict:

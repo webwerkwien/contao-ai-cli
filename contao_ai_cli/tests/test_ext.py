@@ -5,7 +5,7 @@ An extension registers its own contao:* console command with Symfony and is
 then invisible from here — it exists on the server, and nothing in the CLI, or
 in an agent reading --help, can learn that it does.
 
-Two halves are pinned here, and they were one decision (2026-09-01): the caller
+Two halves are pinned here, and they were one decision: the caller
 gets a warning before the effect, and the server records the invocation for
 whoever asks afterwards. Either alone leaves one of the two without an answer.
 """
@@ -139,8 +139,8 @@ class TestExtRun:
 
     def test_the_operator_travels_when_given(self):
         b = backend('{"status":"ok"}')
-        ext_mod.ext_run(b, "contao:x:y", operator="michael")
-        assert "--operator=michael" in sent(b)
+        ext_mod.ext_run(b, "contao:x:y", operator="editor")
+        assert "--operator=editor" in sent(b)
 
 
 class TestExtRunCommand:
@@ -176,7 +176,7 @@ class TestExtRunCommand:
         """A prefix of one's own is the convention; the declaration is what
         says the author meant the command to be driven from here."""
         b = backend(json.dumps({"status": "ok", "reachable": True, "contract": None}))
-        result = self._run(["run", "ww:demo:ping"], b)
+        result = self._run(["run", "acme:demo:ping"], b)
 
         assert result.exit_code == 0
         assert any("contao:ai:run" in c[0][0] for c in b.run.call_args_list)
@@ -212,7 +212,7 @@ class TestExtRunEnvelope:
     """
     A foreign command's answer is reported as foreign, not as the CLI's own.
 
-    Measured on c5-axeltest on 2026-09-01 with a throwaway plugin. `ext run`
+    Measured with a throwaway plugin. `ext run`
     returned the plugin's stdout verbatim:
 
         { "status": "ok", "echo": "HALLO" }
@@ -294,7 +294,7 @@ class TestExtRunEnvelope:
 
     def test_stderr_is_dropped_on_a_successful_run(self):
         """
-        c5 emits ionCube and imagick startup warnings on every PHP call. Carried
+        Some installations emit ionCube and imagick startup warnings on every PHP call. Carried
         unconditionally, several lines of unrelated noise would precede every
         successful run and train a reader to skip the field entirely.
 
@@ -325,8 +325,8 @@ class TestExtRunVersionHint:
 
     The version hint rides on `backend.run()` raising. `ext_run` passes
     `check=False` — deliberately, so a failing foreign command still reports
-    its own output — and therefore never saw it. Measured by the ww-buchung
-    session on 2026-09-01: `ext run` and `ext describe` are precisely what a
+    its own output — and therefore never saw it. Measured while
+    developing an extension: `ext run` and `ext describe` are precisely what a
     caller reaches for when asking about a command it does not have, and both
     were silent about the version.
     """
@@ -352,7 +352,7 @@ class TestExtRunVersionHint:
         assert b.undefined_command_hint.called
         assert "Command not found" in b.undefined_command_hint.call_args[0][0]
         # v1.9.1: no option hint here — the line is the caller's, the option often an
-        # extension's. Unbound until the Fable review: removing it left every test green.
+        # extension's. Unbound at first: removing it left every test green.
         assert b.undefined_command_hint.call_args.kwargs == {"options": False}
 
     def test_no_hint_key_when_there_is_nothing_to_say(self):
@@ -484,8 +484,8 @@ class TestTheTrailLineReadsAsASentence:
     A single template produced "written on-success the run".
 
     The field was right and only the sentence around it was wrong, which is why
-    it survived being written, reviewed and released — reported by the
-    ww-buchung session from the first contract anyone else wrote.
+    it survived being written, reviewed and released — reported from the
+    first contract anyone else wrote.
     """
 
     @staticmethod
@@ -516,7 +516,7 @@ class TestStringInputLine:
     `ext run` sends one line that the server parses with Symfony's StringInput
     (v1.8.2). Until v1.8.1 the tokens were joined with a bare space, so a value
     with a space or a line break arrived as several arguments and the command
-    answered *Too many arguments* (Consho session, 2026-10-14).
+    answered *Too many arguments*.
 
     The round trip goes through the real StringInput where PHP and a vendor
     directory with symfony/console are at hand — the line is read by the code

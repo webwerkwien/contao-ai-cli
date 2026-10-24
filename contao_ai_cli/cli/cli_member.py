@@ -84,7 +84,7 @@ def member_password_cmd(ctx, username, password, password_stdin, as_json):
 @member.command("update")
 @click.argument("username")
 # `--set` like every other update command; `--field` was this one's own spelling until
-# v0.27.0 and still works (agent test before 1.0, 2026-09-18).
+# v0.27.0 and still works (agent test before 1.0).
 @click.option("--set", "--field", "fields", multiple=True, metavar="FIELD=VALUE")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context

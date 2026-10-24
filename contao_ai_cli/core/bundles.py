@@ -1,4 +1,4 @@
-"""Installing and updating the contao-ai bundles on a site (moved out of the connect wizard, 2026-09-17)."""
+"""Installing and updating the contao-ai bundles on a site (moved out of the connect wizard)."""
 import json
 import re
 import shlex
@@ -16,7 +16,7 @@ BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 # The constraint written into composer.json -- per bundle, the range its README recommends.
 # A plain `composer require <pkg>` would write `^0.x`, and `^<latest>` (v0.21.0-v0.21.1)
 # overwrote `>=0.2 <1.0` on a live installation: either caps the next minor for the Contao Manager
-# and `composer update` (Nr. 52, 2026-09-17).
+# and `composer update`.
 # v1.0.0: the core bundle is 1.x, where `^1.0` reaches every minor; a site still on
 # `>=0.2 <1.0` gets it on its next `bundle update core`. The backend bundle is still 0.x,
 # so its range stays open across 0.x and into a later 1.x.
@@ -25,7 +25,7 @@ REQUIREMENTS = {name: f"{BUNDLES[name]}:{CONSTRAINTS[name]}" for name in BUNDLES
 
 # A bundle brings its own dependencies along. Without -w Composer may change only the
 # named package, so a release that raises one of them (backend v0.11.0 needs symfony/ai
-# ^0.14) resolved to the old version instead (c5, 2026-10-09). -w, not -W: root
+# ^0.14) resolved to the old version instead. -w, not -W: root
 # requirements -- Contao itself -- stay where they are. --minimal-changes moves only the
 # transitive packages that have to move; Composer knows it since 2.7, older ones get -w alone.
 WITH_DEPENDENCIES = "--update-with-dependencies"
@@ -95,9 +95,9 @@ def installed_snapshot(backend) -> dict[str, str] | None:
         out = backend.run_raw(f"{shlex.quote(backend.php_path)} -r '{php_code}'")["stdout"]
     except Exception:  # noqa: BLE001
         return None
-    # Only lines that look like a package: a start-up warning on stdout (imagick on c5) is a
+    # Only lines that look like a package: a start-up warning on stdout (e.g. imagick) is a
     # "name version" line too, and two identical warning sets would read as {} -- "nothing
-    # else moved" -- where the truth is "unknown" (pre-release review 2026-10-10).
+    # else moved" -- where the truth is "unknown".
     snapshot = {}
     for line in out.splitlines():
         name, _, version = line.strip().partition(" ")
@@ -128,12 +128,12 @@ def run_migrations(backend) -> dict:
     """`contao:migrate` after Composer (v1.7.0), and what it did.
 
     Until then `bundle install backend` answered ok while the bundle's columns in tl_user
-    were still missing (showcase.conpai.eu, 2026-10-13). Run, not merely reported: Contao
+    were still missing. Run, not merely reported: Contao
     dumps the database before it migrates (`backup`, skipped when there is nothing to
     do), and without interaction it leaves out DROP statements -- columns and tables are
     added, nothing is deleted. ndjson is the same on 5.3, 5.7 and 6.0.
 
-    Read from Contao's MigrateCommand (pre-release review): `error`/`problem` come with
+    Read from Contao's MigrateCommand: `error`/`problem` come with
     exit 1, and the reason is on stdout -- hence `check=False`. A migration that fails
     yields `isSuccessful: false` and Contao carries on with exit 0; that is an error here
     too. Not a restart: "Expected … got …" (UnexpectedPendingMigrationException) makes
@@ -171,7 +171,7 @@ def run_migrations(backend) -> dict:
                  and not str(e.get("message", "")).startswith("Expected ")]
     if result["returncode"] != 0:
         # A schema statement that still fails after Contao's retries exits 1 without an
-        # error event; its reason is in the last failed schema-result (second review).
+        # error event; its reason is in the last failed schema-result.
         succeeded = {e.get("command") for e in events if e.get("type") == "schema-result" and e.get("isSuccessful")}
         failed = {}
         for e in events:
@@ -189,14 +189,14 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
     """
     Install or update a bundle and report only what can be read back afterwards.
 
-    Moved out of the connect wizard (2026-09-17). Writing allow-plugins into the project
+    Moved out of the connect wizard. Writing allow-plugins into the project
     composer.json was a yes/no question there; here it is the explicit --allow-plugins,
     so an agent has to ask the user before it passes it.
     """
     package = BUNDLES[name]
     base = {"bundle": name, "package": package}
 
-    # Probed before anything else (review 2026-09-17): every helper below this
+    # Probed before anything else: every helper below this
     # catches ContaoBackendError on its own and answers "nothing found", so an
     # unreachable server used to read as "composer.json does not allow
     # <plugins>" -- a refusal about the wrong thing entirely.
@@ -266,7 +266,7 @@ def install_bundle(backend, name: str, action: str, allow_plugins: bool = False)
     if action == "update" and str(after).lstrip("v") != str(latest).lstrip("v"):
         # Composer exits 0 with an older version when something else holds the newest back
         # (a PHP requirement, a locked dependency) -- and has rewritten composer.json and the
-        # lock by then. Say so (pre-release review 2026-09-17: "nothing else was changed").
+        # lock by then. Say so (it used to answer "nothing else was changed").
         return {**base, "status": "error", "code": 1, "allowPluginsWritten": written,
                 "installed": after, "previous": before, "changed": after != before,
                 "constraint": CONSTRAINTS[name], "dependenciesChanged": also_changed, "migrate": migrate,

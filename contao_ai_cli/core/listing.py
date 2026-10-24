@@ -62,7 +62,7 @@ def listing_data(backend: ContaoBackend, module_id: int, cfg: dict | None = None
     if isinstance(answer, dict) and answer.get("status") == "error":
         raise ListingError(str(answer.get("message") or f"Module {module_id} could not be read"))
     # Only a missing command falls back. Anything else — a crash of the command — is an
-    # error: the SQL path would answer unmasked values the caller did not ask for (review).
+    # error: the SQL path would answer unmasked values the caller did not ask for.
     text = f"{result.get('stdout', '')}\n{result.get('stderr', '')}"
     if 'Command "contao:listing:data" is not defined' not in text and "There are no commands defined" not in text:
         raise ListingError(f"contao:listing:data {module_id} failed: {text.strip()[:300]}")
@@ -78,7 +78,7 @@ def _listing_data_sql(backend: ContaoBackend, module_id: int, cfg: dict | None =
     core-bundle before v1.9.0.
 
     The one read path in this CLI that still writes its own SQL, and
-    deliberately so (decision 2026-09-01). Everything else moved to
+    deliberately so. Everything else moved to
     contao:record:list, which validates table, columns, filters and order
     against the DCA — and that validation is exactly what cannot be applied
     here: `list_where` is a free SQL fragment stored in the module itself, so
@@ -94,7 +94,7 @@ def _listing_data_sql(backend: ContaoBackend, module_id: int, cfg: dict | None =
     Otherwise the module config is fetched from tl_module first.
     """
     if cfg is None:
-        # The config half moved to contao:listing:config (2026-09-01). Only the
+        # The config half moved to contao:listing:config. Only the
         # data half below still writes its own SQL, and only because list_where
         # is a free fragment configured in the site. Reading the module's own
         # settings is an ordinary lookup and had no business being raw SQL.
@@ -116,7 +116,7 @@ def _listing_data_sql(backend: ContaoBackend, module_id: int, cfg: dict | None =
     sql = f"SELECT {fields} FROM {table} {where} ORDER BY id"
     rows = run_sql_table(backend, sql)
     # The answer every other listing gives (v0.30.0). Until then a bare list
-    # here, and an error was a dict with exit code 0 (practical test 2026-09-19).
+    # here, and an error was a dict with exit code 0.
     # Values stay strings: this is a SQL table read, not record:list.
     return {"status": "ok", "module": int(module_id), "table": table,
             "count": len(rows), "results": rows}

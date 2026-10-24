@@ -152,7 +152,7 @@ def theme_import_cmd(ctx, local_file, assume_yes, operator, as_json):
         raise click.ClickException(str(e))
     if result.get("status") == "ok":
         # The import writes templates; in production Contao keeps the template hierarchy
-        # in a cache pool until it is cleared (review before v1.10.0).
+        # in a cache pool until it is cleared.
         result["nextSteps"] = [{"command": f"{cli_prefix(_session_name(ctx.obj.get('session')))} cache clear",
                                 "optional": False,
                                 "reason": "The theme's templates and layouts are new; caches still hold the old state."}]

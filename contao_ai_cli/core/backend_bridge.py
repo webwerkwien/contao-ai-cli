@@ -1,5 +1,5 @@
 """
-HTTP client for the contao-ai-backend-bundle CLI bridge (Phase 10.1+).
+HTTP client for the contao-ai-backend-bundle CLI bridge.
 
 Endpoint: POST <server>/_ai_cli/macro
 Auth:     Authorization: Bearer <userId>.<random>
@@ -24,7 +24,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     """
     Refuse every redirect instead of following it.
 
-    Audit 2026-09-02 (C-1). `urllib` follows redirects by default and keeps the
+    `urllib` follows redirects by default and keeps the
     `Authorization` header while doing so, including across hosts — so a bridge
     answering `302 -> https://elsewhere` handed the bearer token to that host,
     and the caller saw an ordinary response.
@@ -53,7 +53,7 @@ class BridgeError(Exception):
 class BackendBridgeClient:
     def __init__(self, base_url: str, token: str, timeout: int = 120, allow_insecure: bool = False):
         """
-        Audit 2026-09-02 (C-1). The URL was only stripped of a trailing slash.
+        The URL was only stripped of a trailing slash.
         Two consequences, both of which sent the bearer token somewhere it did
         not belong:
 

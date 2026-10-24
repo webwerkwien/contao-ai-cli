@@ -1,6 +1,6 @@
 """Event dates and times as options, and --pid on the list filters (v0.30.0).
 
-Practical test on c5, 2026-09-19: an event created without --end-date ended on
+Practical test: an event created without --end-date ended on
 the day of the call and fell out of "upcoming events"; a time could only be set
 as a raw timestamp, and "17:30" ended in a database error. The server now
 derives the stored times (core-bundle v0.28.0); the CLI passes the dates and
@@ -85,7 +85,7 @@ class TestUpdate:
         b.run.assert_not_called()
 
     def test_empty_option_is_a_usage_error(self, monkeypatch):
-        # Dropped silently before the review: "--end-date ''" answered like no option.
+        # Dropped silently at first: "--end-date ''" answered like no option.
         b = backend()
         r = invoke(cli_event.event, ["update", "23", "--end-date", "", "--set", "location=x"], b, monkeypatch, cli_event)
         assert r.exit_code == 2

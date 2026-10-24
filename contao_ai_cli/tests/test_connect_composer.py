@@ -150,7 +150,7 @@ class TestInstallCliUpdate:
             assert install_cli_update("0.4.3") == {"installed": "0.4.2", "updated": False}
 
     def test_a_failed_install_keeps_the_reason_pipx_gave(self):
-        """Review 2026-09-17: capturing pipx's output hid why an install failed."""
+        """Capturing pipx's output hid why an install failed."""
         failed = MagicMock(stderr="fatal: unable to access github.com\n")
         with patch("contao_ai_cli.cli.helpers.subprocess.run", return_value=failed), \
              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value="0.4.2"):
@@ -159,7 +159,7 @@ class TestInstallCliUpdate:
         assert "unable to access github.com" in outcome["reason"]
 
     def test_when_pipx_cannot_answer_the_new_launcher_is_asked(self):
-        """Nr. 54, measured 2026-09-17 with an instrumented 0.22.9 updating to 0.23.0 on
+        """Measured with an instrumented 0.22.9 updating to 0.23.0 on
         Windows: pipx moves the running `contao-ai-cli.exe` into its trash, the running
         self-update keeps it locked, and every later pipx call fails emptying that trash
         (`PermissionError: [WinError 5] … pipx\\trash\\….contao-ai-cli.exe`) — so
@@ -207,7 +207,7 @@ class TestInstallCliUpdate:
             assert install_cli_update("0.4.3")["updated"] is False
 
     def test_pipx_output_is_captured_not_printed(self):
-        """review 2026-09-17: pipx writing to stdout broke `self-update --json`."""
+        """pipx writing to stdout broke `self-update --json`."""
         with patch("contao_ai_cli.cli.helpers.subprocess.run") as run, \
              patch("contao_ai_cli.cli.helpers.get_pipx_installed_version", return_value="0.4.3"):
             install_cli_update("0.4.3")

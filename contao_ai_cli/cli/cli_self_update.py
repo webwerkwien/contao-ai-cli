@@ -1,11 +1,11 @@
 """
 self-update -- reinstall contao-ai-cli at the newest tag via pipx.
 
-Measured on Windows 2026-09-17: works while another contao-ai-cli process is
+Measured on Windows: works while another contao-ai-cli process is
 running (pipx reuses the venv and overwrites the launcher). But pipx moves a
 running launcher into its trash, and while that file stays locked every later
 pipx call fails emptying the trash — so the result is read back from the new
-launcher (Nr. 54), and a second self-update while an older contao-ai-cli window
+launcher, and a second self-update while an older contao-ai-cli window
 is still open fails until that window is closed. Until v0.20.0 it was a
 question inside `connect`; an agent could not reach it.
 """

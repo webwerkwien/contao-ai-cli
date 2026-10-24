@@ -13,7 +13,7 @@ def test_errors_name_the_stdin_flag_of_the_option():
 
 
 def test_a_described_value_keeps_its_real_stdin_flag():
-    """Review 2026-09-17: `hash-password` passes what="the PASSWORD argument"."""
+    """`hash-password` passes what="the PASSWORD argument"."""
     with pytest.raises(click.UsageError) as e:
         resolve_password(None, False, what="the PASSWORD argument")
     assert "--password-stdin" in str(e.value) and "argument-stdin" not in str(e.value)
@@ -35,7 +35,7 @@ def test_no_terminal_and_no_token_explains_both_ways():
 
 
 def test_a_redirected_stdin_is_no_console_even_when_isatty_says_so():
-    """Measured 2026-09-17: Git Bash `< /dev/null` reports isatty True; the prompt hung."""
+    """Measured: Git Bash `< /dev/null` reports isatty True; the prompt hung."""
     from contao_ai_cli.cli import helpers
 
     with patch.object(helpers.sys, "stdin") as stdin, patch.object(helpers.sys, "platform", "linux"):
@@ -49,7 +49,7 @@ def test_a_redirected_stdin_is_no_console_even_when_isatty_says_so():
 
 def test_get_console_mode_argtypes_are_set_for_a_64_bit_handle():
     """
-    review 2026-09-17: HANDLE is a 64-bit pointer. Without an explicit argtypes,
+    HANDLE is a 64-bit pointer. Without an explicit argtypes,
     ctypes assumes the default (32-bit-int) signature for GetConsoleMode's first
     argument, which can silently truncate the handle on 64-bit Python.
     """

@@ -15,8 +15,8 @@ def schema():
 
 
 #: `mandatory_fields` is `eval.mandatory` as the DCA declares it, palette or not —
-#: `tl_consho_shop.currency` is listed though no palette shows it (Consho session,
-#: 2026-10-12). Said next to the list rather than by changing it: callers read the key.
+#: `tl_consho_shop.currency` is listed though no palette shows it.
+#: Said next to the list rather than by changing it: callers read the key.
 _MANDATORY_NOTE = (
     "as the DCA declares them, whether or not a palette shows the field; "
     "what a record must have: schema palette {table} (--set type=... for a typed record)"
@@ -115,8 +115,8 @@ def schema_palette(ctx, table, set_fields, as_json):
         return
 
     # Without --set (v1.6.0): a table without a type selector has one palette, and the
-    # server answers it — `--set type=default` was a workaround for a refusal here
-    # (Consho session, 2026-10-12). A typed table answers its selector alone; then say
+    # server answers it — `--set type=default` was a workaround for a refusal here.
+    # A typed table answers its selector alone; then say
     # which value is missing instead of handing back a one-field "palette".
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
     data = dca_schema.palette(_get_backend(session_path), table, {})

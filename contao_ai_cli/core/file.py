@@ -101,7 +101,7 @@ def file_upload(backend: ContaoBackend, path: str, local_file: str) -> dict:
     maxFileSize, image dimensions, SVG sanitising — the same ones a back-end
     upload goes through (core-bundle v0.13.0).
 
-    Measured on 2026-09-16: `file write` could not carry a PNG. The transport
+    Measured: `file write` could not carry a PNG. The transport
     was binary-safe all along — SCP, and the server reads bytes — only the
     local temp file was opened in text mode. So the local file is sent as it
     is, without a copy in between.
@@ -149,7 +149,7 @@ def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
         cmd += ' --force'
 
     # check=False: a refusal exits 1 and carries `usages` — where the file is still
-    # used. Letting run() raise kept only the message (measured on c5, 2026-09-16), so
+    # used. Letting run() raise kept only the message (measured), so
     # the answer is returned as it came and the command sets the exit code.
     result = backend.run(cmd, check=False)
     try:
@@ -157,7 +157,7 @@ def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
     except json.JSONDecodeError:
         if result.get("returncode", 0) != 0:
             # check=False bypasses run()'s own failure path, and with it the hint that
-            # names the core-bundle version a missing command needs (review 2026-09-16).
+            # names the core-bundle version a missing command needs.
             raise ContaoBackendError(
                 f"file delete failed (exit {result['returncode']}): "
                 f"{(result.get('stderr') or result['stdout'])[:500]}"

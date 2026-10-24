@@ -7,7 +7,7 @@ contract with the bundle, so they are what is pinned; the DCA rules behind them
 (mandatory fields, deny list, address validation) live in the bundle and are
 tested there.
 
-Two decisions from 2026-08-31 are load-bearing here and are tested as such:
+Two decisions are load-bearing here and are tested as such:
 
   * `newsletter send` is registered and always refuses. "No such command" reads
     like a gap, and an agent that sees a gap looks for a way around it — the
@@ -120,7 +120,7 @@ class TestTheActiveQuestion:
         assert confirm_escalation("anything?") is False
 
     def test_a_prompt_nobody_can_answer_is_a_no_not_a_crash(self):
-        """Found in the live run of 2026-08-31.
+        """Found in a live run.
 
         `isatty()` answered True where nothing could actually reply — under Git
         Bash it even reports True for `< /dev/null` — and `click.confirm` then

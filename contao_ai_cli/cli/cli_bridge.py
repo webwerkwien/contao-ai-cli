@@ -34,7 +34,7 @@ def bridge():
 
 
 @bridge.command("configure")
-@click.option("--url", required=True, help="Base URL of the Contao site, e.g. https://c5.example.com")
+@click.option("--url", required=True, help="Base URL of the Contao site, e.g. https://www.example.com")
 @click.option("--token", default=None,
               help="Bridge token <userId>.<random>. Visible in the process list — prefer --token-stdin.")
 @click.option("--token-stdin", is_flag=True,
@@ -44,7 +44,7 @@ def bridge():
 def bridge_configure(ctx, url, token, token_stdin, test):
     """Save bridge URL + token to the current session file.
 
-    Audit 2026-09-02 (H-1). The token used to be a required CLI option, so it
+    The token used to be a required CLI option, so it
     sat in this process's command line where any other user of the machine can
     read it — the same defect as the passwords fixed in v0.14.0, and the
     mechanism built for those was simply never applied here.
@@ -78,7 +78,7 @@ def bridge_configure(ctx, url, token, token_stdin, test):
                 # our controller answering, so auth and routing are proven.
                 result["test"] = {"status": "ok", "reason": f"Bridge auth OK, server rejected as expected (HTTP {e.status})"}
             elif e.status == 500:
-                # Audit 2026-09-02 (M-4). A 500 used to count as "ok" on the
+                # A 500 used to count as "ok" on the
                 # grounds that reaching it proves auth passed — which is true,
                 # and is why this is a warning rather than a failure. But the
                 # test says "expects HTTP 422", and answering `Bridge auth OK`
@@ -171,8 +171,8 @@ def bridge_clone(ctx, table, source_id, modifications, recursive, with_recipient
         _emit_error(e, ctx.obj.get("as_json"))
         sys.exit(1)
     # The bridge wraps the core's answer: {"status", "tool", "result": {..., "recipients_copied"}}.
-    # The first version looked at the top level and warned on every successful copy (c5,
-    # 2026-10-15) — its test had invented a flat answer.
+    # The first version looked at the top level and warned on every successful copy —
+    # its test had invented a flat answer.
     inner = result.get("result") if isinstance(result, dict) else None
     if with_recipients and isinstance(result, dict) and (
             not isinstance(inner, dict) or inner.get("recipients_copied") is not True):

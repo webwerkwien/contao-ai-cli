@@ -1,11 +1,11 @@
-"""Two findings from the ConpAI 1.0 site build on a live installation, 2026-09-17.
+"""Two findings from building a site with ConpAI 1.0 on a live installation.
 
-Nr. 65: `file write` turned LF into CRLF on Windows. The content went into a temp file
+`file write` turned LF into CRLF on Windows. The content went into a temp file
 opened in text mode, which writes the platform's line ending, so site.css arrived with
 CRLF. `template write` had the same temp file, and both read `@file` in text mode,
 which turned a file's own CRLF into LF. Content now travels byte for byte.
 
-Nr. 68: `layout module-add` took only a number. Since Contao 5.7 a layout also holds a
+`layout module-add` took only a number. Since Contao 5.7 a layout also holds a
 theme's content elements, stored as `content-<id>`; the site's header and footer are
 two of them (core-bundle v0.24.0 checks the element and its theme).
 """

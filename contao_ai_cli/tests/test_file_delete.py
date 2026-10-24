@@ -1,6 +1,6 @@
 """`file delete` keeps the server's answer — above all the list of usages.
 
-Measured on c5 on 2026-09-16, before release: a refused delete printed only
+Measured before release: a refused delete printed only
 *"Error: Command failed (exit 1): … is still used in 4 place(s)"*, even with --json.
 The ``usages`` the core-bundle sends — which element uses the file — were dropped, so a
 caller knew *that* it was used but not *where*. The answer is now written as it came,
@@ -80,7 +80,7 @@ def test_without_yes_and_without_an_answer_nothing_is_deleted():
     """v0.20.0: silence at the prompt is a no for files — unlike every record delete.
 
     Record deletes proceed when nobody answers (tl_undo holds the record). Files have
-    no undo, and the review of 2026-09-16 showed one wrong path emptying a whole folder.
+    no undo, and one wrong path can empty a whole folder.
     """
     backend = _backend(REFUSED, 1)
     with patch("contao_ai_cli.cli.cli_file._require_core_bundle"), \
@@ -106,7 +106,7 @@ def test_a_typed_yes_at_the_prompt_deletes():
 
 
 def test_a_missing_command_names_the_core_bundle_version():
-    """Review 2026-09-16: check=False skipped the hint of run(), so an old core bundle
+    """check=False skipped the hint of run(), so an old core bundle
     only said *Command "contao:file:delete" is not defined*."""
     backend = MagicMock()
     backend.run.return_value = {"stdout": "", "returncode": 1,

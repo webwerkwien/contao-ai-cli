@@ -63,7 +63,7 @@ from contao_ai_cli.core import update_notice
 # ─── Root group ───────────────────────────────────────────────────────────────
 
 @click.group(invoke_without_command=True)
-@click.option("--session", default=None, help="Session name (e.g. 'c5-axeltest') or full path to a session.json file")
+@click.option("--session", default=None, help="Session name (e.g. 'mysite') or full path to a session.json file")
 @click.option("--json", "as_json", is_flag=True, help="JSON output")
 @click.version_option(__version__)
 @click.pass_context
@@ -80,7 +80,7 @@ def cli(ctx, session, as_json):
     ctx.ensure_object(dict)
     # Accept --session as either a bare session name (resolved against the
     # default session dir) OR a full path to a *.json file. Without this,
-    # `--session c5-axeltest` was interpreted as a literal relative path
+    # `--session mysite` was interpreted as a literal relative path
     # and resolved to a non-existent file.
     if session and not session.endswith(".json") and os.sep not in session and "/" not in session:
         session = session_mod.get_session_path(session)
@@ -94,7 +94,7 @@ def cli(ctx, session, as_json):
 
     def _notice_unless_failed():
         # call_on_close runs while the command's own exception (if any) is still
-        # in flight, so sys.exc_info() names it here (review 2026-09-17). A
+        # in flight, so sys.exc_info() names it here. A
         # failing command has nothing to say about whether the CLI or the
         # bundles are current.
         if update_notice.command_failed(sys.exc_info()[1]):
@@ -269,7 +269,7 @@ def main() -> None:
     """
     # Also done in the cli callback, but Click raises "No such command" and bad
     # root options before that callback runs -- and printing that error on a
-    # cp1252 stdout crashed on the first character outside it (review v0.28.0:
+    # cp1252 stdout crashed on the first character outside it (before v0.28.0:
     # `--json <emoji>` exited 1 with a traceback instead of 2 with the object).
     configure_output_encoding()
     as_json = _json_requested(sys.argv[1:])

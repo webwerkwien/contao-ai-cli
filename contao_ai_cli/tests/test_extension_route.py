@@ -5,8 +5,8 @@ Nothing the project shipped told a caller how. The Contao Manager passthrough wa
 described only as the internals of `bundle install core|backend`, `bundle install
 <anything else>` answered Click's generic `invalid choice`, and the guide said
 firmly not to go around the CLI without ever saying where the legitimate boundary
-runs. A parallel session found the right route only by reading a private
-maintenance note that no user of this CLI has (2026-09-24).
+runs. The right route could be found only by reading a private
+maintenance note that no user of this CLI has.
 
 These tests pin the two halves of the answer: the refusal that points somewhere,
 and the `composer` key that spares the caller from guessing the command.
@@ -83,7 +83,7 @@ class TestHealthNamesTheComposerRoute:
     def test_a_phar_that_cannot_be_driven_is_not_reported_as_no_manager(self, tmp_path):
         """Issue #59: unlike bundle install, this advice has no allow-plugins net behind it.
 
-        Measured 2026-09-24: none of the five reachable installations is in this
+        Measured: none of the five reachable installations is in this
         state. The test exists because the *consequence* is a plain `composer
         require` on a Managed Edition, written past the manager.
         """
@@ -94,7 +94,7 @@ class TestHealthNamesTheComposerRoute:
         assert "past the manager" in composer["note"]
 
     def test_a_managed_edition_without_the_tool_says_so(self, tmp_path):
-        """A state real installations are in -- two of five, measured 2026-09-24."""
+        """A state real installations are in -- two of five, measured."""
         composer = self._status(tmp_path, manager_available=False, phar=None,
                                 manager_bundle=True)["composer"]
         assert composer["via"] == "composer"
