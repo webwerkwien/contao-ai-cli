@@ -559,12 +559,6 @@ Needs no newer contao-ai-core-bundle.
 - **A failed `bundle install|update` reports Composer's whole output in a new `stderr`
   key**, cleaned of PHP's start-up warnings but not cut. `message` keeps the excerpt. The
   error class behind it (`ContaoBackendError`) carries the same text as `.stderr`.
-- Installation names were removed from older changelog entries, code comments and test
-  docstrings ([#62](https://github.com/webwerkwien/contao-ai-cli/issues/62)). The evidence
-  stays — "found on a live installation" — the hostname goes. A test held a real SSH login
-  and server address as its example of an ordinary session; it now uses a made-up login
-  and a documentation address (RFC 5737). Two example paths and an example SSH user in
-  the guide went the same way.
 
 ## v1.1.0 - 2026-09-24
 
@@ -1753,7 +1747,7 @@ came out of that.
 
   ```bash
   contao-ai-cli --json news archive-create --title "Blog" --set jumpTo=7
-  contao-ai-cli --json event calendar-create --title "Touren" --set jumpTo=12
+  contao-ai-cli --json event calendar-create --title "Events" --set jumpTo=12
   contao-ai-cli --json faq category-create --title "Support" --set headline="FAQ"
   ```
 
@@ -1847,7 +1841,7 @@ came out of that.
 - **`image-size` — the theme layer's first group.** `list`, `read`, `create`, `update`, `delete`, plus `items`, `item-read`, `item-create`, `item-update`, `item-delete` for the media-query variants.
 
   ```bash
-  contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+  contao-ai-cli --json image-size create --theme 1 --name "Teaser" \
       --set width=1600 --set sizes="(max-width: 1100px) 100vw, 1000px"
   contao-ai-cli --json image-size item-create --size 6 --media "(max-width: 767px)" --set width=400
   ```
@@ -1931,7 +1925,7 @@ came out of that.
 
 ### Fixed
 
-- **Any output carrying a character outside the console encoding killed the command.** `page read 98` ended in `UnicodeEncodeError: 'charmap' codec can't encode character '�'` from inside `click.echo`. `_output()` serialises with `ensure_ascii=False`, which does not survive the cp1252 stdout that redirected output, CI, cron and any agent harness capturing stdout get on a German Windows.
+- **Any output carrying a character outside the console encoding killed the command.** `page read <id>` ended in `UnicodeEncodeError: 'charmap' codec can't encode character '�'` from inside `click.echo`. `_output()` serialises with `ensure_ascii=False`, which does not survive the cp1252 stdout that redirected output, CI, cron and any agent harness capturing stdout get on a German Windows.
 
   This is the fifth round of the same problem, and the first that no source-level guard could have caught: rounds one to four (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each removed a character from our own code, and `test_output_encoding.py` keeps that clean — but this character came out of a *record*. The next one arrives with the next umlaut a customer types.
 
