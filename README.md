@@ -185,7 +185,7 @@ so it cannot drift from what the CLI actually offers.
 | `user-group` | `create` `delete` `list` `options` `read` `update` | Back end user groups — the permission table |
 | `version` | `create` `list` `read` `restore` | Contao's version history |
 
-Standalone commands: `connect`, `guide`, `health`, `repl`, `self-update`, `session-delete`, `session-list`.
+Standalone commands: `apply`, `connect`, `guide`, `health`, `repl`, `self-update`, `session-delete`, `session-list`.
 
 Record IDs are positional arguments, changed fields are repeated `--set FIELD=VALUE`:
 
@@ -216,6 +216,23 @@ the exit code is non-zero if any record failed. Needs core-bundle **v0.2.15** or
 This is the deterministic path. When the change needs judgement rather than a fixed
 value, that is what the bridge below is for — but do not pay a language model to write
 a constant.
+
+### Building a page in one go: `apply`
+
+Different writes that belong together — a new page, its translation link, its elements,
+the link to it on another page — go into one JSON file and run all or nothing:
+
+```bash
+contao-ai-cli --json apply --file shipping-page.json --dry-run   # runs on the server, rolls back
+contao-ai-cli --json apply --file shipping-page.json
+```
+
+One connection, one transaction: if a step fails, nothing of the plan stays written, and
+the answer names the step. Each step is an existing command (`page create`,
+`content update`, `language link`, …) with its own checks, versions and log entries.
+`@name` hands the ID of an earlier step to a later one. Deletions in the plan are asked
+about once, `--yes` skips that. Needs core-bundle **v1.13.0**; the file format is in
+`GUIDE.md`.
 
 ### The theme layer
 

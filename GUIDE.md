@@ -609,6 +609,86 @@ call — to move several in order, move the first, then each next one `--after` 
 `update --set pid=…` still works and now puts the record behind its new siblings too; `move`
 is the form to reach for, because it says where.
 
+### Many writes at once: `apply` (core-bundle v1.13.0)
+
+When a task takes several writes that belong together — a page, its translation link, its
+elements, a link to it elsewhere — write them into one JSON file instead of a chain of
+calls. The plan runs in one connection and one transaction: **all or nothing**.
+
+```json
+{"steps": [
+  {"ref": "shipping", "do": "page create", "title": "Shipping", "pid": 59, "alias": "shipping",
+   "set": {"published": "1", "description": "How orders are shipped"}},
+  {"do": "language link", "table": "tl_page", "id": "@shipping", "main": 92},
+  {"do": "content create", "type": "headline", "pid": "@shipping.article", "ptable": "tl_article",
+   "set": {"headline": {"unit": "h1", "value": "Shipping"}}},
+  {"ref": "intro", "do": "content create", "type": "text", "pid": "@shipping.article", "ptable": "tl_article",
+   "set": {"text": "<p>Orders leave within two days.</p>"}},
+  {"do": "content update", "id": 771,
+   "set": {"text": "<ul><li><a href=\"{{link_url::@shipping}}\">Shipping</a></li></ul>"}}
+]}
+```
+
+```bash
+contao-ai-cli --json apply --file plan.json --dry-run   # every step runs, then rolls back
+contao-ai-cli --json apply --file plan.json             # writes
+```
+
+**A step** is `do` plus the options of that command under their own names:
+
+| `do` | keys besides `do`, `ref` |
+|---|---|
+| `page create` | `title` `type` `pid` `alias` `language` `after` `set` |
+| `article create` | `title` `pid` `after` `set` |
+| `content create` | `type` `pid` `ptable` `after` `set` |
+| `page/article/content update` | `id` `set` |
+| `page/article/content delete` | `id` |
+| `page/article move` | `id` `to` `after` |
+| `content move` | `id` `to` `after` `ptable` |
+| `language link` (changelanguage) | `table` `id` `main` |
+
+`set` is an object of fields, as `--set` takes them; a headline or another structured field
+as a JSON object (`{"unit": "h1", "value": "…"}`). A step gets nothing the single command
+does not get: same checks, callbacks, versions, log entries.
+
+**`@name` — the ID of an earlier step.** `"ref": "shipping"` names a step; later steps write
+`@shipping` for the ID it created (for an update, move or link: the record it touched).
+`@shipping.article` is the first article a `page create` made. References point backwards
+only. A reference is recognised in exactly two places:
+
+1. **a whole value** — a field or option that consists of nothing but `@word`:
+   `"pid": "@shipping.article"`, `"after": "@intro"`;
+2. **the argument of an insert tag** — `{{link_url::@shipping}}`, `{{link_open::@shipping}}`,
+   `{{insert_content::@intro}}`, up to `}}` or `|`.
+
+Everything else stays as written: an e-mail address (`info@example.com`), a mention
+(`@example`) and `<a href="@shipping">` are not resolved. Link internally through an
+insert tag, as Contao does anyway.
+
+**Checked before the first write**, with every problem listed (`problems`): unknown `do` or
+key, a missing `id`, `set` where the command takes none, a reference to a later or unknown
+step, a duplicate `ref`, more than 500 steps. Also refused before the first write: a step
+whose command is not installed (`language link` without changelanguage) and a database
+where one of the tables involved cannot roll back — Contao recommends InnoDB but does not
+require it; there, run the single commands.
+
+**The answer:** `refs` (name → ID), `steps` (each with `index`, `do`, `ref`, `id` and the
+command's own `result`), `cacheTags`. A failed run exits 1 with `rolledBack: true` and
+`failedStep` (`index`, `do`, `ref`, `message`); `steps` then only says how far it got —
+nothing of it is written. Under `--json` a failure is that answer of the server, so you
+keep `failedStep` and `problems`.
+
+**`--dry-run`** runs every step and rolls back, so a mistake in step 12 shows up without a
+trace. Its IDs are **provisional**: the database counter keeps counting after a rollback,
+the real run gets higher ones. Never reuse IDs from a dry run.
+
+**Deletions** are asked about once for the whole file on a terminal; `--yes` skips that,
+without a terminal there is no question.
+
+**Time limit:** 60 s plus 2 s per step, at most 600 s. When it is reached, the CLI stops
+waiting, but **the server does not stop**: the run may still commit. The error says so
+("may still have written") — read the pages before running the plan a second time.
+
 ### The container a record lives in
 
 News entries, events and FAQ questions all need a `--pid`, and until core-bundle v0.2.22

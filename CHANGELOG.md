@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.16.0 - 2026-10-25
+
+Needs contao-ai-core-bundle v1.13.0 for `apply`; everything else works with the same core
+versions as v1.14.0.
+
+### Added
+
+- **`apply --file`** — page, article and content writes from one JSON plan:
+  - one connection and one transaction: a failing step rolls back the whole plan, and the
+    answer names the step;
+  - each step is an existing command (`page create`, `content update`, `language link`, …)
+    with its own checks, versions and log entries;
+  - `@name` hands the ID of an earlier step to a later one, as a whole value or inside an
+    insert tag (`{{link_url::@name}}`);
+  - the server checks the whole plan before the first write and lists every problem;
+  - `--dry-run` runs every step on the server and rolls back;
+  - deletions in the plan are asked about once, `--yes` skips that;
+  - the time limit grows with the number of steps; when it is reached, the error says the
+    run may still have written.
+
 ## v1.15.0 - 2026-10-25
 
 Works with the same core versions as v1.14.0.
