@@ -3,8 +3,10 @@ import json
 
 from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
-# 60 s is what every other call gets; a plan of many steps needs more. Measured
-# per step during acceptance and adjusted there.
+# 60 s is what every other call gets; a plan of many steps needs more. A step
+# took 0.06 to 0.08 s on the test installations; 2 s leaves room for a slow site
+# with a large version table, and a generous limit only costs time when the
+# server hangs.
 BASE_TIMEOUT = 60
 PER_STEP = 2
 MAX_TIMEOUT = 600
