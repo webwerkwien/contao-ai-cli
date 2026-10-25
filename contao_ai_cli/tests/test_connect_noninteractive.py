@@ -113,7 +113,7 @@ def test_a_real_windows_root_gets_no_git_bash_hint(tmp_path):
 
 def test_reconnecting_keeps_the_bridge(tmp_path):
     (tmp_path / "shop.json").write_text(json.dumps(
-        {"host": "old", "bridge_url": "https://shop.at", "bridge_token": "5.secret"}), encoding="utf-8")
+        {"host": "old", "bridge_url": "https://shop.example.com", "bridge_token": "5.secret"}), encoding="utf-8")
     out = json.loads(invoke(tmp_path).stdout)
     saved = json.loads((tmp_path / "shop.json").read_text(encoding="utf-8"))
     assert out["replaced"] is True

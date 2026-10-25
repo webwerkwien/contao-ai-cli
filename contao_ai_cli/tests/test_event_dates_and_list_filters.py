@@ -65,11 +65,11 @@ class TestUpdate:
 
     def test_options_and_set_together(self, monkeypatch):
         b = backend()
-        r = invoke(cli_event.event, ["update", "23", "--start-time", "18:00", "--set", "location=Kahlenberg"],
+        r = invoke(cli_event.event, ["update", "23", "--start-time", "18:00", "--set", "location=Harbour"],
                    b, monkeypatch, cli_event)
         assert r.exit_code == 0, r.output
         cmd = b.run.call_args[0][0]
-        assert "--startTime=18:00" in cmd and "--set location=Kahlenberg" in cmd
+        assert "--startTime=18:00" in cmd and "--set location=Harbour" in cmd
 
     def test_bulk_carries_the_options(self, monkeypatch):
         b = backend('{"status":"ok","total":2,"succeeded":2,"failed":0,"ids":[1,2],"errors":[]}')

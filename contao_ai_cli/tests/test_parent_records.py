@@ -74,7 +74,7 @@ class TestCalendar:
     def test_read_create_update_delete_use_the_dedicated_commands(self):
         for call, expected in (
             (lambda b: event_mod.calendar_read(b, 2), "contao:calendar:read"),
-            (lambda b: event_mod.calendar_create(b, "Touren"), "contao:calendar:create"),
+            (lambda b: event_mod.calendar_create(b, "Events"), "contao:calendar:create"),
             (lambda b: event_mod.calendar_update(b, 2, {"title": "x"}), "contao:calendar:update"),
             (lambda b: event_mod.calendar_delete(b, 2), "contao:calendar:delete"),
         ):
@@ -84,8 +84,8 @@ class TestCalendar:
 
     def test_a_title_with_spaces_survives_the_shell(self):
         b = backend()
-        event_mod.calendar_create(b, "Wiener Wandern")
-        assert "'Wiener Wandern'" in sent(b)
+        event_mod.calendar_create(b, "Summer events")
+        assert "'Summer events'" in sent(b)
 
 
 class TestFaqCategory:

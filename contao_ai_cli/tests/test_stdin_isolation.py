@@ -4,7 +4,7 @@ SSH must never read the caller's stdin.
 Once a bulk run over 174 page IDs processed exactly one record and
 reported success:
 
-    while read id; do contao-ai-cli … page update "$id" --set max_teiln=4; done < ids.txt
+    while read id; do contao-ai-cli … page update "$id" --set cssClass=landing; done < ids.txt
     → "1 verarbeitet, 1 erfolgreich, 0 fehlgeschlagen", exit 0
 
 subprocess.run() without an explicit `stdin` hands the child our own stdin, so

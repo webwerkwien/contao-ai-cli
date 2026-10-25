@@ -203,8 +203,8 @@ end does — and `--yes` skips the prompt for scripts and agents.
 connection:
 
 ```bash
-contao-ai-cli --json page update --ids=39,40,41 --set max_teiln=4
-contao-ai-cli --json page update --ids-from-file tour-pages.txt --set max_teiln=4
+contao-ai-cli --json page update --ids=39,40,41 --set cssClass=landing
+contao-ai-cli --json page update --ids-from-file landing-pages.txt --set cssClass=landing
 ```
 
 A file holds one ID per line; `#` starts a comment. **Every record still gets its own
@@ -303,7 +303,7 @@ beneath it.
 
 ```bash
 contao-ai-cli --json image-size list
-contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+contao-ai-cli --json image-size create --theme 1 --name "Teaser" \
     --set width=1600 \
     --set sizes="(max-width: 1100px) 100vw, 1000px" \
     --set densities="600w, 1000w, 1300w, 1600w"

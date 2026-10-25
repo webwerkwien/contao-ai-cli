@@ -40,7 +40,7 @@ class TestResolveBulkIds:
 
     def test_ignores_comments_in_a_file(self, tmp_path):
         f = tmp_path / "ids.txt"
-        f.write_text("# tour pages, de\n39\n40  # keep\n", encoding="utf-8")
+        f.write_text("# landing pages, de\n39\n40  # keep\n", encoding="utf-8")
 
         assert resolve_bulk_ids(None, None, str(f)) == [39, 40]
 
@@ -82,11 +82,11 @@ class TestRunBulkUpdate:
         backend = MagicMock()
         backend.run.return_value = {"returncode": 0, "stdout": "{}", "stderr": ""}
 
-        run_bulk_update(backend, "contao:page:update", [39, 40, 41], {"max_teiln": "4"})
+        run_bulk_update(backend, "contao:page:update", [39, 40, 41], {"cssClass": "landing"})
 
         sent = backend.run.call_args[0][0]
         assert "--ids=39,40,41" in sent
-        assert "max_teiln=4" in sent
+        assert "cssClass=landing" in sent
         assert " 39 " not in sent, "The ID must not also be passed as an argument."
 
     def test_one_invocation_not_one_per_record(self):

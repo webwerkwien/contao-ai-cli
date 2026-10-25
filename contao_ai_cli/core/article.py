@@ -52,7 +52,7 @@ def article_publish(backend: ContaoBackend, article_id: int, published: bool = T
 
     The core bundle has no contao:article:publish, and needs none: `published`
     is an ordinary field, so this is `article update --set published=1|0` under
-    the name an agent looks for next to `page publish` (agent test).
+    the name an agent looks for next to `page publish`.
     It answers like `article update` and writes a version the same way.
     """
     return run_update(backend, "contao:article:update", article_id,

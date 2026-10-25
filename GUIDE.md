@@ -385,10 +385,10 @@ suggestion in the message: `content get` → `No such command 'get'. Did you mea
 **A `tinyint` column comes back as `true`/`false`, never as a number.** Doctrine
 maps every MySQL `tinyint` to boolean regardless of its declared width, and Contao
 casts accordingly when a record is read through the model layer. A page storing
-`stunden = 2` therefore answers:
+`rating = 2` therefore answers:
 
 ```json
-{ "stunden": true }
+{ "rating": true }
 ```
 
 The database still holds the `2` — only this reading of it is lossy. For flags
@@ -401,7 +401,7 @@ Two rules follow:
   `true`, and what happens when you send that back depends on how the column is
   declared:
 
-  | the column's DCA `sql` | `--set feld=true` | who declares it that way |
+  | the column's DCA `sql` | `--set field=true` | who declares it that way |
   |---|---|---|
   | `['type' => 'boolean']` | **refused** — `{"status":"error"}`, exit 1, nothing written | every flag in Contao's own DCA (`published`, `hide`, `protected`) |
   | `'tinyint(4) NOT NULL …'` | stored as `1` — the value is lost silently | a project that declared a *number* as tinyint |
@@ -414,12 +414,12 @@ Two rules follow:
 
   ⚠️ **The second row is the one to keep in mind.** It is not covered and cannot
   be: the column is declared as a number, so refusing a number would break the
-  field. That is exactly the `stunden` case below, and it still fails silently.
+  field. That is exactly the `rating` case below, and it still fails silently.
 
-  Setting a field outright is safe — `--set stunden=2` passes a string and never
+  Setting a field outright is safe — `--set rating=2` passes a string and never
   meets the cast.
 - **When you need the stored number, query it.** Reading SQL directly is fine:
-  `SELECT id, stunden FROM tl_page WHERE id = 98`.
+  `SELECT id, rating FROM tl_page WHERE id = 42`.
 
 If you are adding fields to a Contao project, declare numbers as
 `smallint(5) unsigned`, which is what Contao's own DCA does; it keeps `tinyint`
@@ -698,7 +698,7 @@ group as their children, next to the listings that were already there:
 ```bash
 contao-ai-cli --json news archives                    # the listing, unchanged
 contao-ai-cli --json news archive-create --title "Blog" --set jumpTo=7
-contao-ai-cli --json event calendar-create --title "Touren" --set jumpTo=12
+contao-ai-cli --json event calendar-create --title "Events" --set jumpTo=12
 contao-ai-cli --json faq category-create --title "Support" --set headline="FAQ"
 ```
 
@@ -767,8 +767,8 @@ cannot run without it.
 
 As in the back end, and like pages and articles: a created entry is **offline** until you
 publish it with `--set published=1` (on create or with `update`). A list module on the
-site shows nothing of it before that. *Found in a practical test: an agent
-created three FAQ questions, placed the list on a page, and the page was empty.*
+site shows nothing of it before that: three FAQ questions created and a list placed on a
+page leave the page empty.
 
 The answer of `news`, `event`, `faq`, `article` and `newsletter create` carries the
 `alias` (core-bundle v0.28.0) — the last part of the reader URL,
@@ -779,11 +779,11 @@ container points to (`Über` becomes `uber` under an English root, `ueber` under
 
 ```bash
 # all day, one day — no --end-date
-contao-ai-cli --json event create --pid 12 --title "Wienerwald" --start-date 2026-10-04 --set published=1
+contao-ai-cli --json event create --pid 12 --title "Open day" --start-date 2026-10-04 --set published=1
 # over several days
-contao-ai-cli --json event create --pid 12 --title "Wachau" --start-date 2026-10-17 --end-date 2026-10-18
+contao-ai-cli --json event create --pid 12 --title "Summer festival" --start-date 2026-10-17 --end-date 2026-10-18
 # with a time
-contao-ai-cli --json event create --pid 12 --title "Abendrunde" --start-date 2026-10-09 \
+contao-ai-cli --json event create --pid 12 --title "Evening talk" --start-date 2026-10-09 \
   --start-time 17:30 --end-time 20:00
 # move it, change the time, or make it all-day again
 contao-ai-cli --json event update 30 --start-date 2026-10-11 --start-time 18:00
@@ -1152,7 +1152,7 @@ which left their order to the database.
 ```bash
 contao-ai-cli --json image-size list
 contao-ai-cli --json image-size read 5
-contao-ai-cli --json image-size create --theme 1 --name "Tourenbild" \
+contao-ai-cli --json image-size create --theme 1 --name "Teaser" \
     --set width=1600 --set sizes="(max-width: 1100px) 100vw, 1000px"
 contao-ai-cli --json image-size items 6
 contao-ai-cli --json image-size item-create --size 6 --media "(max-width: 767px)" --set width=400
@@ -1220,8 +1220,7 @@ v0.16.0 it refused 12 of them (modules, forms, themes, image sizes, archives, �
   which still works and is what `article publish` runs). A content
   element is created visible (`invisible: false`) — the unpublished article keeps it
   offline, as in the back end. *Until v0.27.0 this line said both were published with
-  `page publish`; an agent working from this guide alone went looking for it (agent
-  test).*
+  `page publish`, which sent a caller looking for the wrong command.*
 - **Only a root stores a language** (core-bundle v0.22.0). `page create --language` applies
   to `--type root`; any other page stores none and takes its root's language at runtime,
   as a page created in the back end does. Up to v0.21.1 every page stored `de`. An
@@ -1997,7 +1996,7 @@ contao-ai-cli --session site-a --json page list
 ```
 
 Until v0.28.0 this block said the first available session was loaded automatically. It
-never was: an agent following it failed on its first command (agent test).
+never was: a caller following it failed on the first command.
 Choosing a site by default would be the wrong fix — with several live sites in the list,
 the one a command writes to has to be named.
 
@@ -2077,7 +2076,7 @@ wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed ver
   ```
 
   `code` equals the exit code. Until v0.27.0 this line promised `{"error": "..."}` while
-  every command answered `Error: ...` as plain text on stderr (agent test).
+  every command answered `Error: ...` as plain text on stderr.
   Without `--json` it is still that `Error: ...` line on stderr. Commands that already
   answered their own failures as an object (`connect`, `bundle`, `file`, `template`,
   `ext run`, `bridge`, `self-update`) keep that answer.

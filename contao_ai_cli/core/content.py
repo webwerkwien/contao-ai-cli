@@ -30,9 +30,9 @@ def content_list(backend: ContaoBackend, article_id: int | None = None,
     other content elements (nested elements, `ptable=tl_content`) and so on,
     and their ids share one number space with articles. Until v0.28.0
     `--article 158` filtered on pid only and returned elements of content
-    element 158 next to those of article 158 (second agent test).
+    element 158 next to those of article 158.
     An empty ptable -- Contao 4's shorthand for tl_article -- does not occur
-    on Contao 5 installations (counted on all three sessions: 0).
+    on Contao 5 installations (counted on three of them: 0).
 
     headline is an inputUnit field, so it arrives serialized; it is unpacked to
     plain text here the way it always was.

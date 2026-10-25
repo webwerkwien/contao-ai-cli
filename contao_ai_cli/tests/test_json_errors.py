@@ -1,7 +1,7 @@
 """Errors under --json come back as JSON on stdout (v0.28.0).
 
 The guide promised it for a long time; Click printed `Error: ...` itself
-before `--json` had a say. Found by the second agent test:
+before `--json` had a say:
 `page read 198 --json` after a delete answered in plain text.
 """
 import json

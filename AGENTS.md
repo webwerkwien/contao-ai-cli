@@ -75,6 +75,13 @@ environment the code sets.
   Removing internals is not announced either: nothing like "no longer refers to" or "removed internal
   references" — that says there were some, and the diff between the tags shows them. Done with a regular
   release, it goes unmentioned; on its own, the entry reads "Overhaul of code comments and the agent guide."
+- **Every tracked file is public, and English.** Code, comments, tests, test data, docs and commit messages
+  carry no internals either: no names of people or clients, no servers, hosts or paths on them, no session
+  names, no data from real sites (field names, page IDs, aliases, e-mail addresses — use neutral examples
+  and `example.com`), no review or acceptance tags, no references to private notes, plans or project files.
+  A reason belongs in the comment as a plain statement, not as a pointer elsewhere. Comments and docs are
+  English even where a file still has German ones; German stays only where the content is German by nature
+  (Contao's German messages as test data, German sample text for editors).
 - **What ships:** the package carries `GUIDE.md` (`setup.py` copies it in, `MANIFEST.in`), not this file.
 
 Every scanning test needs a counter and at least one known non-match. A search

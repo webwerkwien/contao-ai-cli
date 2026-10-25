@@ -66,15 +66,15 @@ class TestWriteCommands:
 
     def test_create_requires_and_passes_a_theme(self):
         b = backend()
-        size_mod.image_size_create(b, "Tourenbild", 1)
+        size_mod.image_size_create(b, "Teaser", 1)
         cmd = sent(b)
         assert "contao:image-size:create" in cmd
         assert "--pid=1" in cmd
-        assert "Tourenbild" in cmd
+        assert "Teaser" in cmd
 
     def test_create_passes_further_columns_through_set(self):
         b = backend()
-        size_mod.image_size_create(b, "Tourenbild", 1, {
+        size_mod.image_size_create(b, "Teaser", 1, {
             "width": "1600",
             "sizes": "(max-width: 1100px) 100vw, 1000px",
         })

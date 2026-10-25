@@ -5,8 +5,7 @@ Nothing the project shipped told a caller how. The Contao Manager passthrough wa
 described only as the internals of `bundle install core|backend`, `bundle install
 <anything else>` answered Click's generic `invalid choice`, and the guide said
 firmly not to go around the CLI without ever saying where the legitimate boundary
-runs. The right route could be found only by reading a private
-maintenance note that no user of this CLI has.
+runs. Nothing a user of this CLI has named the right route.
 
 These tests pin the two halves of the answer: the refusal that points somewhere,
 and the `composer` key that spares the caller from guessing the command.

@@ -97,8 +97,7 @@ class TestBackup:
         assert backend.run.call_args[0][0] == "contao:backup:create 'daily dump'"
 
     def test_backup_list_is_structured(self):
-        """v1.11.0: up to v1.10.1 `--json` carried only Contao's text table in `output`
-        (found by an agent working from the guide alone)."""
+        """v1.11.0: up to v1.10.1 `--json` carried only Contao's text table in `output`."""
         backend = MagicMock()
         backend.run.return_value = {"stdout": self.LISTED, "returncode": 0}
         result = backup_list(backend)

@@ -136,8 +136,8 @@ class BackendBridgeClient:
                 "Content-Type": "application/json; charset=utf-8",
                 "Authorization": f"Bearer {self.token}",
                 "Accept": "application/json",
-                # Bridge hat einen 32 KB Body-Cap; größere Macros sollen scheitern,
-                # nicht stillschweigend truncated werden — kein gzip-Encoding nötig.
+                # The bridge caps the body at 32 KB; larger macros are meant to fail,
+                # not be truncated silently — so no gzip encoding is needed.
             },
         )
         try:

@@ -42,7 +42,7 @@ class TestConfigureOutputEncoding:
         stream = cp1252_stream()
         configure_output_encoding(stream)
 
-        stream.write("�")  # U+FFFD, straight out of the Balbersteine record
+        stream.write("�")  # U+FFFD, straight out of a stored record
         stream.flush()
 
         assert stream.buffer.getvalue() == "�".encode("utf-8")
@@ -51,10 +51,10 @@ class TestConfigureOutputEncoding:
         stream = cp1252_stream()
         configure_output_encoding(stream)
 
-        stream.write("Höhenmeter")
+        stream.write("Größe")
         stream.flush()
 
-        assert stream.buffer.getvalue().decode("utf-8") == "Höhenmeter"
+        assert stream.buffer.getvalue().decode("utf-8") == "Größe"
 
     def test_leaves_a_utf8_stream_alone(self):
         stream = io.TextIOWrapper(io.BytesIO(), encoding="utf-8", newline="")
@@ -91,9 +91,9 @@ class TestOutputHelper:
     """The helper at the actual crash site, exercised end to end."""
 
     @pytest.mark.parametrize("payload", [
-        {"title": "Balbersteine �"},
-        {"title": "Über den Höhenweg"},
-        {"nested": [{"description": "Gehzeit – 2 h"}]},
+        {"title": "About us �"},
+        {"title": "Über uns – Öffnungszeiten"},
+        {"nested": [{"description": "Dauer – 2 h"}]},
     ])
     def test_json_output_reaches_a_cp1252_stdout_intact(self, monkeypatch, payload):
         stream = cp1252_stream()

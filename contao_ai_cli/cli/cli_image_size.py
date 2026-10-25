@@ -43,7 +43,7 @@ def image_size_read_cmd(ctx, size_id, as_json):
 
 
 @image_size.command("create")
-@click.option("--name", required=True, help='Name shown in the back end, e.g. "Tourenbild"')
+@click.option("--name", required=True, help='Name shown in the back end, e.g. "Teaser"')
 @click.option("--theme", "pid", type=int, required=True, help="Theme ID (tl_theme) the size belongs to")
 @click.option("--set", "fields", multiple=True, metavar="FIELD=VALUE",
               help="Any other column, e.g. --set width=1600")
@@ -55,7 +55,7 @@ def image_size_create_cmd(ctx, name, pid, fields, as_json):
     \b
     Set `sizes` and `densities`, not just a width — they are what the browser
     evaluates to pick a variant:
-      contao-ai-cli image-size create --theme 1 --name "Tourenbild" \\
+      contao-ai-cli image-size create --theme 1 --name "Teaser" \\
           --set width=1600 \\
           --set sizes="(max-width: 1100px) 100vw, 1000px" \\
           --set densities="600w, 1000w, 1300w, 1600w"
