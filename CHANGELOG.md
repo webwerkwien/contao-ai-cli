@@ -1918,7 +1918,7 @@ came out of that.
 
 ### Fixed
 
-- **Any output carrying a character outside the console encoding killed the command.** `page read <id>` ended in `UnicodeEncodeError: 'charmap' codec can't encode character '�'` from inside `click.echo`. `_output()` serialises with `ensure_ascii=False`, which does not survive the cp1252 stdout that redirected output, CI, cron and any agent harness capturing stdout get on a German Windows.
+- **Any output carrying a character outside the console encoding killed the command.** `page read <id>` ended in `UnicodeEncodeError: 'charmap' codec can't encode character '\ufffd'` from inside `click.echo`. `_output()` serialises with `ensure_ascii=False`, which does not survive the cp1252 stdout that redirected output, CI, cron and any agent harness capturing stdout get on a German Windows.
 
   This is the fifth round of the same problem, and the first that no source-level guard could have caught: rounds one to four (v0.3.0, v0.3.1, v0.3.2, v0.4.2) each removed a character from our own code, and `test_output_encoding.py` keeps that clean — but this character came out of a *record*. The next one arrives with the next umlaut a customer types.
 
