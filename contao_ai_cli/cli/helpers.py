@@ -442,7 +442,8 @@ def command_hint(exc: click.ClickException) -> str | None:
     name, commands = match.group(1), ctx.command.commands
     target = COMMAND_SYNONYMS.get(name.lower())
     if target not in commands:
-        close = difflib.get_close_matches(name, list(commands), n=1, cutoff=0.6)
+        # 0.75: `pages` still finds `page`, `lists` no longer lands on `listing`.
+        close = difflib.get_close_matches(name.lower(), list(commands), n=1, cutoff=0.75)
         target = close[0] if close else None
     if target is None:
         return None

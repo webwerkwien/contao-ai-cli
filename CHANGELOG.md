@@ -16,7 +16,7 @@ Works with the same core versions as v1.14.0.
   and stays without it.
 - **A suggestion for a command name that does not exist** — `content get` answers
   `No such command 'get'. Did you mean 'content read'?`, also inside the `--json` error
-  object. Covers common names from other tools (`get`, `show`, `edit`, `set`, `add`,
+  object and in `repl`. Covers common names from other tools (`get`, `show`, `edit`, `set`, `add`,
   `new`, `remove`, `rm`, `ls` and a few more) where the group has the matching command,
   and close spellings (`pages` → `page`). No aliases: the exit code stays 2.
 

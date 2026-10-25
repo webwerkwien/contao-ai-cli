@@ -72,6 +72,7 @@ def _main(monkeypatch, capsys, *argv):
     (("news", "add"), "add", "Did you mean 'news create'?"),
     (("article", "rm", "5"), "rm", "Did you mean 'article delete'?"),
     (("pages", "list"), "pages", "Did you mean 'page'?"),   # a close spelling
+    (("content", "REED", "5"), "REED", "Did you mean 'content read'?"),  # case-blind
 ])
 def test_a_borrowed_name_points_to_ours(monkeypatch, capsys, argv, unknown, hint):
     code, out, err = _main(monkeypatch, capsys, *argv)
@@ -88,10 +89,14 @@ def test_the_hint_comes_inside_the_json_error(monkeypatch, capsys):
     }
 
 
-def test_no_hint_where_nothing_fits(monkeypatch, capsys):
-    code, out, err = _main(monkeypatch, capsys, "content", "frobnicate")
+@pytest.mark.parametrize("argv, unknown", [
+    (("content", "frobnicate"), "frobnicate"),
+    (("lists",), "lists"),   # `listing` is near, but not near enough to be meant
+])
+def test_no_hint_where_nothing_fits(monkeypatch, capsys, argv, unknown):
+    code, out, err = _main(monkeypatch, capsys, *argv)
     assert code == 2
-    assert "No such command 'frobnicate'." in err
+    assert f"No such command '{unknown}'." in err
     assert "Did you mean" not in err
 
 

@@ -376,8 +376,9 @@ Errors come back as `{"status": "error", "code": N, "message": "..."}` on stdout
 
 A command name that does not exist answers with exit 2 and, where one fits, a
 suggestion in the message: `content get` → `No such command 'get'. Did you mean
-'content read'?` The CLI has one name per command and no aliases; `read`, `create`,
-`update`, `delete` and `list` are the names to use.
+'content read'?` (in `repl` as well). The CLI has one name per command and no aliases;
+`read`, `create`, `update`, `delete` and `list` are the usual names, `contao-ai-cli <group>
+--help` lists the rest (`schema show`, `content find`, `file write`, ...).
 
 ### One thing the output does not tell you literally
 
