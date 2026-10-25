@@ -106,7 +106,7 @@ class TestRunBulkUpdate:
         The answer then was `check=False` and
         returning the summary.
 
-        🔴 A security audit found what that traded away. Returning
+        🔴 That traded something away. Returning
         normally meant `contao-ai-cli … --ids=…` exited **0** after "1 of 2
         records failed". An agent reading the JSON saw `failed`; a shell script
         checking `$?` saw success. Same answer, two meanings.

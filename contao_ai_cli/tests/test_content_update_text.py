@@ -1,7 +1,7 @@
 """`content update --text` as on `content create`.
 
-On a live installation (ConpAI 1.0): translating four text elements
-with `content update 256 --text '<p>…</p>'` failed with *"No such option '--text'"*,
+Before, translating text elements
+with `content update <id> --text '<p>…</p>'` failed with *"No such option '--text'"*,
 although `content create` has had the shortcut all along. Nothing was written — click
 refused before any server call — but the asymmetry costs a round trip per caller.
 """

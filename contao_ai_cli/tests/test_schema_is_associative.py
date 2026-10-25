@@ -2,9 +2,9 @@
 
 Contao's `tl_page.useSSL` declares `array('http://', 'https://')` with
 `isAssociative` and stores 0/1. `schema show` listed the labels, so a caller
-building `--set useSSL=...` from it had nothing it could pass (found
-on a live installation; the core bundle refused `useSSL=1` for the
-same reason and is fixed in v0.21.1).
+building `--set useSSL=...` from it had nothing it could pass (the
+core bundle refused `useSSL=1` for the same reason and is fixed in
+v0.21.1).
 
 The field definitions below are what `parse_vardump` makes of
 `debug:dca tl_page fields` on Contao 5.7.13.

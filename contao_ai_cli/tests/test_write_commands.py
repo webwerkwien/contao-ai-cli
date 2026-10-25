@@ -134,9 +134,7 @@ class TestConfirmDelete:
         assert ask.call_args.kwargs["default"] is False
 
     def test_a_terminal_nobody_is_at_proceeds_like_no_terminal(self):
-        """Found live.
-
-        `isatty()` can say True where nothing can answer — under Git Bash it
+        """`isatty()` can say True where nothing can answer — under Git Bash it
         does so for `< /dev/null`. The prompt then raised Abort and killed the
         command, so every `delete` without --yes failed in an agent harness.
         Silence has to land on the same answer as having no terminal at all.

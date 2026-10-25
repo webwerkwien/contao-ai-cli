@@ -1,4 +1,4 @@
-"""Two findings from building a site with ConpAI 1.0 on a live installation.
+"""Line endings in `file write`, and theme content elements in a layout.
 
 `file write` turned LF into CRLF on Windows. The content went into a temp file
 opened in text mode, which writes the platform's line ending, so site.css arrived with

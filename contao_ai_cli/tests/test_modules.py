@@ -621,7 +621,7 @@ class TestFile:
 
 class TestForm:
     # Both listings moved onto record:list in v0.30.0; until then they were the
-    # only ones answering with a bare list of strings (practical test).
+    # only ones answering with a bare list of strings.
 
     def test_form_list_goes_through_record_list(self):
         backend = json_backend('{"status":"ok","results":[{"id":1,"title":"Contact"}]}')

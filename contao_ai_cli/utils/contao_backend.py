@@ -556,7 +556,7 @@ class ContaoBackend:
         """
         Why that command might be missing, said only as far as it is known.
 
-        Measured on a live installation (core v0.2.14): `page tree` answered *Command
+        Measured against core v0.2.14: `page tree` answered *Command
         "contao:page:tree" is not defined*, which reads like a typo or a broken
         CLI. `health` on the same server says *v0.2.14 -> update available:
         v0.2.33* one command earlier — both numbers were already in reach and

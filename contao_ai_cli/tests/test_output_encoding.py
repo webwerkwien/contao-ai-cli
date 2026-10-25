@@ -5,7 +5,7 @@ Python resolves sys.stdout.encoding to UTF-8 only when a console at code page
 65001 is attached. Redirected output, CI, cron and any agent harness capturing
 stdout get the locale encoding — cp1252 on a German Windows — and printing a
 character outside it raises UnicodeEncodeError mid-line. This has cost four
-separate fixes (v0.3.0, v0.3.1, v0.3.2, v0.4.2), each found by spotting one
+separate fixes (v0.3.0, v0.3.1, v0.3.2, v0.4.2), each removing one
 more symbol, so these tests check the property instead of the symbols.
 """
 import ast

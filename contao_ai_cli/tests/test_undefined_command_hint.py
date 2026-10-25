@@ -1,12 +1,12 @@
 """
 "Command is not defined" usually means the bundle on that server is older.
 
-Measured against a live installation which sat on core v0.2.14:
+Measured against core v0.2.14:
 
-    $ contao-ai-cli --session <live-site> page tree
+    $ contao-ai-cli --session <site> page tree
     Command "contao:page:tree" is not defined. Did you mean one of these?
 
-    $ contao-ai-cli --session <live-site> ext list
+    $ contao-ai-cli --session <site> ext list
     There are no commands defined in the "contao:ai" namespace.
 
 True, and it reads like a typo or a broken CLI. `health` on the same server

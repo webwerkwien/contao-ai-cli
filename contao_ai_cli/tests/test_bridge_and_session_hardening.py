@@ -1,5 +1,5 @@
 """
-The remaining findings of a security audit, pinned.
+Bridge and session hardening, pinned.
 
 v0.14.0 closed the SSH option injection and the passwords. This covers what was
 left open then and fixed in v0.15.0: quoted values in joined commands, session file

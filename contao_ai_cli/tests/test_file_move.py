@@ -1,7 +1,7 @@
 """`file move --path … --to <folder>`: move as cut and paste in the back end, UUID kept.
 
-On a live installation (ConpAI 1.0): the site's files were to go
-into `files/theme/layout`, and there was no way to move a file. Deleting and
+The gap: a site's files were to go into another folder,
+and there was no way to move a file. Deleting and
 writing anew changes the UUID, and every image element pointing at it renders nothing.
 The core-bundle command (v0.23.0) keeps the UUIDs and reports `pathUsages` — texts that
 name the old path, which a move does break.

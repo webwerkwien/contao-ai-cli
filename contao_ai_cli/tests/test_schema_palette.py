@@ -7,7 +7,7 @@ it as `schema mandatory --set type=…`. Nobody looking for the fields of a type
 searches under "mandatory", and in the guide it was the closing sentence of a
 paragraph about mandatory fields.
 
-Found on a live site: `record list tl_content --fields=html` came
+Before, `record list tl_content --fields=html` came
 back empty for an `unfiltered_html` element, because Contao has two HTML content
 elements and that one stores its markup in `unfilteredHtml`. The answer was
 correct and told the reader nothing.

@@ -202,7 +202,7 @@ on its next `bundle update core` (v1.0.0 of this CLI; before it wrote `>=0.2 <1.
 never reaches 1.0). The backend bundle is still 0.x; its range crosses 0.x minors and a
 later 1.x. **Update the backend bundle first** where it is installed: up to its v0.9.1 it
 requires core `<1.0`, and Composer refuses core 1.0 next to it. Up to v0.21.1 `bundle
-update core` wrote `^<latest>` (on a live installation it turned `>=0.2 <1.0` into `^0.20.0`) and
+update core` wrote `^<latest>` (turning `>=0.2 <1.0` into `^0.20.0`) and
 `bundle install core` Composer's own `^0.x` — both capped the next minor.
 
 Success is reported only once the new version has been **read back** from the server —
@@ -1412,8 +1412,8 @@ contao-ai-cli --json file delete --path files/conpai/alt --force --yes   # a fol
 bytes often came out as `null`, which looked like a missing reference.
 
 **`page tree` is its own command** (`contao:page:tree`): the tree is built server-side,
-level by level, because `record:list` caps at 100 rows and a real site passes that —
-one live installation has 283 pages. Two levels by default; `truncated` says whether pages
+level by level, because `record:list` caps at 100 rows and a site
+with a few hundred pages passes that. Two levels by default; `truncated` says whether pages
 exist below the cut, so a depth-limited tree cannot be mistaken for a complete one. Use
 `--root` to descend into one branch, `--depth` for more levels.
 
@@ -1804,7 +1804,7 @@ footer was the fix there.
   labels, ARIA labels)
 - `robots`, the sitemap and `health` as before
 - **look at it, desktop and mobile.** No answer describes the rendering; the vanished
-  switcher above was found only by looking
+  switcher above shows only to someone looking
 
 ## Available command groups
 

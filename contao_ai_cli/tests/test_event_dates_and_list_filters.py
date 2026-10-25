@@ -1,6 +1,6 @@
 """Event dates and times as options, and --pid on the list filters (v0.30.0).
 
-Practical test: an event created without --end-date ended on
+Before, an event created without --end-date ended on
 the day of the call and fell out of "upcoming events"; a time could only be set
 as a raw timestamp, and "17:30" ended in a database error. The server now
 derives the stored times (core-bundle v0.28.0); the CLI passes the dates and

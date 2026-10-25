@@ -93,7 +93,7 @@ class TestHealthNamesTheComposerRoute:
         assert "past the manager" in composer["note"]
 
     def test_a_managed_edition_without_the_tool_says_so(self, tmp_path):
-        """A state real installations are in -- two of five, measured."""
+        """A state many installations are in."""
         composer = self._status(tmp_path, manager_available=False, phar=None,
                                 manager_bundle=True)["composer"]
         assert composer["via"] == "composer"

@@ -120,9 +120,7 @@ class TestTheActiveQuestion:
         assert confirm_escalation("anything?") is False
 
     def test_a_prompt_nobody_can_answer_is_a_no_not_a_crash(self):
-        """Found in a live run.
-
-        `isatty()` answered True where nothing could actually reply — under Git
+        """`isatty()` answered True where nothing could actually reply — under Git
         Bash it even reports True for `< /dev/null` — and `click.confirm` then
         raised Abort and killed the command. Safe in the sense that nothing was
         written, but the caller got "Aborted!" and no recipient at all.

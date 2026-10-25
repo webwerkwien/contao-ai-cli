@@ -359,7 +359,7 @@ the same step under the generated token.
 ## v1.7.0 - 2026-10-13
 
 Works with every contao-ai-core-bundle it worked with before; `ext run --operator` reaches
-the command from core-bundle v1.7.1 on. Findings from a fresh installation.
+the command from core-bundle v1.7.1 on.
 
 ### Changed
 
@@ -378,7 +378,7 @@ the command from core-bundle v1.7.1 on. Findings from a fresh installation.
 - **`backup restore` restored the newest backup on Contao 5.7 and 6.0, whatever name it
   was given**, and reported the name asked for. Contao reads the name only when the
   command runs interactively, and the CLI always passed `--no-interaction`; 5.3 was not
-  affected. Found as "a `.sql` played back the newest backup" on a fresh installation.
+  affected. The symptom: a `.sql` played back the newest backup.
   Now without `--no-interaction` (with a name given Contao asks nothing), the name is
   checked against `backup list` first — a miss restores nothing and exits 1 with the
   available names — and the backup Contao reports as restored is compared with the one
@@ -562,8 +562,8 @@ Needs no newer contao-ai-core-bundle.
 
 ## v1.1.0 - 2026-09-24
 
-Five findings from live use ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
-plus two defects in released versions that surfaced while building them
+Five fixes ([#55](https://github.com/webwerkwien/contao-ai-cli/issues/55)–[#59](https://github.com/webwerkwien/contao-ai-cli/issues/59)),
+plus two defects in released versions
 ([#60](https://github.com/webwerkwien/contao-ai-cli/issues/60), [#61](https://github.com/webwerkwien/contao-ai-cli/issues/61)).
 `schema palette` needs contao-ai-core-bundle **v0.16.0** or newer on the target site;
 everything else works against any version.
@@ -935,7 +935,7 @@ Pairs with **contao-ai-core-bundle v0.21.1**, which accepts `--set useSSL=1`.
 - **`schema show` listed the labels of an `eval.isAssociative` list as its values.**
   `tl_page.useSSL` came back as `["http://", "https://"]`, none of which can be set; it now
   answers `{"0": "http://", "1": "https://"}`, the same value-to-label shape as a resolved
-  callback. Found on a live installation.
+  callback.
 - **Integer option keys that are not 0..n-1 were read as positions.** `array(6 => 'Hero')`
   came back as `["Hero"]`; it now answers `{"6": "Hero"}`.
 
@@ -960,13 +960,12 @@ Requires **contao-ai-core-bundle v0.21.0** for `template delete` and a logged `c
 
 ### Fixed
 
-- **`bundle update core` overwrote the constraint in `composer.json`** with `^<latest>` — on
-  a live installation `>=0.2 <1.0` became `^0.20.0`, so the next minor was out of reach for the
+- **`bundle update core` overwrote the constraint in `composer.json`** with `^<latest>` —
+  `>=0.2 <1.0` became `^0.20.0`, so the next minor was out of reach for the
   Contao Manager and `composer update` again. `bundle install core` had the same effect
   through Composer's own `^0.x`. Both commands now write the range each bundle's README
   recommends — core `>=0.2 <1.0`, backend `>=0.1 <1.0` — and name it in the answer
-  (`constraint`). A differing constraint, even a stricter one, is replaced. Found while
-  updating the live installations; the constraint was restored there by hand.
+  (`constraint`). A differing constraint, even a stricter one, is replaced.
 - **An update held back below the newest version claimed "Nothing else was changed"** —
   Composer exits 0 with an older version when e.g. the PHP version rules the newest out, and
   has rewritten `composer.json` and the lock by then. The error now names both versions and
@@ -1051,8 +1050,7 @@ Agent-driven onboarding. Core and backend bundles: no change.
 
 - **Re-`connect` dropped a configured bridge.** `save_session` truncates the file it
   writes, so up to v0.20.0 reconnecting to an existing session silently lost
-  `bridge_url`/`bridge_token` — a defect of every released version, found while
-  planning this change. Reconnecting now keeps both; only the SSH fields are replaced.
+  `bridge_url`/`bridge_token` — a defect of every released version. Reconnecting now keeps both; only the SSH fields are replaced.
 - **`resolve_password`'s errors always named `--password-stdin`**, even for the bridge
   token, whose actual flag is `--token-stdin`. The message now names whichever flag the
   caller is actually being pointed at.
@@ -1241,8 +1239,8 @@ describes changed in `contao-ai-core-bundle` v0.7.0.
 
 ## v0.15.0 - 2026-09-02
 
-The rest of the audit. v0.14.0 closed the SSH option injection and the passwords;
-these are the findings it left open.
+Security hardening, continued. v0.14.0 closed the SSH option injection and the
+passwords; these are the remaining fixes.
 
 ### Fixed
 
@@ -1296,7 +1294,7 @@ these are the findings it left open.
 ### Changed
 
 - **`connect` reports a host key it accepted.** We connect with
-  `StrictHostKeyChecking=accept-new`, and that stays: measured against a live
+  `StrictHostKeyChecking=accept-new`, and that stays: measured against a real
   host, it still refuses when a *known* key changes, and `yes` would — next to
   `BatchMode=yes`, where ssh cannot ask — make every first connection fail with
   no way forward. What was wrong was the silence. ssh announces a first contact
@@ -1317,8 +1315,7 @@ these are the findings it left open.
 > under cloned news and events behind and wrote duplicate aliases, silently and
 > answering `ok`.
 
-Second security audit, part 4. The findings here are about secrets ending up
-where anyone can read them.
+Security hardening, part 4: secrets ending up where anyone can read them.
 
 ### Added
 
@@ -1348,8 +1345,7 @@ where anyone can read them.
   A key path may still contain spaces, which is an ordinary Windows path and
   travels as its own argument.
 
-  Worth recording how nearly this was missed: a first check through Git Bash's
-  `ssh` showed nothing executing. The code picks
+  Through Git Bash's `ssh` nothing executes, which makes it easy to miss. The code picks
   `C:\Windows\System32\OpenSSH\ssh.exe` on Windows, and only there does it fire.
 
 - **Passwords no longer reach any remote command line.** `contao:user:password
@@ -1360,8 +1356,7 @@ where anyone can read them.
 
   Contao states the rule in its own help text — `contao:user:password` documents
   `--password` as *"not recommended for security reasons"* — and offers the
-  prompt instead. Both commands now answer that prompt over ssh's stdin. A TODO
-  from the April audit stood at both call sites and named exactly this fix.
+  prompt instead. Both commands now answer that prompt over ssh's stdin.
 
 - **`user create` sets the password in a second step.** Driving
   `contao:user:create` through its prompts is not possible: measured against
@@ -1380,9 +1375,7 @@ where anyone can read them.
   would otherwise drain the caller's own stdin and a
   `while read id; do … done < ids.txt` loop would run exactly once while
   reporting success. The choice lives in one helper so the two call sites cannot
-  drift apart, and `test_stdin_isolation.py` was widened to recognise it —
-  the first attempt at that refactor left one call site unpinned and the test
-  caught it.
+  drift apart, and `test_stdin_isolation.py` was widened to recognise it.
 
 ## v0.13.3 - 2026-09-01
 
@@ -1402,8 +1395,8 @@ where anyone can read them.
 ### Fixed
 
 - **The advice to register under `contao:` was wrong and is withdrawn.** v0.13.1 told
-  plugin authors that a command must live under `contao:` to be reachable. 22 namespaces
-  were measured on a live site: `cookiebar:` is a published Contao
+  plugin authors that a command must live under `contao:` to be reachable. An installation
+  with a few extensions easily has 22 namespaces: `cookiebar:` is a published Contao
   extension using its own product name, and Symfony's docs recommend `app:` for
   application commands. **A prefix of one's own is the convention, and `contao:` is
   Contao's property.** The advice told people to break that.
@@ -1660,7 +1653,7 @@ came out of that.
   - **a truncated listing says so** — `count` against `total`. The server caps at 100 rows and defaults to 20; `--limit` and `--offset` exist on every listing now
   - **column names are checked against the DCA**, so a wrong one is refused by name
 
-- **`page tree` is answered by the server** (`contao:page:tree`). It could not move to `record:list`: the 100-row cap is passed by any real site — one live installation has 283 pages. But the cap was never the real problem; paginating around it would still hand the caller **80 KB** of JSON for a question that is almost never "all 283 pages".
+- **`page tree` is answered by the server** (`contao:page:tree`). It could not move to `record:list`: the 100-row cap is passed by any real site. But the cap was never the real problem; paginating around it would still hand the caller **80 KB** of JSON for 283 pages, for a question that is almost never "all pages".
 
   Contao answers it the same way — the back end tree renders one level and keeps the expanded state per node. So depth is the control: **two levels by default**, `--root` to descend into a branch, `--depth` for more. `truncated` says whether pages exist below the cut, so a depth-limited tree cannot be mistaken for a complete one.
 
@@ -1901,7 +1894,7 @@ came out of that.
 
 ### Fixed
 
-- **A failing command threw away the server's explanation of why.** Every core-bundle command answers a failure with `{"status":"error","message":"..."}` on stdout and *then* exits 1. `run()` saw the exit code, raised, and reported stderr — so `page read 99999` explained a missing record with whatever PHP had printed at startup. On one live install that is a warning about ionCube and a missing `imagick.so`, i.e. a shared-library path where the sentence "Page not found: 99999" belonged.
+- **A failing command threw away the server's explanation of why.** Every core-bundle command answers a failure with `{"status":"error","message":"..."}` on stdout and *then* exits 1. `run()` saw the exit code, raised, and reported stderr — so `page read 99999` explained a missing record with whatever PHP had printed at startup. On some hosts that is a warning about ionCube and a missing `imagick.so`, i.e. a shared-library path where the sentence "Page not found: 99999" belonged.
 
   This is the same shape as the swallowed bulk-update summary of 2026-08-29: the server exits non-zero *and* explains itself, and the exit code was allowed to discard the explanation. That one was fixed at its single call site with `check=False`; this belongs in the raise itself, because every command that can fail was affected — `page`, `layout`, `news`, all of them.
 
@@ -1933,7 +1926,7 @@ came out of that.
 
   The character itself turned out to be a core-bundle bug, fixed in v0.2.15: a binary file UUID was being emitted as text and mangled server-side.
 
-- **SSH drained the caller's stdin.** `subprocess.run()` was called without an explicit `stdin`, so the child inherited ours. A `while read id; do contao-ai-cli … ; done < ids.txt` loop therefore ran **exactly once** — ssh had swallowed the rest of the list on the first iteration — and reported "1 processed, 1 succeeded, 0 failed" with exit code 0. Nothing failed, which is what made it dangerous; it was caught only by counting rows in the database afterwards.
+- **SSH drained the caller's stdin.** `subprocess.run()` was called without an explicit `stdin`, so the child inherited ours. A `while read id; do contao-ai-cli … ; done < ids.txt` loop therefore ran **exactly once** — ssh had swallowed the rest of the list on the first iteration — and reported "1 processed, 1 succeeded, 0 failed" with exit code 0. Nothing failed, which is what made it dangerous; only a row count in the database afterwards showed it.
 
   All three subprocess call sites now pass `stdin=subprocess.DEVNULL`; none of these commands has anything to read from stdin. A test fails if a new call site omits it.
 
@@ -1967,7 +1960,7 @@ Suite: 349 tests, 16 skipped (325 before).
 
 - **`health` reported "Bridge not configured" for a server that had no bridge at all.** The line was derived solely from whether the session file carried a `bridge_url` and `bridge_token`; whether contao-ai-backend-bundle was actually installed on the target was never checked. Both cases printed the same words, and they call for opposite next steps - "not configured" reads as *installed, needs a token*, so you go and set a token into nothing.
 
-  Found during a live rollout: `health` said exactly the same thing before and after the bundle was installed.
+  `health` said exactly the same thing before and after the bundle was installed.
 
   The bridge line now has three states - `not installed`, `installed, not configured`, `ready` - plus `unknown` when the server could not be reached, which is not the same as "not installed" and no longer pretends to be. A session that carries a token for a server without the bundle is called out explicitly rather than reported as ready.
 
@@ -1979,7 +1972,7 @@ Suite: 349 tests, 16 skipped (325 before).
 
 ### Notes
 
-Verified against an installation with both bundles present (-> `ready`) and a live installation (core v0.2.10 with an update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
+Verified against an installation with both bundles present (-> `ready`) and one with core v0.2.10 (update available, bridge `ready`), plus a real SSH probe for a package that is not installed, which comes back as `None` rather than an error. 13 new tests, suite at 308.
 
 ## v0.5.0 — 2026-08-24
 
@@ -2087,7 +2080,7 @@ pipx install --force git+https://github.com/webwerkwien/contao-ai-cli.git@v0.4.0
 
 - **Silent data corruption in every list command.** `subprocess.run(text=True)` without `encoding=` uses the Windows locale default (cp1252), so the UTF-8 bytes of an umlaut arrived as two Latin-1 characters (`\xc3\xa4` → `Ã¤`). The row then ran one character longer than Symfony's separator line, every column right of the umlaut shifted left, and the last character of each cell was cut off. No crash, just wrong values — `event`, `news`, `page`, `member` and the rest were all affected. Fixed with `encoding="utf-8", errors="replace"` in `run`, `run_raw` and `scp_upload`; Symfony Console always writes UTF-8 regardless of the host locale.
 
-Found during a bridge test against a live server, where a cloned record came back as *„Jährliche Konferen"*.
+A cloned record came back as *„Jährliche Konferen"*.
 
 ### Changed
 

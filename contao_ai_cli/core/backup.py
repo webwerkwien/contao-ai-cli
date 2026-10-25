@@ -45,9 +45,8 @@ def backup_restore(backend: ContaoBackend, backup_name: str) -> dict:
     Up to v1.6.0 the CLI restored the *newest* backup on Contao 5.7 and 6.0, whatever
     name it was given, and reported the name asked for. Contao's BackupRestoreCommand
     reads the name only in `interact()`, which Symfony skips under `--no-interaction` --
-    and the CLI always passed that. 5.3 reads it in `execute()`. Found as ".sql played
-    back the newest backup"; the mechanism came out
-    before release.
+    and the CLI always passed that. 5.3 reads it in `execute()`. The symptom: ".sql played
+    back the newest backup".
 
     So: no `--no-interaction` (with a name given `interact()` returns before any
     question; Symfony 6.4 and 7.x stay interactive without a terminal), the name

@@ -9,8 +9,8 @@ reported success:
 
 subprocess.run() without an explicit `stdin` hands the child our own stdin, so
 ssh drained the rest of the ID list on the first iteration and the loop had
-nothing left to read. Nothing failed — which is what made it dangerous. It was
-caught only by counting rows in the database afterwards.
+nothing left to read. Nothing failed — which is what made it dangerous. Only a
+row count in the database afterwards shows it.
 
 Every subprocess this module starts therefore gets its own stdin. None of these
 commands has anything to read from stdin in the first place. For ssh that is an

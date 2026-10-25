@@ -908,7 +908,7 @@ def confirm_escalation(question: str) -> bool:
     Callers that want the escalation without a terminal pass the explicit flag;
     that is the point of the flag.
 
-    Careful: `isatty()` is not trustworthy on its own, and a live run
+    Careful: `isatty()` is not trustworthy on its own, which
     is why this catches as well as asks. Two invocations in the same Git Bash
     session reported different answers, and `python -c … < /dev/null` reported
     **True** — the emulated device passes for a terminal. Where it wrongly says

@@ -15,7 +15,7 @@ BUNDLES = {"core": CORE_BUNDLE, "backend": BACKEND_BUNDLE}
 
 # The constraint written into composer.json -- per bundle, the range its README recommends.
 # A plain `composer require <pkg>` would write `^0.x`, and `^<latest>` (v0.21.0-v0.21.1)
-# overwrote `>=0.2 <1.0` on a live installation: either caps the next minor for the Contao Manager
+# overwrote `>=0.2 <1.0`: either caps the next minor for the Contao Manager
 # and `composer update`.
 # v1.0.0: the core bundle is 1.x, where `^1.0` reaches every minor; a site still on
 # `>=0.2 <1.0` gets it on its next `bundle update core`. The backend bundle is still 0.x,

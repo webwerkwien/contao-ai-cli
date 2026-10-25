@@ -446,8 +446,8 @@ class TestTheWarningDoesNotContradictItself:
 
     The result said "no promise that it writes a version, an undo entry or a
     log line of its own" and then, two lines later, "trail tl_log kept 7 days,
-    written before the run". One message making both claims — caught by reading
-    the live output rather than by a test, which is why this one exists now.
+    written before the run". One message making both claims — and no test read
+    the output, which is why this one exists now.
     """
 
     def _warn(self, contract):
