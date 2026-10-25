@@ -16,7 +16,7 @@ from pathlib import Path
 
 import click
 
-from .helpers import __version__, _output
+from .helpers import json_option, __version__, _output
 
 _PACKAGE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,6 +31,7 @@ def guide_path() -> Path | None:
 @click.command()
 @click.option("--path", "path_only", is_flag=True, help="Print only where the guide is")
 @click.pass_context
+@json_option
 def guide(ctx, path_only):
     """Print the agent guide (GUIDE.md) for this version."""
     path = guide_path()

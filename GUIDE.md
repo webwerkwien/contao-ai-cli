@@ -370,6 +370,15 @@ contao-ai-cli --json user list
 contao-ai-cli --json backup list
 ```
 
+`--json` works before the command or after it: `contao-ai-cli news list --json` is the
+same call (every command since v1.15.0; `repl` is interactive and has no JSON form).
+Errors come back as `{"status": "error", "code": N, "message": "..."}` on stdout.
+
+A command name that does not exist answers with exit 2 and, where one fits, a
+suggestion in the message: `content get` → `No such command 'get'. Did you mean
+'content read'?` The CLI has one name per command and no aliases; `read`, `create`,
+`update`, `delete` and `list` are the names to use.
+
 ### One thing the output does not tell you literally
 
 **A `tinyint` column comes back as `true`/`false`, never as a number.** Doctrine

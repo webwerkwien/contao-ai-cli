@@ -1,6 +1,7 @@
 """
 Shared helpers for the contao-ai-cli CLI modules.
 """
+import difflib
 import json
 import pathlib
 import re
@@ -391,6 +392,74 @@ def bulk_id_options(f):
         help="Apply the same --set values to several records in one connection",
     )(f)
     return f
+
+
+def _json_option_callback(ctx, param, value):
+    if value:
+        ctx.ensure_object(dict)["as_json"] = True
+
+
+def json_option(f):
+    """`--json` after the command, for commands that read the flag from ctx.obj.
+
+    The root group has always taken `--json`; most commands declared their own,
+    the rest answered `No such option` when it came after the command name. This
+    puts the flag where those commands already look, so their bodies stay as
+    they are. The context object is shared down the chain, and option callbacks
+    run before the command itself.
+    """
+    return click.option(
+        "--json", "json_flag", is_flag=True, expose_value=False,
+        callback=_json_option_callback, help="JSON output",
+    )(f)
+
+
+# Words agents reach for from other CLIs. Each is offered only when its target
+# exists in the group at hand: `file get` must not point to a `file read` that
+# is not there. No aliases: one name per command keeps the guide and the help
+# the same, and a wrong guess still costs only one call.
+COMMAND_SYNONYMS = {
+    "get": "read", "show": "read", "view": "read", "cat": "read",
+    "edit": "update", "set": "update", "modify": "update",
+    "add": "create", "new": "create",
+    "remove": "delete", "rm": "delete", "del": "delete",
+    "ls": "list",
+}
+_NO_SUCH_COMMAND = re.compile(r"^No such command '(.+)'\.$")
+
+
+def command_hint(exc: click.ClickException) -> str | None:
+    """`Did you mean 'content read'?` for a mistyped or borrowed command name.
+
+    Click names the missing command and keeps the group it looked in on the
+    exception's context; nothing else is needed. The synonym list comes first,
+    because `get` and `read` share no letters, then a close spelling.
+    """
+    ctx = getattr(exc, "ctx", None)
+    match = _NO_SUCH_COMMAND.match(exc.format_message())
+    if ctx is None or match is None or not isinstance(ctx.command, click.Group):
+        return None
+    name, commands = match.group(1), ctx.command.commands
+    target = COMMAND_SYNONYMS.get(name.lower())
+    if target not in commands:
+        close = difflib.get_close_matches(name, list(commands), n=1, cutoff=0.6)
+        target = close[0] if close else None
+    if target is None:
+        return None
+    # Walked up rather than cut from ctx.command_path: the program name in front
+    # can hold spaces of its own (`python -m contao_ai_cli`).
+    names = [target]
+    while ctx.parent is not None:
+        names.insert(0, ctx.info_name)
+        ctx = ctx.parent
+    return f"Did you mean '{' '.join(names)}'?"
+
+
+def add_command_hint(exc: click.ClickException) -> None:
+    """Append `command_hint()` to the message, for every place that prints it."""
+    hint = command_hint(exc)
+    if hint:
+        exc.message = f"{exc.message} {hint}"
 
 
 def dispatch_update(backend, command: str, record_id, ids, ids_from_file, fields: dict) -> dict:

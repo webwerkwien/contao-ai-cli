@@ -6,7 +6,7 @@ import click
 from contao_ai_cli.core import session as session_mod, page as page_mod
 from contao_ai_cli.core.contao_ops import run_move
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
     confirm_delete, dispatch_update, output_move, parse_set_fields,
 )
 
@@ -22,6 +22,7 @@ def page():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def page_list_cmd(ctx, pid, limit, offset):
     """List pages, optionally filtered by parent ID.
 
@@ -37,6 +38,7 @@ def page_list_cmd(ctx, pid, limit, offset):
 @click.option("--root", type=int, default=None, help="Start at this page ID instead of the site roots")
 @click.option("--depth", type=int, default=None, help="Levels to return (default 2)")
 @click.pass_context
+@json_option
 def page_tree_cmd(ctx, root, depth):
     """Show the page tree, built on the server.
 

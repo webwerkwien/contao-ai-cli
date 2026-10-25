@@ -24,7 +24,7 @@ from contao_ai_cli.core import (
     backend_bridge as bridge_mod,
     session as session_mod,
 )
-from .helpers import _output, confirm_recipients, resolve_token
+from .helpers import json_option, _output, confirm_recipients, resolve_token
 
 
 @click.group()
@@ -41,6 +41,7 @@ def bridge():
               help="Read the token from stdin instead, so it stays out of the process list.")
 @click.option("--test", is_flag=True, help="After saving, do a sanity-check call (record_clone with invalid args, expects HTTP 422)")
 @click.pass_context
+@json_option
 def bridge_configure(ctx, url, token, token_stdin, test):
     """Save bridge URL + token to the current session file.
 
@@ -107,6 +108,7 @@ def bridge_configure(ctx, url, token, token_stdin, test):
 
 @bridge.command("status")
 @click.pass_context
+@json_option
 def bridge_status(ctx):
     """Show current bridge configuration (token masked)."""
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE
@@ -140,6 +142,7 @@ def bridge_status(ctx):
 @click.option("--yes", "-y", "assume_yes", is_flag=True,
               help="With --with-recipients: the operator has agreed; skip the question")
 @click.pass_context
+@json_option
 def bridge_clone(ctx, table, source_id, modifications, recursive, with_recipients, assume_yes):
     """Clone a record (and cascading children) via record_clone macro.
 
@@ -191,6 +194,7 @@ def bridge_clone(ctx, table, source_id, modifications, recursive, with_recipient
 @click.option("--recursive/--no-recursive", default=False,
               help="Rewrite all child records under the given container.")
 @click.pass_context
+@json_option
 def bridge_rewrite(ctx, table, record_id, instructions, recursive):
     """Rewrite a record (or all children) via record_rewrite macro (server-side LLM loop)."""
     cfg = session_mod.load_session(ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE)

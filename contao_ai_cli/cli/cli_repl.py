@@ -4,7 +4,7 @@ repl command — Interactive REPL mode.
 import click
 
 from contao_ai_cli.core import session as session_mod
-from .helpers import skin
+from .helpers import add_command_hint, skin
 
 
 @click.command()
@@ -79,6 +79,7 @@ def repl(ctx):
             # printed a bare red cross until v0.30.0.
             skin.warning("Aborted, nothing changed.")
         except click.ClickException as e:
+            add_command_hint(e)
             skin.error(e.format_message())
         except Exception as e:
             skin.error(str(e) or type(e).__name__)

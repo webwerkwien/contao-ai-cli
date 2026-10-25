@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, file as file_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, confirm_escalation, parse_set_fields,
+    json_option, _get_backend, _output, _require_core_bundle, confirm_escalation, parse_set_fields,
 )
 
 
@@ -22,6 +22,7 @@ def file():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def file_list_cmd(ctx, path, type_filter, limit, offset):
     """List files and folders from the Contao file manager."""
     _require_core_bundle(ctx, "file list")
@@ -32,6 +33,7 @@ def file_list_cmd(ctx, path, type_filter, limit, offset):
 
 @file.command("sync")
 @click.pass_context
+@json_option
 def file_sync_cmd(ctx):
     """Synchronize the DBAFS with the virtual filesystem (contao:filesync)."""
     session_path = ctx.obj.get("session") or session_mod.DEFAULT_SESSION_FILE

@@ -4,7 +4,7 @@ comment group — Manage Contao comments (tl_comments).
 import click
 
 from contao_ai_cli.core import session as session_mod, comment as comment_mod
-from .helpers import _get_backend, _output, _require_core_bundle, confirm_delete
+from .helpers import json_option, _get_backend, _output, _require_core_bundle, confirm_delete
 
 
 @click.group()
@@ -21,6 +21,7 @@ def comment():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def comment_list_cmd(ctx, source, parent_id, limit, offset):
     """List comments, optionally filtered by source and/or parent ID."""
     _require_core_bundle(ctx, "comment list")

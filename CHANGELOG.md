@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.15.0 - 2026-10-25
+
+Works with the same core versions as v1.14.0.
+
+### Added
+
+- **`--json` after any command** — `news list --json` now does what `--json news list`
+  does. Until now 26 commands, most `list` commands among them, took the flag only
+  before the command name and answered `No such option` after it. `repl` is interactive
+  and stays without it.
+- **A suggestion for a command name that does not exist** — `content get` answers
+  `No such command 'get'. Did you mean 'content read'?`, also inside the `--json` error
+  object. Covers common names from other tools (`get`, `show`, `edit`, `set`, `add`,
+  `new`, `remove`, `rm`, `ls` and a few more) where the group has the matching command,
+  and close spellings (`pages` → `page`). No aliases: the exit code stays 2.
+
+### Changed
+
+- `guide` prints `GUIDE.md`, how to use the CLI; `--path` names that file.
+
 ## v1.14.1 - 2026-10-24
 
 Works with the same core versions as v1.14.0.

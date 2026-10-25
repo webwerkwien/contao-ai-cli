@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, news as news_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
     dispatch_update, parse_set_fields,
 )
 
@@ -20,6 +20,7 @@ def news():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def news_archives(ctx, limit, offset):
     """List all news archives."""
     _require_core_bundle(ctx, "news archives")
@@ -34,6 +35,7 @@ def news_archives(ctx, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def news_list_cmd(ctx, archive_id, limit, offset):
     """List news entries, optionally filtered by archive ID."""
     _require_core_bundle(ctx, "news list")

@@ -6,7 +6,7 @@ import click
 from contao_ai_cli.core import session as session_mod, content as content_mod
 from contao_ai_cli.core.contao_ops import run_move
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
     confirm_delete, dispatch_update, output_move, parse_set_fields,
 )
 
@@ -23,6 +23,7 @@ def content():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def content_list_cmd(ctx, article_id, limit, offset):
     """List content elements, optionally filtered by article ID."""
     _require_core_bundle(ctx, "content list")

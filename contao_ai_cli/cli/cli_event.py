@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, event as event_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
     dispatch_update, parse_set_fields,
 )
 
@@ -20,6 +20,7 @@ def event():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def event_calendars(ctx, limit, offset):
     """List all calendars."""
     _require_core_bundle(ctx, "event calendars")
@@ -34,6 +35,7 @@ def event_calendars(ctx, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def event_list_cmd(ctx, calendar_id, limit, offset):
     """List calendar events, optionally filtered by calendar ID."""
     _require_core_bundle(ctx, "event list")

@@ -12,7 +12,7 @@ import sys
 import click
 
 from contao_ai_cli.cli import helpers as helpers_mod
-from contao_ai_cli.cli.helpers import __version__, configure_output_encoding
+from contao_ai_cli.cli.helpers import __version__, add_command_hint, configure_output_encoding
 from contao_ai_cli.core import session as session_mod
 from contao_ai_cli.cli.cli_connect import connect, session_list, session_delete
 from contao_ai_cli.cli.cli_cache import cache
@@ -282,6 +282,7 @@ def main() -> None:
         raise SystemExit(130)
     except click.ClickException as exc:
         defect = getattr(exc, "defect", None)
+        add_command_hint(exc)
         if as_json:
             _print_error(exc.format_message(), exc.exit_code, True, defect)
         else:

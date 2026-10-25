@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, form as form_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
     dispatch_update, parse_set_fields,
 )
 
@@ -20,6 +20,7 @@ def form():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def form_list_cmd(ctx, limit, offset):
     """List all forms."""
     _require_core_bundle(ctx, "form list")
@@ -33,6 +34,7 @@ def form_list_cmd(ctx, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def form_fields_cmd(ctx, form_id, limit, offset):
     """List all fields of a form (form_id = ID from tl_form)."""
     _require_core_bundle(ctx, "form fields")

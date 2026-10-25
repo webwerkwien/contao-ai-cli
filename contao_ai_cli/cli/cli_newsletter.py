@@ -5,7 +5,7 @@ import click
 
 from contao_ai_cli.core import session as session_mod, newsletter as newsletter_mod
 from .helpers import (
-    _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, confirm_delete,
     confirm_escalation, dispatch_update, parse_set_fields,
 )
 
@@ -20,6 +20,7 @@ def newsletter():
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def newsletter_channels(ctx, limit, offset):
     """List all newsletter channels."""
     _require_core_bundle(ctx, "newsletter channels")
@@ -34,6 +35,7 @@ def newsletter_channels(ctx, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def newsletter_list_cmd(ctx, channel_id, limit, offset):
     """List newsletters, optionally filtered by channel ID."""
     _require_core_bundle(ctx, "newsletter list")
@@ -48,6 +50,7 @@ def newsletter_list_cmd(ctx, channel_id, limit, offset):
 @click.option("--limit", type=int, default=None, help="Max rows (1-100, server default 20)")
 @click.option("--offset", type=int, default=None, help="Skip this many rows")
 @click.pass_context
+@json_option
 def newsletter_subscribers(ctx, channel_id, limit, offset):
     """List newsletter subscribers."""
     _require_core_bundle(ctx, "newsletter subscribers")
@@ -270,6 +273,7 @@ def newsletter_subscriber_delete_cmd(ctx, recipient_id, yes, as_json):
 @newsletter.command("send")
 @click.argument("newsletter_id", type=int, required=False)
 @click.pass_context
+@json_option
 def newsletter_send_cmd(ctx, newsletter_id):
     """NOT AVAILABLE — sending stays with a person in the Contao back end.
 
