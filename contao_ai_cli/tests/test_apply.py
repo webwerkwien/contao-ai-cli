@@ -61,6 +61,30 @@ def test_a_refused_plan_keeps_its_answer():
     assert info.value.payload == payload
 
 
+def test_an_error_answer_with_exit_code_zero_is_a_failure():
+    payload = {"status": "error", "message": "refused"}
+    b = backend(json.dumps(payload), returncode=0)
+
+    with pytest.raises(apply_mod.ApplyFailed):
+        apply_mod.run_apply(b, "{}", dry_run=False, steps=1)
+
+
+def test_the_command_hands_on_dry_run_and_the_step_count(tmp_path, monkeypatch):
+    f = tmp_path / "plan.json"
+    f.write_text(json.dumps({"steps": [PLAN["steps"][0]] * 10}), encoding="utf-8")
+    b = backend('{"status": "ok", "dryRun": true, "count": 10, "steps": []}')
+    monkeypatch.setattr(cli_apply, "_get_backend", lambda s=None: b)
+
+    result = CliRunner().invoke(cli, ["apply", "--file", str(f), "--dry-run", "--json"])
+
+    assert result.exit_code == 0, result.output
+    assert "--dry-run" in b.run.call_args.args[0]
+    assert b.run.call_args.kwargs["timeout"] == 80   # 60 + 2 * 10
+
+    CliRunner().invoke(cli, ["apply", "--file", str(f), "--json"])
+    assert "--dry-run" not in b.run.call_args.args[0]
+
+
 def test_a_timeout_says_the_run_may_have_written():
     b = MagicMock()
     b.run.side_effect = apply_mod.ContaoBackendError("SSH command timed out after 80s")

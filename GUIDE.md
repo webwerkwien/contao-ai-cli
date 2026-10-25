@@ -673,7 +673,7 @@ where one of the tables involved cannot roll back — Contao recommends InnoDB b
 require it; there, run the single commands.
 
 **The answer:** `refs` (name → ID), `steps` (each with `index`, `do`, `ref`, `id` and the
-command's own `result`), `cacheTags`. A failed run exits 1 with `rolledBack: true` and
+command's own `result`), `count`, `dryRun`, and after a real run `cacheTags`. A failed run exits 1 with `rolledBack: true` and
 `failedStep` (`index`, `do`, `ref`, `message`); `steps` then only says how far it got —
 nothing of it is written. Under `--json` a failure is that answer of the server, so you
 keep `failedStep` and `problems`.
