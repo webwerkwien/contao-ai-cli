@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.17.0 - 2026-10-30
+
+Works with the same core versions as v1.16.0; `--allow-code` matters from
+contao-ai-core-bundle v1.14.0.
+
+### Added
+
+- **`theme import --allow-code`.** core-bundle v1.14.0 lists files the server runs —
+  templates, PHP, `.htaccess` — in `code_files` and imports such an archive only with the
+  flag. Without it the CLI stops after the preview, also with `--yes`, and says so in
+  `next`; the confirmation at a terminal names the number of such files. Against an older
+  core-bundle the flag is not sent.
+
 ## v1.16.0 - 2026-10-25
 
 Needs contao-ai-core-bundle v1.13.0 for `apply`; everything else works with the same core

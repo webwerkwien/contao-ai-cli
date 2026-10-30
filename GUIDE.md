@@ -851,6 +851,7 @@ bundle ran the plain `cache:clear` without a trace.
 contao-ai-cli --json theme export 1 --to relaunch.cto          # Contao's .cto, downloaded
 contao-ai-cli --json theme import relaunch.cto                  # preview only
 contao-ai-cli --json theme import relaunch.cto --yes            # after the operator said yes
+contao-ai-cli --json theme import relaunch.cto --yes --allow-code   # it holds templates (code_files)
 contao-ai-cli --json example-website import demo.sql --mode data              # preview
 contao-ai-cli --json example-website import demo.sql --mode data --admins existing --yes
 ```
@@ -867,6 +868,11 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   slots that will be empty: a `.cto` holds no theme elements, Contao's import leaves those
   slots empty), and `example_websites` inside the archive, which this command does not
   import. A theme name that exists gets a number appended by Contao.
+- **Files the server runs need `--allow-code` as well** (core-bundle v1.14.0). The preview
+  lists them in `code_files`: PHP, legacy `.html5` and Twig templates, `.htaccess`. A
+  `.html5` template replaces the core template of its name on every page. Without the
+  flag the CLI stops after the preview (`"imported": false`), also with `--yes`. Show the
+  operator the list; with their yes, repeat with `--yes --allow-code`.
 - **`theme export`** writes `<theme name>.cto` here (characters other than letters, digits, `_` and `-` become `-`) unless `--to` says otherwise; an existing
   file of that default name is not overwritten (an explicit `--to` is). Theme elements are
   not part of a `.cto` (Contao's format).
@@ -884,8 +890,12 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   either way. `nextSteps` names what follows: `contao migrate` after `full`, `contao filesync`
   after `full`/`data` (tl_files was emptied), `cache clear`. The preview's `warnings`
   (mode `full`: empty or comment lines, which Contao runs as statements and which stop the
-  import half-way) belong in front of the operator before the yes. `admins.renumbered` names
-  an account that had to take a new id because an imported user holds its old one.
+  import half-way) belong in front of the operator before the yes, and so do
+  `other_statements` (core-bundle v1.14.0: in `full`, statements other than inserts and table
+  definitions — an `UPDATE`, a `DELETE`, another table) and `user_statements` (every
+  statement on `tl_user`). `admins.renumbered` names an account that had to take a new id
+  because an imported user holds its old one; `admins.promoted` an existing account the
+  file made an administrator — `--admins existing` puts it back as it was.
   If the import fails after the backup, the error names the backup and whether the
   administrators were put back — restore it before anything else makes a backup.
 
