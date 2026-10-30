@@ -135,8 +135,8 @@ def theme_import_cmd(ctx, local_file, assume_yes, allow_code, operator, as_json)
     their own command: `example-website import`.
 
     Files the server runs or evaluates — templates, PHP, `.htaccess` — are listed in
-    `code_files` (core-bundle v1.14.0); an archive with any imports only with
-    `--allow-code` as well.
+    `code_files` (core-bundle v1.14.0); an archive with any such file imports only
+    with `--allow-code` as well.
     """
     _require_core_bundle(ctx, "theme import")
     as_json = as_json or ctx.obj.get("as_json")
@@ -159,7 +159,8 @@ def theme_import_cmd(ctx, local_file, assume_yes, allow_code, operator, as_json)
                     f"{len(preview.get('overwrites') or [])} existing file(s) would be overwritten"
                     + (f", {len(code)} file(s) the server runs would be written." if code else ".")):
                 _output({**preview, "imported": False,
-                         "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
+                         "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with "
+                                 + ("--yes --allow-code." if code else "--yes.")},
                         as_json)
                 return
             result = archive_mod.theme_import(b, remote, confirm=True, operator=operator, allow_code=bool(code))

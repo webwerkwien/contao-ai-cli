@@ -126,6 +126,14 @@ class TestImportCommand:
         assert result.exit_code == 0, result.output
         assert b.run.call_args[0][0].endswith(" --confirm --allow-code")
 
+    def test_allow_code_without_a_yes_names_both_flags(self, monkeypatch, tmp_path):
+        """Without a terminal the repeat needs --allow-code again, or it stops at code_files."""
+        preview = {**self.PREVIEW, "code_files": ["templates/fe_page.html5"]}
+        result, b = self.invoke(monkeypatch, tmp_path, ["--allow-code"], preview)
+        out = json.loads(result.output)
+        assert out["imported"] is False and out["next"].endswith("--yes --allow-code.")
+        assert b.run.call_count == 1
+
     def test_without_code_files_the_option_is_not_sent(self, monkeypatch, tmp_path):
         """A core-bundle before v1.14.0 does not know --allow-code."""
         result, b = self.invoke(monkeypatch, tmp_path, ["--yes", "--allow-code"], self.PREVIEW,

@@ -869,8 +869,9 @@ as in the back end; the CLI uploads to `system/tmp` and removes the file afterwa
   slots empty), and `example_websites` inside the archive, which this command does not
   import. A theme name that exists gets a number appended by Contao.
 - **Files the server runs need `--allow-code` as well** (core-bundle v1.14.0). The preview
-  lists them in `code_files`: PHP, legacy `.html5` and Twig templates, `.htaccess`. A
-  `.html5` template replaces the core template of its name on every page. Without the
+  lists them in `code_files`: PHP, legacy `.html5` and Twig templates, `.htaccess`,
+  `.user.ini`. A `.html5` template replaces the core template of its name on every page
+  whose layout uses it. Without the
   flag the CLI stops after the preview (`"imported": false`), also with `--yes`. Show the
   operator the list; with their yes, repeat with `--yes --allow-code`.
 - **`theme export`** writes `<theme name>.cto` here (characters other than letters, digits, `_` and `-` become `-`) unless `--to` says otherwise; an existing
