@@ -120,10 +120,14 @@ class Upload:
         _remove(self.backend, f"{os.path.splitext(self.relative)[0]}-example.sql")
 
 
-def theme_import(backend: ContaoBackend, remote: str, confirm: bool, operator: str = "") -> dict:
+def theme_import(backend: ContaoBackend, remote: str, confirm: bool, operator: str = "",
+                 allow_code: bool = False) -> dict:
     cmd = f"contao:theme:import {shlex.quote(remote)}"
     if confirm:
         cmd += " --confirm"
+    # Only passed when asked for: a core-bundle before v1.14.0 does not know the option.
+    if allow_code:
+        cmd += " --allow-code"
     if operator:
         cmd += f" --operator={shlex.quote(operator)}"
     return _answer(backend, backend.run(cmd, check=False, timeout=SERVER_TIMEOUT))

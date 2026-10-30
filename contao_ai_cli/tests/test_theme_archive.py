@@ -111,6 +111,28 @@ class TestImportCommand:
         assert f"rm -f {relative}" in raw_commands(b)
         assert "cache clear" in json.loads(result.output)["nextSteps"][0]["command"]
 
+    def test_code_files_need_allow_code_even_with_yes(self, monkeypatch, tmp_path):
+        """core-bundle v1.14.0 names files the server runs; nothing imports without --allow-code."""
+        preview = {**self.PREVIEW, "code_files": ["templates/fe_page.html5"]}
+        result, b = self.invoke(monkeypatch, tmp_path, ["--yes"], preview)
+        out = json.loads(result.output)
+        assert out["imported"] is False and "--allow-code" in out["next"]
+        assert b.run.call_count == 1
+
+    def test_allow_code_is_passed_on(self, monkeypatch, tmp_path):
+        preview = {**self.PREVIEW, "code_files": ["templates/fe_page.html5"]}
+        result, b = self.invoke(monkeypatch, tmp_path, ["--yes", "--allow-code"], preview,
+                                {"status": "ok", "theme_ids": [7], "messages": []})
+        assert result.exit_code == 0, result.output
+        assert b.run.call_args[0][0].endswith(" --confirm --allow-code")
+
+    def test_without_code_files_the_option_is_not_sent(self, monkeypatch, tmp_path):
+        """A core-bundle before v1.14.0 does not know --allow-code."""
+        result, b = self.invoke(monkeypatch, tmp_path, ["--yes", "--allow-code"], self.PREVIEW,
+                                {"status": "ok", "theme_ids": [7], "messages": []})
+        assert result.exit_code == 0, result.output
+        assert "--allow-code" not in b.run.call_args[0][0]
+
     def test_a_failed_upload_leaves_nothing_behind(self, tmp_path):
         b2 = backend()
         b2.scp_upload.return_value = {"returncode": 1, "stderr": "connection lost"}

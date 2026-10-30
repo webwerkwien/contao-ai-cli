@@ -119,10 +119,13 @@ def theme_export_cmd(ctx, theme_id, local_path, as_json):
 @click.argument("local_file", type=click.Path(dir_okay=False))
 @click.option("--yes", "-y", "assume_yes", is_flag=True,
               help="Import after the preview without asking; an agent passes it only after asking the operator")
+@click.option("--allow-code", is_flag=True,
+              help="Also import when the archive holds files the server runs (code_files in the preview: "
+                   "templates, PHP, .htaccess); an agent passes it only after the operator checked them")
 @click.option("--operator", default="", help="Acting user identifier for the audit log")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def theme_import_cmd(ctx, local_file, assume_yes, operator, as_json):
+def theme_import_cmd(ctx, local_file, assume_yes, allow_code, operator, as_json):
     """Import a theme from Contao's .cto (core-bundle v1.9.0).
 
     First a preview: the theme, rows per table, the files in files/ and templates/ it
@@ -130,6 +133,10 @@ def theme_import_cmd(ctx, local_file, assume_yes, operator, as_json):
     holds no theme elements). An import has no undo. At a terminal you are asked; without
     one the preview is the answer, and `--yes` imports. Example websites (.sql) have
     their own command: `example-website import`.
+
+    Files the server runs or evaluates — templates, PHP, `.htaccess` — are listed in
+    `code_files` (core-bundle v1.14.0); an archive with any imports only with
+    `--allow-code` as well.
     """
     _require_core_bundle(ctx, "theme import")
     as_json = as_json or ctx.obj.get("as_json")
@@ -140,14 +147,22 @@ def theme_import_cmd(ctx, local_file, assume_yes, operator, as_json):
             if preview.get("status") != "preview":
                 _output(preview, as_json)
                 ctx.exit(1)
+            code = preview.get("code_files") or []
+            if code and not allow_code:
+                _output({**preview, "imported": False,
+                         "next": f"Nothing was imported. The archive holds {len(code)} file(s) the server runs "
+                                 "(code_files). Show them to the operator; with their yes, repeat with --yes --allow-code."},
+                        as_json)
+                return
             if not assume_yes and not confirm_escalation(
                     f"Import theme {', '.join(preview.get('themes') or [])}? "
-                    f"{len(preview.get('overwrites') or [])} existing file(s) would be overwritten."):
+                    f"{len(preview.get('overwrites') or [])} existing file(s) would be overwritten"
+                    + (f", {len(code)} file(s) the server runs would be written." if code else ".")):
                 _output({**preview, "imported": False,
                          "next": "Nothing was imported. Show the preview to the operator; with their yes, repeat with --yes."},
                         as_json)
                 return
-            result = archive_mod.theme_import(b, remote, confirm=True, operator=operator)
+            result = archive_mod.theme_import(b, remote, confirm=True, operator=operator, allow_code=bool(code))
     except archive_mod.ArchiveError as e:
         raise click.ClickException(str(e))
     if result.get("status") == "ok":
