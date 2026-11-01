@@ -6,14 +6,14 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 ## Unreleased
 
-Needs a contao-ai-core-bundle with `contao:file:rename` (the release after v1.14.0).
+Needs contao-ai-core-bundle v1.15.0 for `file rename`.
 
 ### Added
 
 - **`file rename --path <file|folder> --name <new name>`** renames a file or folder in
   place and keeps its UUIDs. Like `file move` it lists texts that name the old path as
-  `pathUsages`; a refusal (name exists, `--name` not a name, extension not accepted as an
-  upload) keeps its message and exits 1.
+  `pathUsages`; a refusal (name exists, `--name` not a name, a file's extension changed)
+  keeps its message and exits 1. As in the back end, a file keeps its extension.
 
 ## v1.17.0 - 2026-10-30
 

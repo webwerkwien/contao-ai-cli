@@ -1390,24 +1390,26 @@ contao-ai-cli --json file move --path files/conpai/icons --to files   # into the
 - A moved folder gets its web-dir symlinks regenerated; the log has *File or folder "…" has
   been moved to "…"* with the operator. No version, no undo — as in the back end.
 
-**`file rename` renames a file or folder in place, keeping its UUIDs** (needs a core-bundle
-with `contao:file:rename`, the release after v1.14.0) — the counterpart of `file move`: the
-same rename and DBAFS sync, so image elements and file pickers keep working.
+**`file rename` renames a file or folder in place, keeping its UUIDs** (core-bundle v1.15.0)
+— the counterpart of `file move`: the same rename and DBAFS sync, so image elements and file
+pickers keep working.
 
 ```bash
 contao-ai-cli --json file rename --path files/conpai/bot.svg --name bot-2026.svg
 contao-ai-cli --json file rename --path files/conpai/icons --name symbols
 ```
 
-- **`--name` is a name, not a path.** A `/` or `\`, `.`/`..` or a control character is refused;
-  to put it into another folder use `file move`. Give the whole new name, extension included.
-- **A different extension is held to the upload rules:** it must be in the installation's
-  `uploadTypes` and never one the web server runs (`php`, `.htaccess`, …). Keeping the extension
-  always works. Folders are not checked.
-- Not overwritten if the name exists; a path starting with a dot directly below `files/` and
-  anything to or from `.public` are refused, as with `file move`.
+- **`--name` is a name, not a path.** A `/` or `\`, a control character or `"`, and a leading
+  or trailing dot are refused, as in the back end; to put it into another folder use
+  `file move`. Give the whole new name, extension included.
+- **A file keeps its extension exactly as written** — none added, none removed, no change of
+  case. The back end only lets you edit the name in front of it: a rename changes the name,
+  not the file type, so `a.txt` never becomes `a.php`. Folders are free.
+- Not overwritten if the name exists; renaming `.public` is refused, as with `file move`.
 - The answer is the move's: `uuidsKept`, `pathUsages` (texts that name the old **path** break —
-  fix them with `content update`), `name`. The log has *File or folder "…" has been renamed
+  fix them with `content update`), `name`. As in the back end, an image loses its thumbnails
+  under the old name (`thumbnailsRemoved`), and a renamed style sheet or script empties the
+  script cache (`scriptCachePurged`). The log has *File or folder "…" has been renamed
   to "…"* with the operator. No version, no undo.
 
 **`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
