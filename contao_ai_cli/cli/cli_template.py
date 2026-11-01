@@ -65,6 +65,27 @@ def template_delete_cmd(ctx, path, yes, as_json):
         ctx.exit(1)
 
 
+@template.command("rename")
+@click.option("--path", required=True, help="Variant path, e.g. templates/content_element/text/hero.html.twig")
+@click.option("--name", "name", required=True, help="The new variant name -- letters, digits, _ and -, e.g. teaser")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def template_rename_cmd(ctx, path, name, as_json):
+    """Rename a template variant, as Contao's Template Studio does.
+
+    Only variants of content elements, front-end modules and pages, and only their last
+    segment; an override keeps its name. Records using the variant follow the new name
+    (customTpl, a layout's template), each with a version -- the answer lists them.
+    Templates that include the variant are not rewritten. Needs core-bundle v1.15.0.
+    """
+    _require_core_bundle(ctx, "template rename")
+    b = _get_backend(ctx.obj.get("session"))
+    result = template_mod.template_rename(b, path, name)
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
+
+
 @template.command("write")
 @click.option("--mode", required=True, type=click.Choice(["override", "partial", "variant"]),
               help="override=replace core template, partial=include-only, variant=selectable in backend")

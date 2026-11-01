@@ -49,6 +49,27 @@ def template_delete(backend: ContaoBackend, path: str) -> dict:
         return {"raw": result["stdout"]}
 
 
+def template_rename(backend: ContaoBackend, path: str, name: str) -> dict:
+    """Rename a Twig template variant below templates/ (core-bundle v1.15.0).
+
+    As Contao's Template Studio: only the last segment of a variant changes, and records
+    naming it follow (`migratedUsages`). check=False: a refusal is a JSON answer with exit 1
+    and is returned as it came.
+    """
+    cmd = f"contao:template:rename --path {shlex.quote(path)} --name {shlex.quote(name)}"
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"template rename failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
+            ) from None
+        return {"raw": result["stdout"]}
+
+
 def template_write(backend: ContaoBackend, mode: str, base: str,
                    content: str, name: str = "") -> dict:
     """Write a Twig template via SCP + contao:template:write.

@@ -6,7 +6,7 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 ## Unreleased
 
-Needs contao-ai-core-bundle v1.15.0 for `file rename`.
+Needs contao-ai-core-bundle v1.15.0 for `file rename` and `template rename`.
 
 ### Added
 
@@ -14,6 +14,10 @@ Needs contao-ai-core-bundle v1.15.0 for `file rename`.
   place and keeps its UUIDs. Like `file move` it lists texts that name the old path as
   `pathUsages`; a refusal (name exists, `--name` not a name, a file's extension changed)
   keeps its message and exits 1. As in the back end, a file keeps its extension.
+- **`template rename --path templates/….html.twig --name <variant>`** renames a template
+  variant as Contao's Template Studio does; content elements, front-end modules and page
+  layouts using it follow the new name, each with a version (`migratedUsages`). Before,
+  `template write` plus `template delete` reset them to the default template.
 
 ## v1.17.0 - 2026-10-30
 

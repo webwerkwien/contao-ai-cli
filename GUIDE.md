@@ -989,6 +989,27 @@ whose `customTpl` named it falls back to the default template — `migratedUsage
 field, ids}`, each with a version. `undoable: false`. Like `file delete`, it needs `--yes`
 unless a person types yes. Symbolic links and paths through linked folders are refused.
 
+**`template rename --path templates/… --name <variant>`** (core-bundle v1.15.0) renames a
+variant as the Template Studio does, and the records using it follow. Templates are named,
+not referenced by UUID: `template write` under the new name plus `template delete` of the
+old one would reset every element using it to the default template.
+
+```bash
+contao-ai-cli --json template rename --path templates/content_element/text/hero.html.twig --name teaser
+```
+
+- Only variants of content elements, front-end modules and pages
+  (`templates/content_element|frontend_module|page/<type>/<name>.html.twig`, deeper names
+  too), and only the last segment: `--name` is letters, digits, `_` and `-`
+  (`.html.twig` may be given). An override keeps its name — renamed, it would override
+  nothing. An existing variant is not overwritten.
+- The answer: `to`, `identifier`, `newIdentifier`, `migratedUsages: {table, field, ids}`
+  (`tl_content.customTpl`, `tl_module.customTpl` or `tl_layout.template`), each record
+  with a version; `templateCacheRefreshed` as for `template write`.
+- Templates that `extends` or `include` the variant are not rewritten — neither does the
+  Studio. Search them with `template list` and `template read` before renaming one that
+  others build on.
+
 **A template written with `template write` is usable at once** (core-bundle v0.20.0): the
 answer carries `templateCacheRefreshed: true` — Contao's template hierarchy and compiled
 templates were refreshed, as the Template Studio does after saving. Up to v0.19.0 a new

@@ -178,7 +178,7 @@ so it cannot drift from what the CLI actually offers.
 | `search` | `index-create` `index-drop` `query` `reindex` | Fulltext index |
 | `security` | `hash-password` | Security helpers |
 | `settings` | `read` `update` | Global settings — `localconfig.php`, not a table |
-| `template` | `delete` `list` `read` `write` | Twig and PHP templates |
+| `template` | `delete` `list` `read` `rename` `write` | Twig and PHP templates |
 | `theme` | `create` `delete` `export` `import` `list` `read` `update` | Themes — the root of the theme layer; `.cto` export and import (core-bundle v1.9.0) |
 | `undo` | `list` `read` `restore` | Deleted records — the counterpart to `version restore` |
 | `user` | `create` `delete` `list` `password` `update` | Back end users |
