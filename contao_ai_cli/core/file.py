@@ -166,6 +166,25 @@ def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
         return {"raw": result["stdout"]}
 
 
+def _passthrough(backend: ContaoBackend, cmd: str, label: str) -> dict:
+    """Run a core command and return its answer as it came, a refusal included.
+
+    check=False: a refusal exits 1 with a message worth keeping, and run() would raise and
+    keep only part of it. The calling command sets the exit code from `status`.
+    """
+    result = backend.run(cmd, check=False)
+    try:
+        return json.loads(result["stdout"])
+    except json.JSONDecodeError:
+        if result.get("returncode", 0) != 0:
+            raise ContaoBackendError(
+                f"{label} failed (exit {result['returncode']}): "
+                f"{(result.get('stderr') or result['stdout'])[:500]}"
+                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
+            ) from None
+        return {"raw": result["stdout"]}
+
+
 def file_move(backend: ContaoBackend, path: str, to: str) -> dict:
     """Move a file or folder into another folder below files/ (core-bundle v0.23.0).
 
@@ -173,18 +192,17 @@ def file_move(backend: ContaoBackend, path: str, to: str) -> dict:
     overwritten. `pathUsages` lists texts that name the old path — those break.
     """
     cmd = f'contao:file:move --path {shlex.quote(path)} --to {shlex.quote(to)}'
-    # As file_delete: a refusal exits 1 with a message worth keeping as it came.
-    result = backend.run(cmd, check=False)
-    try:
-        return json.loads(result["stdout"])
-    except json.JSONDecodeError:
-        if result.get("returncode", 0) != 0:
-            raise ContaoBackendError(
-                f"file move failed (exit {result['returncode']}): "
-                f"{(result.get('stderr') or result['stdout'])[:500]}"
-                f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
-            ) from None
-        return {"raw": result["stdout"]}
+    return _passthrough(backend, cmd, "file move")
+
+
+def file_rename(backend: ContaoBackend, path: str, name: str) -> dict:
+    """Rename a file or folder in place, keeping its UUIDs (core-bundle with contao:file:rename).
+
+    `name` is the complete new name, extension included — not a path. As with a move,
+    `pathUsages` lists texts that name the old path.
+    """
+    cmd = f'contao:file:rename --path {shlex.quote(path)} --name {shlex.quote(name)}'
+    return _passthrough(backend, cmd, "file rename")
 
 
 def file_read(backend: ContaoBackend, path: str) -> dict:

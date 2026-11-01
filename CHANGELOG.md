@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+Needs a contao-ai-core-bundle with `contao:file:rename` (the release after v1.14.0).
+
+### Added
+
+- **`file rename --path <file|folder> --name <new name>`** renames a file or folder in
+  place and keeps its UUIDs. Like `file move` it lists texts that name the old path as
+  `pathUsages`; a refusal (name exists, `--name` not a name, extension not accepted as an
+  upload) keeps its message and exits 1.
+
 ## v1.17.0 - 2026-10-30
 
 Works with the same core versions as v1.16.0; `--allow-code` matters from
