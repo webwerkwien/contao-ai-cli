@@ -4,9 +4,10 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
-## Unreleased
+## v1.18.0 - 2026-11-01
 
-Needs contao-ai-core-bundle v1.15.0 for `file rename` and `template rename`.
+Needs contao-ai-core-bundle v1.15.0 for `file rename` and `template rename`; everything
+else works with the same core versions as v1.17.0.
 
 ### Added
 
