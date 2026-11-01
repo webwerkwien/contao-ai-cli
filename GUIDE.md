@@ -1430,7 +1430,8 @@ contao-ai-cli --json file rename --path files/conpai/icons --name symbols
 - The answer is the move's: `uuidsKept`, `pathUsages` (texts that name the old **path** break —
   fix them with `content update`), `name`. As in the back end, an image loses its thumbnails
   under the old name (`thumbnailsRemoved`), and a renamed style sheet or script empties the
-  script cache (`scriptCachePurged`). The log has *File or folder "…" has been renamed
+  script cache (`scriptCachePurged`); if that clean-up fails, the rename still stands and
+  `cleanupWarning` says what may be left (`cache clear` helps). The log has *File or folder "…" has been renamed
   to "…"* with the operator. No version, no undo.
 
 **`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
