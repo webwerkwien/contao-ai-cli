@@ -56,7 +56,8 @@ def template_rename(backend: ContaoBackend, path: str, name: str) -> dict:
     naming it follow (`migratedUsages`). check=False: a refusal is a JSON answer with exit 1
     and is returned as it came.
     """
-    cmd = f"contao:template:rename --path {shlex.quote(path)} --name {shlex.quote(name)}"
+    # --name=…: a variant name may begin with "-", which Symfony would not take as a separate value.
+    cmd = f"contao:template:rename --path {shlex.quote(path)} --name={shlex.quote(name)}"
     result = backend.run(cmd, check=False)
     try:
         return json.loads(result["stdout"])

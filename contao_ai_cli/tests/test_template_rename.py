@@ -33,9 +33,17 @@ def test_template_rename_calls_the_core_command_quoted():
     b = _backend({"status": "ok"})
     template_mod.template_rename(b, "templates/content_element/text/a b.html.twig", "my teaser")
     assert b.run.call_args.args[0] == (
-        "contao:template:rename --path 'templates/content_element/text/a b.html.twig' --name 'my teaser'"
+        "contao:template:rename --path 'templates/content_element/text/a b.html.twig' --name='my teaser'"
     )
     assert b.run.call_args.kwargs == {"check": False}
+
+
+def test_template_rename_keeps_a_name_beginning_with_a_dash_as_the_value():
+    b = _backend({"status": "ok"})
+    template_mod.template_rename(b, "templates/content_element/text/a.html.twig", "-b")
+    assert b.run.call_args.args[0] == (
+        "contao:template:rename --path templates/content_element/text/a.html.twig --name=-b"
+    )
 
 
 def test_template_rename_passes_the_answer_on():

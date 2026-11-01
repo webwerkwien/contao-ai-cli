@@ -201,7 +201,8 @@ def file_rename(backend: ContaoBackend, path: str, name: str) -> dict:
     `name` is the complete new name, extension included — not a path. As with a move,
     `pathUsages` lists texts that name the old path.
     """
-    cmd = f'contao:file:rename --path {shlex.quote(path)} --name {shlex.quote(name)}'
+    # --name=…: a name may begin with "-", which Symfony would not take as a separate value.
+    cmd = f'contao:file:rename --path {shlex.quote(path)} --name={shlex.quote(name)}'
     return _passthrough(backend, cmd, "file rename")
 
 

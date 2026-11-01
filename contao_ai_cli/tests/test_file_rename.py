@@ -7,10 +7,12 @@ core-bundle command keeps the UUIDs and reports `pathUsages`, as `file move` doe
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from contao_ai_cli.cli.cli_file import file_rename_cmd
 from contao_ai_cli.core.file import file_rename
+from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 RENAMED = {
     "status": "ok", "path": "files/media/logo.svg", "to": "files/media/logo-2026.svg",
@@ -37,8 +39,15 @@ def test_path_and_name_are_quoted_into_the_server_command():
     file_rename(backend, "files/media/logo one.svg", "logo 2026.svg")
 
     assert backend.run.call_args.args[0] == (
-        "contao:file:rename --path 'files/media/logo one.svg' --name 'logo 2026.svg'"
+        "contao:file:rename --path 'files/media/logo one.svg' --name='logo 2026.svg'"
     )
+
+
+def test_a_name_beginning_with_a_dash_stays_the_option_value():
+    backend = _backend(RENAMED)
+    file_rename(backend, "files/media/a.svg", "-b.svg")
+
+    assert backend.run.call_args.args[0] == "contao:file:rename --path files/media/a.svg --name=-b.svg"
 
 
 def test_a_rename_prints_the_path_usages_and_exits_zero():
@@ -63,12 +72,8 @@ def test_a_non_json_failure_names_the_command_and_the_exit():
     backend.run.return_value = {"stdout": "", "returncode": 255, "stderr": "ssh: connection refused"}
     backend.undefined_command_hint.return_value = ""
 
-    try:
+    with pytest.raises(ContaoBackendError, match=r"file rename failed \(exit 255\)"):
         file_rename(backend, "files/a.png", "b.png")
-    except Exception as e:  # ContaoBackendError
-        assert "file rename failed (exit 255)" in str(e)
-    else:
-        raise AssertionError("expected an error")
 
 
 def test_both_options_are_required():

@@ -2168,7 +2168,7 @@ field — the core throws refusals as `\InvalidArgumentException` and marks ever
 else. Up to v1.2.0 a failed query and "page not found" were the same plain `Error:` line.
 `cache clear` and `user create` (when the password step fails) carry it along too. Commands
 that pass the core's answer through as it came (`file delete`, `file move`, `file rename`, `template
-delete`, `page move`, `article move`, `content move`, a bulk update's summary) keep the field
+delete`, `template rename`, `page move`, `article move`, `content move`, a bulk update's summary) keep the field
 in that answer. If you see one, something is genuinely broken
 in this software, and it is worth telling the maintainer about (with consent).
 
