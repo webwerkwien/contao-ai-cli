@@ -106,6 +106,28 @@ def file_move_cmd(ctx, path, to, as_json):
         ctx.exit(1)
 
 
+@file.command("rename")
+@click.option("--path", required=True, help="File or folder below files/, e.g. files/conpai/bot.svg")
+@click.option("--name", "name", required=True, help="The new name, extension included — a name, not a path, e.g. bot-2026.svg")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_rename_cmd(ctx, path, name, as_json):
+    """Rename a file or folder in place, keeping its UUIDs.
+
+    Image elements and file pickers keep working; an existing name is not overwritten.
+    A file that gets a different extension must be one the installation accepts as an
+    upload, and never one the web server runs. To put it into another folder use
+    file move. Texts that name the old path break — the answer lists them as
+    pathUsages. Needs a core-bundle with contao:file:rename.
+    """
+    _require_core_bundle(ctx, "file rename")
+    b = _get_backend(ctx.obj.get("session"))
+    result = file_mod.file_rename(b, path, name)
+    _output(result, as_json or ctx.obj.get("as_json"))
+    if isinstance(result, dict) and result.get("status") == "error":
+        ctx.exit(1)
+
+
 @file.command("folder-publish")
 @click.option("--path", required=True, help="Folder path relative to Contao root, e.g. files/conpai")
 @click.option("--unpublish", is_flag=True, help="Protect the folder again instead of publishing it")

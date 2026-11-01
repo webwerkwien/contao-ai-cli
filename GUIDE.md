@@ -1390,6 +1390,26 @@ contao-ai-cli --json file move --path files/conpai/icons --to files   # into the
 - A moved folder gets its web-dir symlinks regenerated; the log has *File or folder "…" has
   been moved to "…"* with the operator. No version, no undo — as in the back end.
 
+**`file rename` renames a file or folder in place, keeping its UUIDs** (needs a core-bundle
+with `contao:file:rename`, the release after v1.14.0) — the counterpart of `file move`: the
+same rename and DBAFS sync, so image elements and file pickers keep working.
+
+```bash
+contao-ai-cli --json file rename --path files/conpai/bot.svg --name bot-2026.svg
+contao-ai-cli --json file rename --path files/conpai/icons --name symbols
+```
+
+- **`--name` is a name, not a path.** A `/` or `\`, `.`/`..` or a control character is refused;
+  to put it into another folder use `file move`. Give the whole new name, extension included.
+- **A different extension is held to the upload rules:** it must be in the installation's
+  `uploadTypes` and never one the web server runs (`php`, `.htaccess`, …). Keeping the extension
+  always works. Folders are not checked.
+- Not overwritten if the name exists; a path starting with a dot directly below `files/` and
+  anything to or from `.public` are refused, as with `file move`.
+- The answer is the move's: `uuidsKept`, `pathUsages` (texts that name the old **path** break —
+  fix them with `content update`), `name`. The log has *File or folder "…" has been renamed
+  to "…"* with the operator. No version, no undo.
+
 **`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
 CLI v0.19.0) — as the back end does: the resource, a folder's symlink in the web dir, then
 the DBAFS, and a `tl_log` entry.
@@ -2124,7 +2144,7 @@ under `--json` the error object carries `"exception"` as well. A refusal has no 
 field — the core throws refusals as `\InvalidArgumentException` and marks everything
 else. Up to v1.2.0 a failed query and "page not found" were the same plain `Error:` line.
 `cache clear` and `user create` (when the password step fails) carry it along too. Commands
-that pass the core's answer through as it came (`file delete`, `file move`, `template
+that pass the core's answer through as it came (`file delete`, `file move`, `file rename`, `template
 delete`, `page move`, `article move`, `content move`, a bulk update's summary) keep the field
 in that answer. If you see one, something is genuinely broken
 in this software, and it is worth telling the maintainer about (with consent).
