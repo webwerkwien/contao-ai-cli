@@ -115,10 +115,10 @@ def file_rename_cmd(ctx, path, name, as_json):
     """Rename a file or folder in place, keeping its UUIDs.
 
     Image elements and file pickers keep working; an existing name is not overwritten.
-    A file that gets a different extension must be one the installation accepts as an
-    upload, and never one the web server runs. To put it into another folder use
-    file move. Texts that name the old path break — the answer lists them as
-    pathUsages. Needs a core-bundle with contao:file:rename.
+    As in the back end, a file keeps its extension exactly as written, and no name
+    starts or ends with a dot. To put it into another folder use file move. Texts that
+    name the old path break — the answer lists them as pathUsages. Needs core-bundle
+    v1.15.0.
     """
     _require_core_bundle(ctx, "file rename")
     b = _get_backend(ctx.obj.get("session"))
