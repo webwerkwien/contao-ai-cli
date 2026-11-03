@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.18.1 - 2026-11-03
+
+Works with the same core versions as v1.18.0.
+
+### Changed
+
+- The agent guide (`contao-ai-cli guide`) asks for column names to be read from
+  `record schema` rather than inferred, and describes its `column` and `storedIn` flags
+  (core-bundle v1.16.0). No change in behaviour.
+
 ## v1.18.0 - 2026-11-01
 
 Needs contao-ai-core-bundle v1.15.0 for `file rename` and `template rename`; everything
