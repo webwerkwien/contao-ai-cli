@@ -2113,6 +2113,16 @@ the shorter path — use them freely. The rule is about writes:
 | `UPDATE` / `INSERT` / `DELETE` / `ALTER` / `TRUNCATE` | through this CLI |
 | `SELECT` / `SHOW` / `mysqldump` | raw SQL is fine |
 
+**Read column names, do not infer them.** An extension's columns rarely carry the
+obvious name (`orderStatus`, not `status`). `record schema <table>` lists the fields, and
+from core-bundle v1.16.0 its `column` flag says which of them are columns of their own;
+a field with `column: false` is virtual (`storedIn` names the JSON column holding it) or
+saved elsewhere. A raw `SELECT` on a guessed column fails, and run through the Contao
+console (`dbal:run-sql`) that failure lands in the production log as a critical error
+that later reads like an incident.
+`record list` validates the names first and, from v1.16.0, answers an unknown one with
+the likely candidates and every column it accepts.
+
 Requires contao-ai-core-bundle **v0.2.13** or newer on the target site; older versions
 wrote nothing to `tl_log` at all. `contao-ai-cli health` shows the installed version.
 
