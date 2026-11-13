@@ -1571,8 +1571,10 @@ v1.7.4, articles from the start, element visibility since v0.22.0), exactly as C
 soon as its page and article are published. Up to v0.21.1 every cloned element was hidden,
 and a published clone showed an empty page. Subpages store no language; the root keeps its
 own or the one from `--modifications`.
-Cloned pages get Contao's alias from the title (`startseite-kopie`), titles get
-" (Kopie)"; translate both afterwards with `page update`. **With folder URLs** (`useFolderUrl`
+Cloned pages get Contao's copy mark in their title and Contao's alias from that title:
+" (Kopie)" and `startseite-kopie` when `--operator` names a Contao user working in German,
+" (copy)" and `startseite-copy` without `--operator` (core-bundle v1.17.0; before, always
+German). Translate both afterwards with `page update`. **With folder URLs** (`useFolderUrl`
 on the root) the alias carries the path: `top-menu-folder-kopie/logout-kopie`. Set each
 page's alias explicitly, flat or as the path you want; do not expect the short form. The
 cloned root goes behind the last root.
@@ -1633,7 +1635,8 @@ answer carries the same sentence in `note`. References out of the theme stay: no
 the copied layouts until someone assigns them, so the clone changes nothing on the site by
 itself. `remapped` says what was bent
 (`"tl_layout.modules": 5`), `references` what still points out (the template folder in
-`templates` is shared, not copied). The name is `<name> (Kopie)`, counted on when taken;
+`templates` is shared, not copied). The name is `<name> (Kopie)` (the mark in the language
+of `--operator`, as for pages), counted on when taken: `<name> (Kopie 2)`;
 `--modifications '{"name": "…"}'` with a name already taken is refused.
 
 ```bash

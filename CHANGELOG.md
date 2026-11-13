@@ -17,6 +17,12 @@ This file was reconstructed from the git history and the GitHub releases on 2026
   a parent (`content copy` also `--ptable`). Needs contao-ai-core-bundle v1.17.0; the agent
   guide explains when to copy rather than create.
 
+### Changed
+
+- **`record clone` marks the clone in the language of `--operator`** with
+  contao-ai-core-bundle v1.17.0: "(Kopie)" for a Contao user working in German, "(copy)"
+  without `--operator`; aliases derived from the title follow. The agent guide says so.
+
 ## v1.18.1 - 2026-11-03
 
 Works with the same core versions as v1.18.0.
