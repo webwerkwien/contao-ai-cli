@@ -609,6 +609,32 @@ call — to move several in order, move the first, then each next one `--after` 
 `update --set pid=…` still works and now puts the record behind its new siblings too; `move`
 is the form to reach for, because it says where.
 
+### Copying articles and content (core-bundle v1.17.0)
+
+When someone says "duplicate" or "copy", that is `copy`, not `create` with the values read
+from the source:
+
+```bash
+contao-ai-cli --json content copy 40                 # directly behind element 40
+contao-ai-cli --json content copy 40 --after 44      # directly behind element 44
+contao-ai-cli --json content copy 40 --to 12 --ptable tl_news  # into news entry 12, at the end
+contao-ai-cli --json article copy 21                 # directly behind article 21
+contao-ai-cli --json article copy 21 --to 7          # onto page 7, behind its last article
+```
+
+**It works like copy and paste in Contao's back end.** The copy takes every field of its
+source, including fields the operator could not edit, and its children: an element its
+nested elements, an article its content elements. What Contao does not copy is reset as
+the DCA says, so a copied article is unpublished, has no alias yet and belongs to the
+operator. The copied record (not its children) carries Contao's copy mark in its headline
+or title, in the language Contao has loaded — on the console English, "(copy)". Change
+fields afterwards with `update`; take the new ID from `id` in the answer, and `notCopied`
+names the fields that were reset.
+
+`--to` and `--after` are exclusive, and without either the copy goes directly behind its
+source. `--ptable` goes only with `content copy --to` (default: the source's). A copy into
+the element itself or one of its own elements is refused and exits 1.
+
 ### Many writes at once: `apply` (core-bundle v1.13.0)
 
 When a task takes several writes that belong together — a page, its translation link, its

@@ -817,6 +817,20 @@ def check_move_target(to, after, ptable=None) -> None:
         raise click.UsageError("--ptable goes with --to; with --after the element takes the sibling's parent table.")
 
 
+def check_copy_target(to, after, ptable=None) -> None:
+    """At most one of --to and --after, and --ptable only with --to (core-bundle v1.17.0).
+
+    Unlike a move, neither is fine: the copy then goes directly behind its source.
+    """
+    if to is not None and after is not None:
+        raise click.UsageError(
+            "Give --to <parent ID> (behind its last child) or --after <sibling ID> "
+            "(directly behind it), not both. Without either, the copy goes directly behind the source."
+        )
+    if ptable and to is None:
+        raise click.UsageError("--ptable goes with --to; otherwise the copy takes the parent table of the record it goes behind.")
+
+
 def output_move(ctx, result, as_json) -> None:
     """Print a move's answer; a refusal keeps its message and exits 1, like file move."""
     _output(result, as_json or ctx.obj.get("as_json"))

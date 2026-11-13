@@ -6,8 +6,8 @@ import click
 from contao_ai_cli.core import session as session_mod, article as article_mod
 from contao_ai_cli.core.contao_ops import run_move
 from .helpers import (
-    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, check_move_target,
-    confirm_delete, dispatch_update, output_move, parse_set_fields,
+    json_option, _get_backend, _output, _require_core_bundle, bulk_id_options, check_copy_target,
+    check_move_target, confirm_delete, dispatch_update, output_move, parse_set_fields,
 )
 
 
@@ -116,6 +116,25 @@ def article_move_cmd(ctx, article_id, to, after, as_json):
     _require_core_bundle(ctx, "article move")
     b = _get_backend(ctx.obj.get("session"))
     output_move(ctx, run_move(b, "contao:article:move", article_id, to=to, after=after), as_json)
+
+
+@article.command("copy")
+@click.argument("article_id", type=int)
+@click.option("--to", "to", type=int, default=None, help="Page ID — the copy goes behind the page's last article")
+@click.option("--after", type=int, default=None, help="Article ID — the copy goes directly behind it (default: directly behind the source)")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def article_copy_cmd(ctx, article_id, to, after, as_json):
+    """Duplicate an article with its content, as copy and paste in the back end.
+
+    Without --to or --after the copy goes directly behind the source. As in the back
+    end it is unpublished, has no alias yet and belongs to the operator. Needs
+    core-bundle v1.17.0.
+    """
+    check_copy_target(to, after)
+    _require_core_bundle(ctx, "article copy")
+    b = _get_backend(ctx.obj.get("session"))
+    output_move(ctx, run_move(b, "contao:article:copy", article_id, to=to, after=after), as_json)
 
 
 @article.command("delete")

@@ -146,14 +146,14 @@ so it cannot drift from what the CLI actually offers.
 
 | Group | Commands | What for |
 |---|---|---|
-| `article` | `create` `delete` `list` `move` `publish` `read` `update` | Articles inside pages |
+| `article` | `copy` `create` `delete` `list` `move` `publish` `read` `update` | Articles inside pages |
 | `backup` | `create` `list` `restore` | Database backups |
 | `bridge` | `clone` `configure` `rewrite` `status` | Bulk LLM jobs via contao-ai-backend-bundle |
 | `bundle` | `install` `update` | Install or update the contao-ai bundles (core, backend) on the connected site |
 | `cache` | `clear` `pool-clear` `pool-list` `warmup` | Symfony cache |
 | `comment` | `delete` `list` `publish` | Comment moderation |
 | `contao` | `automator` `crawl` `cron` `cron-list` `filesync` `install` `maintenance` `migrate` `resize-images` `setup` `symlinks` | Contao's own maintenance commands |
-| `content` | `create` `delete` `find` `list` `move` `read` `update` | Content elements; `find` by their text (core v1.10.0) |
+| `content` | `copy` `create` `delete` `find` `list` `move` `read` `update` | Content elements; `find` by their text (core v1.10.0) |
 | `debug` | `dca` `match` `pages` `plugins` `router` `twig` | Debug utilities |
 | `event` | `calendar-create` `calendar-delete` `calendar-read` `calendar-update` `calendars` `create` `delete` `list` `read` `update` | Calendar events and their calendars |
 | `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |
