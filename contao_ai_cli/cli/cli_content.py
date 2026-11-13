@@ -144,19 +144,21 @@ def content_move_cmd(ctx, content_id, to, after, ptable, as_json):
 @click.option("--to", "to", type=int, default=None, help="Parent ID (an article by default) — the copy goes behind its last element")
 @click.option("--after", type=int, default=None, help="Element ID — the copy goes directly behind it (default: directly behind the source)")
 @click.option("--ptable", default=None, help="Parent table for --to (tl_article, tl_news, tl_content, …); default: the source's")
+@click.option("--operator", default="", help="Contao username acting; the copy mark comes in their back-end language (default: English)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def content_copy_cmd(ctx, content_id, to, after, ptable, as_json):
+def content_copy_cmd(ctx, content_id, to, after, ptable, operator, as_json):
     """Duplicate a content element with its nested elements, as copy and paste in the back end.
 
     Without --to or --after the copy goes directly behind the source. It takes every
-    field of the source; change fields afterwards with `content update`. Needs
-    core-bundle v1.17.0.
+    field of the source; change fields afterwards with `content update`. The headline
+    is marked as a copy in the --operator's back-end language. Needs core-bundle v1.17.0.
     """
     check_copy_target(to, after, ptable)
     _require_core_bundle(ctx, "content copy")
     b = _get_backend(ctx.obj.get("session"))
-    output_move(ctx, run_move(b, "contao:content:copy", content_id, to=to, after=after, ptable=ptable), as_json)
+    output_move(ctx, run_move(b, "contao:content:copy", content_id, to=to, after=after, ptable=ptable,
+                              operator=operator), as_json)
 
 
 @content.command("delete")

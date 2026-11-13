@@ -620,6 +620,7 @@ contao-ai-cli --json content copy 40 --after 44      # directly behind element 4
 contao-ai-cli --json content copy 40 --to 12 --ptable tl_news  # into news entry 12, at the end
 contao-ai-cli --json article copy 21                 # directly behind article 21
 contao-ai-cli --json article copy 21 --to 7          # onto page 7, behind its last article
+contao-ai-cli --json article copy 21 --operator k.editor  # owned by k.editor, marked in their language
 ```
 
 **It works like copy and paste in Contao's back end.** The copy takes every field of its
@@ -627,7 +628,10 @@ source, including fields the operator could not edit, and its children: an eleme
 nested elements, an article its content elements. What Contao does not copy is reset as
 the DCA says, so a copied article is unpublished, has no alias yet and belongs to the
 operator. The copied record (not its children) carries Contao's copy mark in its headline
-or title, in the language Contao has loaded — on the console English, "(copy)". Change
+or title. Pass the Contao username you act for as `--operator`: the mark then comes in that
+user's back-end language (German "(Kopie)") and a copied article gets them as author.
+Without it, or for a username Contao does not know, the mark is English "(copy)" and the
+author the first user. Change
 fields afterwards with `update`; take the new ID from `id` in the answer, and `notCopied`
 names the fields that were reset.
 

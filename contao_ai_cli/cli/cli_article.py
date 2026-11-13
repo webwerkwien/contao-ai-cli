@@ -122,19 +122,20 @@ def article_move_cmd(ctx, article_id, to, after, as_json):
 @click.argument("article_id", type=int)
 @click.option("--to", "to", type=int, default=None, help="Page ID — the copy goes behind the page's last article")
 @click.option("--after", type=int, default=None, help="Article ID — the copy goes directly behind it (default: directly behind the source)")
+@click.option("--operator", default="", help="Contao username acting: author of the copy, and its copy mark in their back-end language (default: the first user, English)")
 @click.option("--json", "as_json", is_flag=True)
 @click.pass_context
-def article_copy_cmd(ctx, article_id, to, after, as_json):
+def article_copy_cmd(ctx, article_id, to, after, operator, as_json):
     """Duplicate an article with its content, as copy and paste in the back end.
 
     Without --to or --after the copy goes directly behind the source. As in the back
-    end it is unpublished, has no alias yet and belongs to the operator. Needs
-    core-bundle v1.17.0.
+    end it is unpublished, has no alias yet and belongs to the --operator, its title
+    marked as a copy in their back-end language. Needs core-bundle v1.17.0.
     """
     check_copy_target(to, after)
     _require_core_bundle(ctx, "article copy")
     b = _get_backend(ctx.obj.get("session"))
-    output_move(ctx, run_move(b, "contao:article:copy", article_id, to=to, after=after), as_json)
+    output_move(ctx, run_move(b, "contao:article:copy", article_id, to=to, after=after, operator=operator), as_json)
 
 
 @article.command("delete")

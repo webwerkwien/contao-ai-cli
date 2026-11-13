@@ -38,6 +38,11 @@ def test_without_a_target_only_the_id_goes_to_the_server():
      "contao:content:copy 40 --to=12 --ptable=tl_news --no-interaction"),
     (article_copy_cmd, "cli_article", ["7", "--after", "9", "--json"], "contao:article:copy 7 --after=9 --no-interaction"),
     (article_copy_cmd, "cli_article", ["7", "--to", "4", "--json"], "contao:article:copy 7 --to=4 --no-interaction"),
+    # The operator's back-end language marks the copy, and a copied article belongs to them.
+    (content_copy_cmd, "cli_content", ["40", "--operator", "k.editor", "--json"],
+     "contao:content:copy 40 --operator=k.editor --no-interaction"),
+    (article_copy_cmd, "cli_article", ["7", "--operator", "anna maria", "--json"],
+     "contao:article:copy 7 --operator='anna maria' --no-interaction"),
 ])
 def test_a_copy_prints_the_answer_and_exits_zero(command, module, args, sent):
     backend = _backend(COPIED)

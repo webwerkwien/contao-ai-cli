@@ -10,7 +10,9 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 - **`content copy <id>` and `article copy <id>`** duplicate a content element or an article
   as copy and paste in Contao's back end: every field of the source and its children come
-  along, a copied article is unpublished. Without a target the copy goes directly behind the
+  along, a copied article is unpublished. `--operator <username>` names the Contao user you
+  act for: the copy is marked "(copy)" in their back-end language and a copied article
+  belongs to them. Without a target the copy goes directly behind the
   source; `--after <id>` puts it behind another record, `--to <id>` behind the last child of
   a parent (`content copy` also `--ptable`). Needs contao-ai-core-bundle v1.17.0; the agent
   guide explains when to copy rather than create.

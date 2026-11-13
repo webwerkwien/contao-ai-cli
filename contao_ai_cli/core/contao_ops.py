@@ -204,14 +204,16 @@ def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
 
 
 def run_move(backend, command: str, record_id: int, to: int | None = None,
-             after: int | None = None, ptable: str | None = None) -> dict:
+             after: int | None = None, ptable: str | None = None, operator: str = "") -> dict:
     """
     Run an <entity>:move command (core-bundle v1.2.0): the back end's cut and paste.
 
     `to` puts the record behind the last child of that parent, `after` directly
     behind that sibling, below its parent. The server computes the position and runs
     every rule of an update, so a refusal (a root below a page, a page below itself)
-    comes back as JSON with exit 1 — returned as it came, like file move. Only a
+    comes back as JSON with exit 1 — returned as it came, like file move. `operator`
+    names the Contao user acting (the copy commands: author and language of the copy
+    mark); empty sends none. Only a
     failure without JSON raises, with the hint naming the version a missing command
     needs.
     """
@@ -221,6 +223,7 @@ def run_move(backend, command: str, record_id: int, to: int | None = None,
         f"--to={int(to)}" if to is not None else "",
         f"--after={int(after)}" if after is not None else "",
         f"--ptable={shlex.quote(ptable)}" if ptable else "",
+        f"--operator={shlex.quote(operator)}" if operator else "",
         "--no-interaction",
     )
     result = backend.run(cmd, check=False)
