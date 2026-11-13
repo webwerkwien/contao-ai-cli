@@ -13,6 +13,7 @@ from click.testing import CliRunner
 from contao_ai_cli.cli.cli_article import article_copy_cmd
 from contao_ai_cli.cli.cli_content import content_copy_cmd
 from contao_ai_cli.core.contao_ops import run_move
+from contao_ai_cli.utils.contao_backend import ContaoBackendError
 
 COPIED = {"status": "ok", "id": 100, "sourceId": 40, "pid": 7, "ptable": "tl_article",
           "sorting": 192, "children": 3, "notCopied": []}
@@ -23,6 +24,24 @@ def _backend(payload: dict, returncode: int = 0) -> MagicMock:
     backend.run.return_value = {"stdout": json.dumps(payload), "returncode": returncode, "stderr": ""}
     backend.undefined_command_hint.return_value = ""
     return backend
+
+
+@pytest.mark.parametrize("command, named", [
+    ("contao:content:copy", "content copy failed"),
+    ("contao:article:copy", "article copy failed"),
+    ("contao:content:move", "content move failed"),
+])
+def test_a_failure_without_json_names_the_command_and_the_version_it_needs(command, named):
+    # An older core has no copy command: Symfony answers on stderr, not in JSON.
+    backend = MagicMock()
+    backend.run.return_value = {"stdout": "", "returncode": 1, "stderr": f'Command "{command}" is not defined.'}
+    backend.undefined_command_hint.return_value = "\nneeds core-bundle v1.17.0"
+
+    with pytest.raises(ContaoBackendError) as raised:
+        run_move(backend, command, 40)
+
+    assert named in str(raised.value)
+    assert "needs core-bundle v1.17.0" in str(raised.value)
 
 
 def test_without_a_target_only_the_id_goes_to_the_server():

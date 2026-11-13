@@ -206,12 +206,14 @@ def run_update(backend, command: str, record_id: int, fields: dict) -> dict:
 def run_move(backend, command: str, record_id: int, to: int | None = None,
              after: int | None = None, ptable: str | None = None, operator: str = "") -> dict:
     """
-    Run an <entity>:move command (core-bundle v1.2.0): the back end's cut and paste.
+    Run an <entity>:move command (core-bundle v1.2.0), the back end's cut and paste,
+    or an <entity>:copy command (core-bundle v1.17.0), its copy and paste.
 
     `to` puts the record behind the last child of that parent, `after` directly
-    behind that sibling, below its parent. The server computes the position and runs
-    every rule of an update, so a refusal (a root below a page, a page below itself)
-    comes back as JSON with exit 1 — returned as it came, like file move. `operator`
+    behind that sibling, below its parent; without either a copy goes directly
+    behind its source. The server computes the position and runs every rule, so a
+    refusal (a root below a page, a page below itself) comes back as JSON with
+    exit 1 — returned as it came, like file move. `operator`
     names the Contao user acting (the copy commands: author and language of the copy
     mark); empty sends none. Only a
     failure without JSON raises, with the hint naming the version a missing command
@@ -232,7 +234,7 @@ def run_move(backend, command: str, record_id: int, to: int | None = None,
     except json.JSONDecodeError:
         if result.get("returncode", 0) != 0:
             raise ContaoBackendError(
-                f"{command.split(':')[1]} move failed (exit {result['returncode']}): "
+                f"{' '.join(command.split(':')[1:])} failed (exit {result['returncode']}): "
                 f"{(result.get('stderr') or result['stdout'])[:500]}"
                 f"{backend.undefined_command_hint(result['stdout'], result.get('stderr', ''))}"
             ) from None
