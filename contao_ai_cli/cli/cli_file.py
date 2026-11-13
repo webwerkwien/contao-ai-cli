@@ -201,6 +201,18 @@ def file_write_cmd(ctx, path, content, as_json):
     _output(file_mod.file_write(b, path, content), as_json or ctx.obj.get("as_json"))
 
 
+@file.command("usages")
+@click.option("--path", required=True, help="File or folder path relative to Contao root, e.g. files/media/a.png")
+@click.option("--paths-only", is_flag=True, help="Only paths in text fields — what a rename or a move breaks")
+@click.option("--json", "as_json", is_flag=True)
+@click.pass_context
+def file_usages_cmd(ctx, path, paths_only, as_json):
+    """List where a file or folder is used: file fields by UUID, text fields by path."""
+    _require_core_bundle(ctx, "file usages")
+    b = _get_backend(ctx.obj.get("session"))
+    _output(file_mod.file_usages(b, path, paths_only), as_json or ctx.obj.get("as_json"))
+
+
 @file.command("read")
 @click.option("--path", required=True, help="File path relative to Contao root, e.g. files/scripts/style.css")
 @click.option("--json", "as_json", is_flag=True)

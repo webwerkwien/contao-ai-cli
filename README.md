@@ -159,7 +159,7 @@ so it cannot drift from what the CLI actually offers.
 | `example-website` | `import` | Contao's example websites (.sql), after an automatic backup (core-bundle v1.9.0) |
 | `ext` | `describe` `list` `run` | Console commands this CLI does not wrap — extensions, plugins, your own. `run` warns, records the invocation, and returns the foreign answer inside an envelope (`command_output`, `exit_code`) rather than as its own. A missing command is told whether an older core bundle is the reason |
 | `faq` | `categories` `category-create` `category-delete` `category-read` `category-update` `create` `delete` `list` `read` `update` | FAQ entries and their categories |
-| `file` | `delete` `folder-create` `folder-publish` `list` `meta` `move` `process` `read` `rename` `sync` `upload` `write` | Files in the file system |
+| `file` | `delete` `folder-create` `folder-publish` `list` `meta` `move` `process` `read` `rename` `sync` `upload` `usages` `write` | Files in the file system |
 | `form` | `create` `delete` `field-create` `field-delete` `field-read` `field-types` `field-update` `fields` `list` `read` `update` | Forms and their fields |
 | `image-size` | `create` `delete` `item-create` `item-delete` `item-read` `item-update` `items` `list` `read` `update` | Image sizes and their media-query variants (theme level) |
 | `language` | `check` `link` `versions` | Translation links of terminal42/contao-changelanguage (core-bundle v1.4.0, package on the server); `versions` lists a record's linked versions (core-bundle v1.11.0) |

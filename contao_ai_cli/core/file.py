@@ -138,6 +138,18 @@ def folder_publish(backend: ContaoBackend, path: str, unpublish: bool = False) -
     return run_json_or_raw(backend, cmd)
 
 
+def file_usages(backend: ContaoBackend, path: str, paths_only: bool = False) -> dict:
+    """Where a file or folder below files/ is used (core-bundle v1.18.0).
+
+    paths_only searches only for the path in text fields: Contao refers to files by UUID,
+    so these are the only references a rename or a move breaks.
+    """
+    cmd = f'contao:file:usages --path {shlex.quote(path)}'
+    if paths_only:
+        cmd += ' --paths-only'
+    return run_json_or_raw(backend, cmd)
+
+
 def file_delete(backend: ContaoBackend, path: str, force: bool = False) -> dict:
     """Delete a file or folder below files/ with its DBAFS records (core-bundle v0.18.0).
 

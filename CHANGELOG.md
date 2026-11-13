@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## Unreleased
+
+### Added
+
+- `file usages --path files/… [--paths-only]` lists where a file or folder is used; needs
+  contao-ai-core-bundle v1.18.0.
+
 ## v1.19.0 - 2026-11-13
 
 Needs contao-ai-core-bundle v1.17.0 for `content copy` and `article copy`; everything

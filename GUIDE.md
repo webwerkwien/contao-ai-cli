@@ -1464,6 +1464,18 @@ contao-ai-cli --json file rename --path files/conpai/icons --name symbols
   `cleanupWarning` says what may be left (`cache clear` helps). The log has *File or folder "…" has been renamed
   to "…"* with the operator. No version, no undo.
 
+**`file usages` lists where a file or folder is used** (core-bundle v1.18.0, CLI v1.20.0),
+with the same search `file delete` runs before it deletes:
+
+```bash
+contao-ai-cli --json file usages --path files/conpai/alt.png
+contao-ai-cli --json file usages --path files/conpai --paths-only   # before a rename or a move
+```
+
+Contao refers to files by UUID, so a rename or a move keeps those references; only a path
+written into a text field breaks. `--paths-only` searches for exactly these. `complete: false`
+means the list stopped at its limit.
+
 **`file delete` removes a file or folder with its `tl_files` records** (core-bundle v0.18.0,
 CLI v0.19.0) — as the back end does: the resource, a folder's symlink in the web dir, then
 the DBAFS, and a `tl_log` entry.
