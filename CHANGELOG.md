@@ -21,7 +21,9 @@ This file was reconstructed from the git history and the GitHub releases on 2026
 
 - **`record clone` marks the clone in the language of `--operator`** with
   contao-ai-core-bundle v1.17.0: "(Kopie)" for a Contao user working in German, "(copy)"
-  without `--operator`; aliases derived from the title follow. The agent guide says so.
+  without `--operator`; aliases derived from the title follow. With `--recursive` only the
+  cloned page is marked, its subpages keep their titles, as in the back end. The agent
+  guide says so.
 
 ## v1.18.1 - 2026-11-03
 

@@ -1571,11 +1571,13 @@ v1.7.4, articles from the start, element visibility since v0.22.0), exactly as C
 soon as its page and article are published. Up to v0.21.1 every cloned element was hidden,
 and a published clone showed an empty page. Subpages store no language; the root keeps its
 own or the one from `--modifications`.
-Cloned pages get Contao's copy mark in their title and Contao's alias from that title:
+The cloned page gets Contao's copy mark in its title and Contao's alias from that title:
 " (Kopie)" and `startseite-kopie` when `--operator` names a Contao user working in German,
-" (copy)" and `startseite-copy` without `--operator` (core-bundle v1.17.0; before, always
-German). Translate both afterwards with `page update`. **With folder URLs** (`useFolderUrl`
-on the root) the alias carries the path: `top-menu-folder-kopie/logout-kopie`. Set each
+" (copy)" and `startseite-copy` without `--operator`. Subpages keep their titles, as in the
+back end, and get their alias from those (core-bundle v1.17.0; before, every page got a
+German " (Kopie)"). Translate titles and aliases afterwards with `page update`. **With
+folder URLs** (`useFolderUrl` on the root) the alias carries the path:
+`top-menu-folder-kopie/logout`. Set each
 page's alias explicitly, flat or as the path you want; do not expect the short form. The
 cloned root goes behind the last root.
 
