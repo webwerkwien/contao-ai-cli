@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The project adheres to 
 
 This file was reconstructed from the git history and the GitHub releases on 2026-08-24, so entries before that date describe what the tags contain rather than what was written at release time.
 
+## v1.20.1 - 2026-11-20
+
+Works with the same core versions as v1.20.0.
+
+### Changed
+
+- The guide's section on Windows PowerShell 5.1 now covers unit fields such as `headline`:
+  the shell drops the inner double quotes of `--set 'headline={"value":"…","unit":"h1"}'`.
+  contao-ai-core-bundle v1.18.2 refuses what arrives; earlier versions stored it as the
+  headline text. The section also points to `--set-file` for JSON values.
+
 ## v1.20.0 - 2026-11-13
 
 Needs contao-ai-core-bundle v1.18.0 for `file usages`; everything else works with the same

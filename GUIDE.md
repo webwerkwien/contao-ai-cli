@@ -1108,6 +1108,9 @@ answered the raw PHP serialization.
 A value that **starts with `[` or `{` but is not valid JSON is refused** (core-bundle
 v0.26.0), exit 1, nothing written. Before, a list or table field stored it split at the
 commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with `ok`.
+Unit fields such as `headline` refuse a value that starts with `{` but is not the
+`{"value", "unit"}` object since core-bundle v1.18.2; before, it became the headline text
+with the stored or default unit. Insert tags at the start (`{{…}}`) are text and pass.
 
 > ⚠️ **Windows PowerShell 5.1 drops the double quotes inside an argument** when it calls a
 > native program such as `contao-ai-cli`. Measured:
@@ -1115,6 +1118,7 @@ commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with
 > | typed in PowerShell 5.1 | arrives as |
 > |---|---|
 > | `'listitems=["Eins","Zwei"]'` | `listitems=[Eins,Zwei]` — refused since core-bundle v0.26.0 |
+> | `'headline={"value":"Titel","unit":"h1"}'` | `headline={value:Titel,unit:h1}` — refused since core-bundle v1.18.2; before, **stored as the headline text** with the stored or default unit |
 > | `'<a href="https://x.y">L</a>'` (`--text`) | `<a href=https://x.y>L</a>` — **stored without error** |
 > | `'listitems=[\"Eins\",\"Zwei\"]'` | `listitems=["Eins","Zwei"]` ✅ |
 > | `'listitems=[\"Erster Punkt\"]'` | **split into two arguments** at the space — `Got unexpected extra argument` |
@@ -1137,6 +1141,9 @@ commas — `listitems=[Eins,Zwei,Drei]` became `['[Eins', 'Zwei', 'Drei]']` with
 > Measured against a Contao 5 installation and read back unchanged. After `--%` PowerShell expands no
 > `$variables` (only `%NAME%`), so put the literal values in the line. For a plain list the
 > comma form needs no inner quotes at all: `--set 'listitems=Erster Punkt,Zweiter Punkt'`.
+> Or keep the value away from the shell altogether: write the JSON to a file and pass
+> `--set-file headline=headline.json` (see `--set-file` above); a trailing newline in the
+> file does not disturb the JSON.
 >
 > Not in PowerShell 7.3+: there `$PSNativeCommandArgumentPassing` passes quotes through, so
 > plain JSON in single quotes is right and `\"` would arrive as a literal backslash — refused
